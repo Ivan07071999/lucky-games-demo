@@ -13,21 +13,46 @@
 - **Анимация** — PixiSpine и GSAP.
 - **Аудио** — PixiSound.
 
+## Структура проекта
+
+```text
+src/
+├─ app/                    # корневая оболочка и маршрутизация
+├─ pages/
+│  ├─ catalog/             # выбор игры
+│  └─ game/                # страница выбранной игры
+├─ games/
+│  ├─ shared/              # общий код игр: pixi/ и network/
+│  ├─ slot-one/
+│  │  ├─ network/
+│  │  ├─ domain/
+│  │  ├─ stores/
+│  │  ├─ ui/react/
+│  │  ├─ ui/pixi/
+│  │  └─ assets/
+│  └─ slot-two/            # те же слои, что у slot-one
+└─ shared/ui/              # общие React-компоненты приложения
+```
+
+`slot-one` и `slot-two` — временные имена до выбора названий игр. Пока в папках есть только `.gitkeep`; реализация слоёв появится после уточнения игровых требований.
+
 ## Технологический стек
 
-| Область               | Технологии                                |
-| --------------------- | ----------------------------------------- |
-| Клиентское приложение | React, TypeScript, Tailwind CSS           |
-| Маршрутизация         | React Router DOM                          |
-| 2D-графика игр        | PixiJS 8, интеграция с React              |
-| Анимация              | PixiSpine, GSAP                           |
-| Аудио                 | PixiSound                                 |
-| Управление состоянием | MobX                                      |
-| Сборка и dev-сервер   | Vite                                      |
-| Тестирование          | Vitest, React Testing Library, Playwright |
-| Качество кода         | ESLint, Prettier                          |
-| Пакетный менеджер     | pnpm                                      |
-| Git workflow и хуки   | Git Flow, Husky                           |
+| Область               | Технологии                                          |
+| --------------------- | --------------------------------------------------- |
+| Клиентское приложение | React, TypeScript, Tailwind CSS                     |
+| Маршрутизация         | React Router DOM                                    |
+| 2D-графика игр        | PixiJS 8, @pixi/react                               |
+| Анимация              | PixiSpine (`@esotericsoftware/spine-pixi-v8`), GSAP |
+| Аудио                 | PixiSound (`@pixi/sound`)                           |
+| Управление состоянием | MobX, mobx-react-lite                               |
+| Сборка и dev-сервер   | Vite                                                |
+| Тестирование          | Vitest, React Testing Library, Playwright           |
+| Качество кода         | ESLint, Prettier                                    |
+| Пакетный менеджер     | pnpm                                                |
+| Git workflow и хуки   | Git Flow, Husky                                     |
+
+Версию Spine runtime нужно согласовать с версией Spine Editor, из которой будут экспортированы игровые ассеты. Сейчас установлен runtime 4.3.x.
 
 ## Проверки и тестирование
 
