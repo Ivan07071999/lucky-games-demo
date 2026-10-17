@@ -1,1 +1,101 @@
 @import 'tailwindcss';
+
+@theme {
+  --font-sans: 'Manrope Variable', sans-serif;
+}
+
+body {
+  font-family: var(--font-sans);
+}
+
+:root {
+  color-scheme: dark;
+  --page-bg: #0b0c12;
+  --surface-card: #12131a;
+  --surface-hero: #15151e;
+  --surface-soft: rgb(255 255 255 / 3.5%);
+  --text-primary: #fff;
+  --text-muted: rgb(255 255 255 / 55%);
+  --text-subtle: rgb(255 255 255 / 40%);
+  --text-accent: #d6f99b;
+  --border-subtle: rgb(255 255 255 / 8%);
+  --grid-line: rgb(255 255 255 / 1.8%);
+}
+
+[data-theme='light'] {
+  color-scheme: light;
+  --page-bg: #f4f3ef;
+  --surface-card: #fff;
+  --surface-hero: #fff;
+  --surface-soft: rgb(31 29 45 / 4%);
+  --text-primary: #211f2b;
+  --text-muted: rgb(42 39 55 / 67%);
+  --text-subtle: rgb(42 39 55 / 48%);
+  --text-accent: #647d2b;
+  --border-subtle: rgb(42 39 55 / 12%);
+  --grid-line: rgb(42 39 55 / 3%);
+}
+
+@layer utilities {
+  .theme-page {
+    background-color: var(--page-bg);
+    color: var(--text-primary);
+  }
+
+  .theme-surface {
+    background-color: var(--surface-card);
+  }
+
+  .theme-hero {
+    background-color: var(--surface-hero);
+  }
+
+  .theme-soft {
+    background-color: var(--surface-soft);
+  }
+
+  .theme-primary {
+    color: var(--text-primary);
+  }
+
+  .theme-muted {
+    color: var(--text-muted);
+  }
+
+  .theme-subtle {
+    color: var(--text-subtle);
+  }
+
+  .theme-accent {
+    color: var(--text-accent);
+  }
+
+  .theme-placeholder::placeholder {
+    color: var(--text-subtle);
+  }
+
+  .theme-border {
+    border-color: var(--border-subtle);
+  }
+
+  .theme-grid {
+    background-image:
+      linear-gradient(var(--grid-line) 1px, transparent 1px),
+      linear-gradient(90deg, var(--grid-line) 1px, transparent 1px);
+  }
+
+  .theme-hero-overlay {
+    background-image:
+      radial-gradient(ellipse at 75% 30%, rgb(110 76 181 / 14%), transparent 38%),
+      linear-gradient(115deg, var(--surface-soft), transparent 48%);
+  }
+
+  .theme-control {
+    color: var(--text-muted);
+    background-color: var(--surface-soft);
+  }
+
+  .theme-control:hover {
+    color: var(--text-primary);
+  }
+}
