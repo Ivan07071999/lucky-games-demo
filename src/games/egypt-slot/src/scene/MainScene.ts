@@ -1,15 +1,11 @@
-import { Container, Sprite } from 'pixi.js'
-import type { GameContext } from '../runtime/GameContext'
+import { Container, Sprite, type Texture } from 'pixi.js'
 
 export class MainScene extends Container {
-  readonly gameContext: GameContext
   private readonly background: Sprite
 
-  constructor(gameContext: GameContext) {
+  constructor(backgroundTexture: Texture) {
     super()
-    this.gameContext = gameContext
-    const texture = gameContext.controllers.assets.loader.getImage('scene', 'background')
-    this.background = new Sprite(texture)
+    this.background = new Sprite(backgroundTexture)
     this.background.anchor.set(0.5)
     this.addChild(this.background)
   }

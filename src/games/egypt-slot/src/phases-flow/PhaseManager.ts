@@ -7,15 +7,23 @@ export interface Phase<State extends string> {
 export class PhaseManager<State extends string> {
   private readonly initial: State
   private readonly phases: Record<State, Phase<State>>
+  private readonly transitions: Record<State, readonly State[]>
   private readonly cleanup: () => void
   private activePhase: Phase<State> | null = null
   private activeState: State | null = null
   private started = false
   private stopped = false
+  private transitioning = false
 
-  constructor(initial: State, phases: Record<State, Phase<State>>, cleanup: () => void) {
+  constructor(
+    initial: State,
+    phases: Record<State, Phase<State>>,
+    transitions: Record<State, readonly State[]>,
+    cleanup: () => void,
+  ) {
     this.initial = initial
     this.phases = phases
+    this.transitions = transitions
     this.cleanup = cleanup
   }
 
@@ -26,35 +34,55 @@ export class PhaseManager<State extends string> {
   async start(): Promise<void> {
     if (this.started || this.stopped) return
     this.started = true
+    await this.advance(this.initial)
+  }
 
-    let next: State | null = this.initial
+  async transition(next: State): Promise<void> {
+    if (!this.started || this.stopped || this.transitioning || !this.activeState) return
+    await this.advance(next)
+  }
+
+  private async advance(initial: State): Promise<void> {
+    if (this.transitioning) return
+    this.transitioning = true
+    let next: State | null = initial
 
     try {
       while (next !== null && !this.stopped) {
+        if (this.activeState && !this.transitions[this.activeState].includes(next)) {
+          throw new Error(`Invalid phase transition: ${this.activeState} -> ${next}`)
+        }
+
+        this.leaveActive()
         const phase: Phase<State> = this.phases[next]
         this.activePhase = phase
         this.activeState = next
 
         next = await phase.enter()
-        if (this.stopped || next === null) return
-
-        phase.exit?.()
-        this.activePhase = null
-        this.activeState = null
       }
     } catch (error) {
       this.stop()
       throw error
+    } finally {
+      this.transitioning = false
     }
+  }
+
+  private leaveActive(): void {
+    const phase = this.activePhase
+    this.activePhase = null
+    this.activeState = null
+    phase?.exit?.()
   }
 
   stop(): void {
     if (this.stopped) return
 
     this.stopped = true
-    this.activePhase?.exit?.()
-    this.activePhase = null
-    this.activeState = null
-    this.cleanup()
+    try {
+      this.leaveActive()
+    } finally {
+      this.cleanup()
+    }
   }
 }

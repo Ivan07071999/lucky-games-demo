@@ -22,7 +22,7 @@ export class IdlePhase implements Phase<EgyptPhase> {
     const application = this.context.controllers.application.current
     if (!application) throw new Error('PixiJS application is not initialized')
 
-    const scene = new MainScene(this.context)
+    const scene = new MainScene(this.context.controllers.assets.getBackground())
     this.application = application
     this.scene = scene
 

@@ -14,12 +14,22 @@ export class ApplicationController {
 
     const application = new Application()
 
-    await application.init({
-      canvas,
-      resizeTo: window,
-      background: 0x1b1621,
-      antialias: true,
-    })
+    try {
+      await application.init({
+        canvas,
+        resizeTo: window,
+        background: 0x1b1621,
+        antialias: true,
+      })
+    } catch (error) {
+      try {
+        if (application.renderer) application.destroy()
+        else application.stage.destroy({ children: true })
+      } catch (cleanupError) {
+        console.warn('Failed to clean up PixiJS after initialization error', cleanupError)
+      }
+      throw error
+    }
 
     if (this.cancelled) {
       application.destroy()

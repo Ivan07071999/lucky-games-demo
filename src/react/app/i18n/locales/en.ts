@@ -45,6 +45,9 @@ const en = {
     },
     game: {
       canvasLabel: 'Golden Temple game canvas',
+      loading: 'Loading the game…',
+      loadError: 'Could not load the game',
+      retry: 'Retry',
     },
     footer: { tagline: 'Play at your own pace' },
   },

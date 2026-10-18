@@ -1,1 +1,1 @@
-export type EgyptPhase = 'init' | 'loading' | 'idle'
+export type EgyptPhase = 'init' | 'loading' | 'idle' | 'error'

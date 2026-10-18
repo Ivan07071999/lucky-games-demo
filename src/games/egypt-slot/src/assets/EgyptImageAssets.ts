@@ -2,7 +2,7 @@ import { egyptAssetUrl } from './egyptAssetUrl'
 
 export class EgyptImageAssets {
   static readonly scene = {
-    background: egyptAssetUrl('PNG/background/background.png'),
+    background: egyptAssetUrl('PNG/background/background.webp'),
     anubis: egyptAssetUrl('PNG/characters/anubis.png'),
     anubisFrame: egyptAssetUrl('PNG/characters/anubis_frame.png'),
     logoLong: egyptAssetUrl('PNG/logo/logo_long.png'),

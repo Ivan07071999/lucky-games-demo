@@ -1,4 +1,4 @@
-import { ApplicationController } from './aplication-controller/ApplicationController'
+import { ApplicationController } from './application-controller/ApplicationController'
 import { AssetsController } from './assets-controller/AssetsController'
 
 export class Controller {
@@ -6,6 +6,7 @@ export class Controller {
   readonly assets = new AssetsController()
 
   destroy(): void {
+    this.assets.destroy()
     this.application.destroy()
   }
 }
