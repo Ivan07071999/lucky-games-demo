@@ -1,4 +1,5 @@
 import { useTranslation } from 'react-i18next'
+import { Link } from 'react-router-dom'
 import { ArrowIcon } from '../../../shared/ui/icons'
 import { GameArtwork } from './GameArtwork'
 import type { Game } from '../model/games'
@@ -11,14 +12,10 @@ type GameCardProps = {
 
 export function GameCard({ game, isSelected, onSelect }: GameCardProps) {
   const { t } = useTranslation()
+  const className = `theme-border theme-surface group rounded-[1.65rem] border p-3 text-left transition duration-300 focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-[#849e42] ${isSelected ? 'border-[#9ab847] bg-[#c7f36b]/[0.12] shadow-[0_0_36px_rgba(199,243,107,0.12)]' : 'hover:-translate-y-1 hover:border-[#9ab847]/50 hover:bg-[var(--surface-soft)]'}`
 
-  return (
-    <button
-      type="button"
-      aria-pressed={isSelected}
-      onClick={onSelect}
-      className={`theme-border theme-surface group rounded-[1.65rem] border p-3 text-left transition duration-300 focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-[#849e42] ${isSelected ? 'border-[#9ab847] bg-[#c7f36b]/[0.12] shadow-[0_0_36px_rgba(199,243,107,0.12)]' : 'hover:-translate-y-1 hover:border-[#9ab847]/50 hover:bg-[var(--surface-soft)]'}`}
-    >
+  const content = (
+    <>
       <div className="relative">
         <GameArtwork palette={game.palette} label={t(`games.${game.translationKey}.artwork`)} />
         <span
@@ -50,6 +47,20 @@ export function GameCard({ game, isSelected, onSelect }: GameCardProps) {
           <ArrowIcon />
         </span>
       </div>
+    </>
+  )
+
+  if (game.path) {
+    return (
+      <Link to={game.path} className={className}>
+        {content}
+      </Link>
+    )
+  }
+
+  return (
+    <button type="button" aria-pressed={isSelected} onClick={onSelect} className={className}>
+      {content}
     </button>
   )
 }

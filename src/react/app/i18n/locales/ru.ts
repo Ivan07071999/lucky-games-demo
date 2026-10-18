@@ -43,6 +43,9 @@ const ru = {
         category: 'Приключение · Классика',
       },
     },
+    game: {
+      canvasLabel: 'Игровое поле «Золотой храм»',
+    },
     footer: { tagline: 'Играй в своём ритме' },
   },
 } as const

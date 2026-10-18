@@ -43,6 +43,9 @@ const en = {
         category: 'Adventure · Classic',
       },
     },
+    game: {
+      canvasLabel: 'Golden Temple game canvas',
+    },
     footer: { tagline: 'Play at your own pace' },
   },
 } as const
