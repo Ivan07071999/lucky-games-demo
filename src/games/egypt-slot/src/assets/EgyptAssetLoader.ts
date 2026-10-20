@@ -4,6 +4,7 @@ import { type EgyptImageAssetKey } from './EgyptImageAssetKey'
 import { EgyptSpineAssets } from './EgyptSpineAssets'
 
 const imageBundles = {
+  buttons: EgyptImageAssets.buttons,
   scene: EgyptImageAssets.scene,
   symbols: EgyptImageAssets.symbols,
   popups: EgyptImageAssets.popups,
@@ -26,6 +27,12 @@ export class EgyptAssetLoader {
     return `egypt.${group}.${String(asset)}`
   }
 
+  async loadAllImages(): Promise<void> {
+    await Promise.all(
+      (Object.keys(imageBundles) as EgyptImageBundle[]).map((group) => this.loadImages(group)),
+    )
+  }
+
   async loadImages(group: EgyptImageBundle): Promise<Record<string, Texture>> {
     this.registerBundles()
     const names = Object.keys(imageBundles[group])
@@ -41,12 +48,6 @@ export class EgyptAssetLoader {
   loadImage(asset: EgyptImageAssetKey): Promise<Texture> {
     this.registerBundles()
     return this.acquireImage(asset)
-  }
-
-  getImage(asset: EgyptImageAssetKey): Texture {
-    const texture = Assets.get<Texture>(asset)
-    if (!texture) throw new Error(`Image asset ${asset} has not been loaded`)
-    return texture
   }
 
   async loadSpine() {

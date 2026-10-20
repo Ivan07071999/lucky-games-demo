@@ -11,20 +11,16 @@ export class AssetsController {
   readonly spine = EgyptSpineAssets
   readonly loader = new EgyptAssetLoader()
 
+  loadAllImages(): Promise<void> {
+    return this.loader.loadAllImages()
+  }
+
   loadBackground() {
     return this.loader.loadImage(EgyptImageAssetKey.scene.background)
   }
 
-  getBackground() {
-    return this.loader.getImage(EgyptImageAssetKey.scene.background)
-  }
-
   loadImage(asset: EgyptImageAssetKeyType) {
     return this.loader.loadImage(asset)
-  }
-
-  getImage(asset: EgyptImageAssetKeyType) {
-    return this.loader.getImage(asset)
   }
 
   destroy(): void {

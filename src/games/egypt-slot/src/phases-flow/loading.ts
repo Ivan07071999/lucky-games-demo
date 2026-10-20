@@ -1,6 +1,5 @@
 import type { ApplicationController } from '../controllers/application-controller/ApplicationController'
 import type { AssetsController } from '../controllers/assets-controller/AssetsController'
-import { EgyptImageAssetKey } from '../assets'
 import { StatusScene } from '../scene/StatusScene'
 import type { Phase } from './PhaseManager'
 import { PhaseName, type NextPhase } from './types'
@@ -29,10 +28,7 @@ export class LoadingPhase implements Phase<
 
     this.status = new StatusScene(this.message).show(application)
 
-    await Promise.all([
-      this.assets.loadBackground(),
-      this.assets.loadImage(EgyptImageAssetKey.scene.reelFrameFilled),
-    ])
+    await this.assets.loadAllImages()
     signal.throwIfAborted()
     return PhaseName.idle
   }

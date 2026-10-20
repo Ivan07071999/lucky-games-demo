@@ -1,5 +1,4 @@
 import { Controller } from '../controllers/controller'
-import { EgyptImageAssetKey } from '../assets'
 import { ReelsMachine } from '../reelsMachine/ReelsMachine'
 
 export type GameMessages = {
@@ -19,10 +18,7 @@ export class GameContext {
 
   get reelsMachine(): ReelsMachine {
     if (!this.reelsMachineInstance || this.reelsMachineInstance.destroyed) {
-      const reelFrameTexture = this.controllers.assets.getImage(
-        EgyptImageAssetKey.scene.reelFrameFilled,
-      )
-      this.reelsMachineInstance = new ReelsMachine(reelFrameTexture)
+      this.reelsMachineInstance = new ReelsMachine()
     }
 
     return this.reelsMachineInstance

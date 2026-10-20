@@ -13,6 +13,7 @@ function createAssetKeys<Group extends ImageAssetGroup>(
 }
 
 export const EgyptImageAssetKey = {
+  buttons: createAssetKeys('buttons', EgyptImageAssets.buttons),
   scene: createAssetKeys('scene', EgyptImageAssets.scene),
   symbols: createAssetKeys('symbols', EgyptImageAssets.symbols),
   popups: createAssetKeys('popups', EgyptImageAssets.popups),

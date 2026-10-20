@@ -1,6 +1,13 @@
 import { egyptAssetUrl } from './egyptAssetUrl'
 
 export class EgyptImageAssets {
+  static readonly buttons = {
+    left: egyptAssetUrl('PNG/buttons/button_left.png'),
+    panelBackground: egyptAssetUrl('PNG/background/panel_background.png'),
+    right: egyptAssetUrl('PNG/buttons/button_right.png'),
+    spinButton: egyptAssetUrl('PNG/buttons/spin_button.png'),
+  } as const
+
   static readonly scene = {
     background: egyptAssetUrl('PNG/background/background.webp'),
     anubis: egyptAssetUrl('PNG/characters/anubis.png'),
