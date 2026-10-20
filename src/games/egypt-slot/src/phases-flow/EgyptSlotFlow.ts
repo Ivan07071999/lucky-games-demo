@@ -1,37 +1,21 @@
 import { GameContext, type GameMessages } from '../runtime/GameContext'
-import { ErrorPhase } from './error'
+import { MainScene } from '../scene/MainScene'
 import { IdlePhase } from './idle'
 import { InitPhase } from './init'
 import { LoadingPhase } from './loading'
-import { PhaseManager } from './PhaseManager'
-import type { EgyptPhase } from './types'
+import { PhaseManager, type PhaseRegistry } from './PhaseManager'
+import { PhaseName, phaseTransitions } from './types'
 
-export class EgyptSlotFlow extends PhaseManager<EgyptPhase> {
+export class EgyptSlotFlow extends PhaseManager<PhaseName, typeof phaseTransitions> {
   constructor(canvas: HTMLCanvasElement, messages: GameMessages) {
     const context = new GameContext(canvas, messages)
-    const errorPhase = new ErrorPhase(context)
+    const { application, assets } = context.controllers
+    const phases = {
+      [PhaseName.init]: new InitPhase(application, canvas),
+      [PhaseName.loading]: new LoadingPhase(application, assets, messages.loading),
+      [PhaseName.idle]: new IdlePhase(application, () => new MainScene(context)),
+    } satisfies PhaseRegistry<PhaseName, typeof phaseTransitions>
 
-    super(
-      'init',
-      {
-        init: new InitPhase(context),
-        loading: new LoadingPhase(context),
-        idle: new IdlePhase(context),
-        error: errorPhase,
-      },
-      {
-        init: ['loading'],
-        loading: ['idle', 'error'],
-        idle: [],
-        error: ['loading'],
-      },
-      () => context.destroy(),
-    )
-
-    errorPhase.onRetry = () => {
-      void this.transition('loading').catch((error: unknown) => {
-        console.error('Failed to retry Egypt slot loading', error)
-      })
-    }
+    super(PhaseName.init, phases, phaseTransitions, () => context.destroy())
   }
 }

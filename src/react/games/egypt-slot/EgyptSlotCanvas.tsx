@@ -6,20 +6,18 @@ export function EgyptSlotCanvas() {
   const { t } = useTranslation()
   const canvasRef = useRef<HTMLCanvasElement>(null)
   const loading = t('game.loading')
-  const loadError = t('game.loadError')
-  const retry = t('game.retry')
 
   useEffect(() => {
     const canvas = canvasRef.current
     if (!canvas) return
 
-    const flow = new EgyptSlotFlow(canvas, { loading, loadError, retry })
+    const flow = new EgyptSlotFlow(canvas, { loading })
     void flow.start().catch((error: unknown) => {
       console.error('Failed to initialize Egypt slot', error)
     })
 
     return () => flow.stop()
-  }, [loading, loadError, retry])
+  }, [loading])
 
   return (
     <canvas

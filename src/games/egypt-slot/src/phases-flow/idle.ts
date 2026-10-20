@@ -1,16 +1,20 @@
 import type { Application } from 'pixi.js'
-import type { GameContext } from '../runtime/GameContext'
+import type { ApplicationController } from '../controllers/application-controller/ApplicationController'
 import { MainScene } from '../scene/MainScene'
 import type { Phase } from './PhaseManager'
-import type { EgyptPhase } from './types'
+import { PhaseName, type NextPhase } from './types'
 
-export class IdlePhase implements Phase<EgyptPhase> {
-  private readonly context: GameContext
+export class IdlePhase implements Phase<typeof PhaseName.idle, NextPhase<typeof PhaseName.idle>> {
+  readonly name = PhaseName.idle
+
+  private readonly applicationController: ApplicationController
+  private readonly createScene: () => MainScene
   private application: Application | null = null
   private scene: MainScene | null = null
 
-  constructor(context: GameContext) {
-    this.context = context
+  constructor(application: ApplicationController, createScene: () => MainScene) {
+    this.applicationController = application
+    this.createScene = createScene
   }
 
   private readonly resizeScene = () => {
@@ -18,11 +22,12 @@ export class IdlePhase implements Phase<EgyptPhase> {
     this.scene.resize(this.application.screen.width, this.application.screen.height)
   }
 
-  enter(): null {
-    const application = this.context.controllers.application.current
+  async enter(signal: AbortSignal): Promise<never> {
+    signal.throwIfAborted()
+    const application = this.applicationController.current
     if (!application) throw new Error('PixiJS application is not initialized')
 
-    const scene = new MainScene(this.context.controllers.assets.getBackground())
+    const scene = this.createScene()
     this.application = application
     this.scene = scene
 
@@ -30,7 +35,10 @@ export class IdlePhase implements Phase<EgyptPhase> {
     application.renderer.on('resize', this.resizeScene)
     this.resizeScene()
 
-    return null
+    return new Promise<never>((_resolve, reject) => {
+      signal.addEventListener('abort', () => reject(signal.reason), { once: true })
+      if (signal.aborted) reject(signal.reason)
+    })
   }
 
   exit(): void {

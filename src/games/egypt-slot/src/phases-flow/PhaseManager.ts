@@ -1,24 +1,28 @@
-export interface Phase<State extends string> {
-  // Return null to remain active until the flow is stopped.
-  enter(): State | null | Promise<State | null>
+export interface Phase<Name extends string, Next extends string = string> {
+  readonly name: Name
+  enter(signal: AbortSignal): Promise<Next>
   exit?(): void
 }
 
-export class PhaseManager<State extends string> {
+export type PhaseRegistry<State extends string, Graph extends Record<State, readonly State[]>> = {
+  [Name in State]: Phase<Name, Graph[Name][number]>
+}
+
+export class PhaseManager<State extends string, Graph extends Record<State, readonly State[]>> {
+  private readonly abortController = new AbortController()
   private readonly initial: State
-  private readonly phases: Record<State, Phase<State>>
-  private readonly transitions: Record<State, readonly State[]>
+  private readonly phases: PhaseRegistry<State, Graph>
+  private readonly transitions: Graph
   private readonly cleanup: () => void
-  private activePhase: Phase<State> | null = null
+  private activePhase: Phase<State, State> | null = null
   private activeState: State | null = null
   private started = false
   private stopped = false
-  private transitioning = false
 
   constructor(
     initial: State,
-    phases: Record<State, Phase<State>>,
-    transitions: Record<State, readonly State[]>,
+    phases: PhaseRegistry<State, Graph>,
+    transitions: Graph,
     cleanup: () => void,
   ) {
     this.initial = initial
@@ -34,37 +38,29 @@ export class PhaseManager<State extends string> {
   async start(): Promise<void> {
     if (this.started || this.stopped) return
     this.started = true
-    await this.advance(this.initial)
-  }
 
-  async transition(next: State): Promise<void> {
-    if (!this.started || this.stopped || this.transitioning || !this.activeState) return
-    await this.advance(next)
-  }
-
-  private async advance(initial: State): Promise<void> {
-    if (this.transitioning) return
-    this.transitioning = true
-    let next: State | null = initial
+    let next = this.initial
 
     try {
-      while (next !== null && !this.stopped) {
+      while (!this.stopped) {
         if (this.activeState && !this.transitions[this.activeState].includes(next)) {
           throw new Error(`Invalid phase transition: ${this.activeState} -> ${next}`)
         }
 
         this.leaveActive()
-        const phase: Phase<State> = this.phases[next]
+
+        const phase = this.phases[next]
+        if (phase.name !== next) throw new Error(`Phase ${next} has the wrong name`)
+
         this.activePhase = phase
         this.activeState = next
 
-        next = await phase.enter()
+        next = await phase.enter(this.abortController.signal)
       }
     } catch (error) {
+      if (this.stopped) return
       this.stop()
       throw error
-    } finally {
-      this.transitioning = false
     }
   }
 
@@ -79,6 +75,7 @@ export class PhaseManager<State extends string> {
     if (this.stopped) return
 
     this.stopped = true
+    this.abortController.abort()
     try {
       this.leaveActive()
     } finally {
