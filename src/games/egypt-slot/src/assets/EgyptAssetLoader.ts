@@ -1,5 +1,6 @@
 import { Assets, type Texture } from 'pixi.js'
 import { EgyptImageAssets } from './EgyptImageAssets'
+import { type EgyptImageAssetKey } from './EgyptImageAssetKey'
 import { EgyptSpineAssets } from './EgyptSpineAssets'
 
 const imageBundles = {
@@ -9,8 +10,6 @@ const imageBundles = {
 } as const
 
 export type EgyptImageBundle = keyof typeof imageBundles
-type EgyptImageAsset<Group extends EgyptImageBundle> = keyof (typeof imageBundles)[Group]
-
 type ImageLease = {
   users: number
   promise: Promise<Texture>
@@ -39,18 +38,14 @@ export class EgyptAssetLoader {
     return Object.fromEntries(textures)
   }
 
-  loadImage<Group extends EgyptImageBundle>(
-    group: Group,
-    asset: EgyptImageAsset<Group>,
-  ): Promise<Texture> {
+  loadImage(asset: EgyptImageAssetKey): Promise<Texture> {
     this.registerBundles()
-    return this.acquireImage(EgyptAssetLoader.alias(group, asset))
+    return this.acquireImage(asset)
   }
 
-  getImage<Group extends EgyptImageBundle>(group: Group, asset: EgyptImageAsset<Group>): Texture {
-    const alias = EgyptAssetLoader.alias(group, asset)
-    const texture = Assets.get<Texture>(alias)
-    if (!texture) throw new Error(`Image asset ${alias} has not been loaded`)
+  getImage(asset: EgyptImageAssetKey): Texture {
+    const texture = Assets.get<Texture>(asset)
+    if (!texture) throw new Error(`Image asset ${asset} has not been loaded`)
     return texture
   }
 

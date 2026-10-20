@@ -8,17 +8,16 @@ export class IdlePhase implements Phase<typeof PhaseName.idle, NextPhase<typeof 
   readonly name = PhaseName.idle
 
   private readonly applicationController: ApplicationController
-  private readonly createScene: () => MainScene
+  private readonly scene: MainScene
   private application: Application | null = null
-  private scene: MainScene | null = null
 
-  constructor(application: ApplicationController, createScene: () => MainScene) {
+  constructor(application: ApplicationController, scene: MainScene) {
     this.applicationController = application
-    this.createScene = createScene
+    this.scene = scene
   }
 
   private readonly resizeScene = () => {
-    if (!this.application || !this.scene) return
+    if (!this.application) return
     this.scene.resize(this.application.screen.width, this.application.screen.height)
   }
 
@@ -27,11 +26,10 @@ export class IdlePhase implements Phase<typeof PhaseName.idle, NextPhase<typeof 
     const application = this.applicationController.current
     if (!application) throw new Error('PixiJS application is not initialized')
 
-    const scene = this.createScene()
+    this.scene.initialize()
     this.application = application
-    this.scene = scene
 
-    application.stage.addChild(scene)
+    application.stage.addChild(this.scene)
     application.renderer.on('resize', this.resizeScene)
     this.resizeScene()
 
@@ -42,12 +40,11 @@ export class IdlePhase implements Phase<typeof PhaseName.idle, NextPhase<typeof 
   }
 
   exit(): void {
-    if (!this.application || !this.scene) return
+    if (!this.application) return
 
     this.application.renderer.off('resize', this.resizeScene)
     this.application.stage.removeChild(this.scene)
     this.scene.destroy({ children: true })
     this.application = null
-    this.scene = null
   }
 }
