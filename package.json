@@ -14,6 +14,7 @@
     "format": "prettier --write .",
     "format:check": "prettier --check .",
     "assets:optimize": "node scripts/optimize-egypt-assets.mjs",
+    "assets:font:bold": "node scripts/generate-bold-bitmap-font.mjs",
     "prepare": "husky",
     "preview": "vite preview"
   },

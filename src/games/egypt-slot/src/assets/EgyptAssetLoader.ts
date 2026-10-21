@@ -35,7 +35,10 @@ export class EgyptAssetLoader {
   }
 
   async loadAll(): Promise<void> {
-    await Promise.all([this.loadAllImages(), Assets.load(EgyptBitmapFontAssets.casinoGold)])
+    await Promise.all([
+      this.loadAllImages(),
+      Assets.load([EgyptBitmapFontAssets.casinoGold, EgyptBitmapFontAssets.casinoGoldBold]),
+    ])
   }
 
   async loadImages(group: EgyptImageBundle): Promise<Record<string, Texture>> {
