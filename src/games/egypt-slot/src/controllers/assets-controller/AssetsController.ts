@@ -15,6 +15,10 @@ export class AssetsController {
     return this.loader.loadAllImages()
   }
 
+  loadAll(): Promise<void> {
+    return this.loader.loadAll()
+  }
+
   loadBackground() {
     return this.loader.loadImage(EgyptImageAssetKey.scene.background)
   }

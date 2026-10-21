@@ -28,7 +28,7 @@ export class LoadingPhase implements Phase<
 
     this.status = new StatusScene(this.message).show(application)
 
-    await this.assets.loadAllImages()
+    await this.assets.loadAll()
     signal.throwIfAborted()
     return PhaseName.idle
   }

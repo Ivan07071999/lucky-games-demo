@@ -1,4 +1,5 @@
 import { Assets, type Texture } from 'pixi.js'
+import { EgyptBitmapFontAssets } from './EgyptBitmapFontAssets'
 import { EgyptImageAssets } from './EgyptImageAssets'
 import { type EgyptImageAssetKey } from './EgyptImageAssetKey'
 import { EgyptSpineAssets } from './EgyptSpineAssets'
@@ -31,6 +32,10 @@ export class EgyptAssetLoader {
     await Promise.all(
       (Object.keys(imageBundles) as EgyptImageBundle[]).map((group) => this.loadImages(group)),
     )
+  }
+
+  async loadAll(): Promise<void> {
+    await Promise.all([this.loadAllImages(), Assets.load(EgyptBitmapFontAssets.casinoGold)])
   }
 
   async loadImages(group: EgyptImageBundle): Promise<Record<string, Texture>> {
