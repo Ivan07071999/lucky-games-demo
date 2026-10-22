@@ -1,5 +1,5 @@
-import { EgyptImageAssetKey } from '../../assets'
-import { BetActionButton } from './bet-action-button'
+import { EgyptImageAssetKey } from '../../assets';
+import { BetActionButton } from './bet-action-button';
 
 export class MaxBetButton extends BetActionButton {
   constructor(width: number, height: number) {
@@ -8,6 +8,6 @@ export class MaxBetButton extends BetActionButton {
       label: 'bet-panel-right-button',
       textLabel: 'max-bet-label',
       text: 'MAX\nBET',
-    })
+    });
   }
 }

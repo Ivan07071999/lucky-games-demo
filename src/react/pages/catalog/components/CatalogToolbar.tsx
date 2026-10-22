@@ -1,12 +1,12 @@
-import { useTranslation } from 'react-i18next'
-import { SearchIcon } from '../../../shared/ui/icons'
+import { useTranslation } from 'react-i18next';
+import { SearchIcon } from '../../../shared/ui/icons';
 
 type CatalogToolbarProps = {
-  gameCount: number
-  selectedGameTitle: string | null
-  search: string
-  onSearchChange: (search: string) => void
-}
+  gameCount: number;
+  selectedGameTitle: string | null;
+  search: string;
+  onSearchChange: (search: string) => void;
+};
 
 export function CatalogToolbar({
   gameCount,
@@ -14,7 +14,7 @@ export function CatalogToolbar({
   search,
   onSearchChange,
 }: CatalogToolbarProps) {
-  const { t } = useTranslation()
+  const { t } = useTranslation();
 
   return (
     <div className="flex flex-col gap-5 sm:flex-row sm:items-end sm:justify-between">
@@ -49,5 +49,5 @@ export function CatalogToolbar({
         />
       </label>
     </div>
-  )
+  );
 }

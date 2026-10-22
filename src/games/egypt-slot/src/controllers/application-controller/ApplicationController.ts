@@ -1,18 +1,18 @@
-import { Application } from 'pixi.js'
+import { Application } from 'pixi.js';
 
 export class ApplicationController {
-  private application: Application | null = null
-  private cancelled = false
+  private application: Application | null = null;
+  private cancelled = false;
 
   get current(): Application | null {
-    return this.application
+    return this.application;
   }
 
   async init(canvas: HTMLCanvasElement): Promise<Application | null> {
-    await Promise.resolve()
-    if (this.cancelled) return null
+    await Promise.resolve();
+    if (this.cancelled) return null;
 
-    const application = new Application()
+    const application = new Application();
 
     try {
       await application.init({
@@ -20,30 +20,30 @@ export class ApplicationController {
         resizeTo: window,
         background: 0x1b1621,
         antialias: true,
-      })
+      });
     } catch (error) {
       try {
-        if (application.renderer) application.destroy()
-        else application.stage.destroy({ children: true })
+        if (application.renderer) application.destroy();
+        else application.stage.destroy({ children: true });
       } catch (cleanupError) {
-        console.warn('Failed to clean up PixiJS after initialization error', cleanupError)
+        console.warn('Failed to clean up PixiJS after initialization error', cleanupError);
       }
-      throw error
+      throw error;
     }
 
     if (this.cancelled) {
-      application.destroy()
-      return null
+      application.destroy();
+      return null;
     }
 
-    this.application = application
+    this.application = application;
 
-    return application
+    return application;
   }
 
   destroy(): void {
-    this.cancelled = true
-    this.application?.destroy()
-    this.application = null
+    this.cancelled = true;
+    this.application?.destroy();
+    this.application = null;
   }
 }

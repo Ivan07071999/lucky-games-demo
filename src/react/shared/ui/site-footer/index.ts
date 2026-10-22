@@ -1,1 +1,1 @@
-export { SiteFooter } from './SiteFooter'
+export { SiteFooter } from './SiteFooter';

@@ -49,6 +49,6 @@ const en = {
     },
     footer: { tagline: 'Play at your own pace' },
   },
-} as const
+} as const;
 
-export default en
+export default en;

@@ -1,15 +1,15 @@
-import { useTranslation } from 'react-i18next'
-import { StarIcon } from '../icons'
-import { HeaderActions } from './HeaderActions'
+import { useTranslation } from 'react-i18next';
+import { StarIcon } from '../icons';
+import { HeaderActions } from './HeaderActions';
 
 type SiteHeaderProps = {
-  language: 'ru' | 'en'
-  theme: 'light' | 'dark'
-  onThemeToggle: () => void
-}
+  language: 'ru' | 'en';
+  theme: 'light' | 'dark';
+  onThemeToggle: () => void;
+};
 
 export function SiteHeader({ language, theme, onThemeToggle }: SiteHeaderProps) {
-  const { t } = useTranslation()
+  const { t } = useTranslation();
 
   return (
     <header className="theme-border theme-hero sticky top-0 z-50 border-b shadow-[0_8px_24px_rgba(0,0,0,0.08)]">
@@ -36,5 +36,5 @@ export function SiteHeader({ language, theme, onThemeToggle }: SiteHeaderProps) 
         <HeaderActions language={language} theme={theme} onThemeToggle={onThemeToggle} />
       </div>
     </header>
-  )
+  );
 }

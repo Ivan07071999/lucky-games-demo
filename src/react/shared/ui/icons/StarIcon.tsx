@@ -1,6 +1,6 @@
 type StarIconProps = {
-  className?: string
-}
+  className?: string;
+};
 
 export function StarIcon({ className = 'size-5' }: StarIconProps) {
   return (
@@ -10,5 +10,5 @@ export function StarIcon({ className = 'size-5' }: StarIconProps) {
         fill="currentColor"
       />
     </svg>
-  )
+  );
 }

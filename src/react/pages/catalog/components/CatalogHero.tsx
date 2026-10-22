@@ -1,8 +1,8 @@
-import { useTranslation } from 'react-i18next'
-import { ArrowIcon, StarIcon } from '../../../shared/ui/icons'
+import { useTranslation } from 'react-i18next';
+import { ArrowIcon, StarIcon } from '../../../shared/ui/icons';
 
 export function CatalogHero() {
-  const { t } = useTranslation()
+  const { t } = useTranslation();
 
   return (
     <section className="theme-border theme-hero relative overflow-hidden rounded-[2rem] border shadow-[0_28px_90px_rgba(0,0,0,0.12)]">
@@ -51,5 +51,5 @@ export function CatalogHero() {
         </div>
       </div>
     </section>
-  )
+  );
 }

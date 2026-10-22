@@ -1,4 +1,4 @@
-import { ValueSwitcher } from './value-switcher'
+import { ValueSwitcher } from './value-switcher';
 
 export class LevelSwitcher extends ValueSwitcher {
   constructor(width: number, height: number) {
@@ -10,6 +10,6 @@ export class LevelSwitcher extends ValueSwitcher {
       initialValue: 1,
       minValue: 1,
       formatValue: String,
-    })
+    });
   }
 }

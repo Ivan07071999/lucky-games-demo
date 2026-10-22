@@ -1,115 +1,115 @@
-import { Assets, type Texture } from 'pixi.js'
-import { EgyptBitmapFontAssets } from './EgyptBitmapFontAssets'
-import { EgyptImageAssets } from './EgyptImageAssets'
-import { type EgyptImageAssetKey } from './EgyptImageAssetKey'
-import { EgyptSpineAssets } from './EgyptSpineAssets'
+import { Assets, type Texture } from 'pixi.js';
+import { EgyptBitmapFontAssets } from './EgyptBitmapFontAssets';
+import { EgyptImageAssets } from './EgyptImageAssets';
+import { type EgyptImageAssetKey } from './EgyptImageAssetKey';
+import { EgyptSpineAssets } from './EgyptSpineAssets';
 
 const imageBundles = {
   buttons: EgyptImageAssets.buttons,
   scene: EgyptImageAssets.scene,
   symbols: EgyptImageAssets.symbols,
   popups: EgyptImageAssets.popups,
-} as const
+} as const;
 
-export type EgyptImageBundle = keyof typeof imageBundles
+export type EgyptImageBundle = keyof typeof imageBundles;
 type ImageLease = {
-  users: number
-  promise: Promise<Texture>
-  unloading: Promise<void> | null
-}
+  users: number;
+  promise: Promise<Texture>;
+  unloading: Promise<void> | null;
+};
 
 export class EgyptAssetLoader {
-  private static registered = false
-  private static readonly imageLeases = new Map<string, ImageLease>()
-  private readonly acquiredImages = new Set<string>()
-  private disposed = false
+  private static registered = false;
+  private static readonly imageLeases = new Map<string, ImageLease>();
+  private readonly acquiredImages = new Set<string>();
+  private disposed = false;
 
   static alias(group: EgyptImageBundle, asset: PropertyKey): string {
-    return `egypt.${group}.${String(asset)}`
+    return `egypt.${group}.${String(asset)}`;
   }
 
   async loadAllImages(): Promise<void> {
     await Promise.all(
       (Object.keys(imageBundles) as EgyptImageBundle[]).map((group) => this.loadImages(group)),
-    )
+    );
   }
 
   async loadAll(): Promise<void> {
     await Promise.all([
       this.loadAllImages(),
       Assets.load([EgyptBitmapFontAssets.casinoGold, EgyptBitmapFontAssets.casinoGoldBold]),
-    ])
+    ]);
   }
 
   async loadImages(group: EgyptImageBundle): Promise<Record<string, Texture>> {
-    this.registerBundles()
-    const names = Object.keys(imageBundles[group])
+    this.registerBundles();
+    const names = Object.keys(imageBundles[group]);
     const textures = await Promise.all(
       names.map(
         async (name) =>
           [name, await this.acquireImage(EgyptAssetLoader.alias(group, name))] as const,
       ),
-    )
-    return Object.fromEntries(textures)
+    );
+    return Object.fromEntries(textures);
   }
 
   loadImage(asset: EgyptImageAssetKey): Promise<Texture> {
-    this.registerBundles()
-    return this.acquireImage(asset)
+    this.registerBundles();
+    return this.acquireImage(asset);
   }
 
   async loadSpine() {
-    EgyptSpineAssets.assertRuntimeCompatible()
+    EgyptSpineAssets.assertRuntimeCompatible();
 
     // Importing the runtime registers the .json skeleton and .atlas loaders with PixiJS.
-    await import('@esotericsoftware/spine-pixi-v8')
+    await import('@esotericsoftware/spine-pixi-v8');
 
     return Assets.load([
       { alias: 'egypt.anubis.skeleton', src: EgyptSpineAssets.anubis.skeleton },
       { alias: 'egypt.anubis.atlas', src: EgyptSpineAssets.anubis.atlas },
-    ])
+    ]);
   }
 
   destroy(): void {
-    if (this.disposed) return
-    this.disposed = true
+    if (this.disposed) return;
+    this.disposed = true;
 
-    for (const alias of this.acquiredImages) this.releaseImage(alias)
+    for (const alias of this.acquiredImages) this.releaseImage(alias);
   }
 
   private async acquireImage(alias: string): Promise<Texture> {
-    if (this.disposed) throw new Error('Asset loader has been destroyed')
+    if (this.disposed) throw new Error('Asset loader has been destroyed');
 
-    let lease = EgyptAssetLoader.imageLeases.get(alias)
+    let lease = EgyptAssetLoader.imageLeases.get(alias);
     while (lease?.unloading) {
-      await lease.unloading
-      if (this.disposed) throw new Error('Asset loader has been destroyed')
-      lease = EgyptAssetLoader.imageLeases.get(alias)
+      await lease.unloading;
+      if (this.disposed) throw new Error('Asset loader has been destroyed');
+      lease = EgyptAssetLoader.imageLeases.get(alias);
     }
 
     if (!lease) {
-      lease = { users: 0, promise: Assets.load<Texture>(alias), unloading: null }
-      EgyptAssetLoader.imageLeases.set(alias, lease)
+      lease = { users: 0, promise: Assets.load<Texture>(alias), unloading: null };
+      EgyptAssetLoader.imageLeases.set(alias, lease);
     }
 
     if (!this.acquiredImages.has(alias)) {
-      this.acquiredImages.add(alias)
-      lease.users++
+      this.acquiredImages.add(alias);
+      lease.users++;
     }
 
     try {
-      return await lease.promise
+      return await lease.promise;
     } catch (error) {
-      this.releaseImage(alias)
-      throw error
+      this.releaseImage(alias);
+      throw error;
     }
   }
 
   private releaseImage(alias: string): void {
-    if (!this.acquiredImages.delete(alias)) return
+    if (!this.acquiredImages.delete(alias)) return;
 
-    const lease = EgyptAssetLoader.imageLeases.get(alias)
-    if (!lease || --lease.users > 0) return
+    const lease = EgyptAssetLoader.imageLeases.get(alias);
+    if (!lease || --lease.users > 0) return;
 
     lease.unloading = lease.promise
       .then(
@@ -117,27 +117,27 @@ export class EgyptAssetLoader {
         () => undefined,
       )
       .catch((error: unknown) => {
-        console.warn(`Failed to unload image asset ${alias}`, error)
+        console.warn(`Failed to unload image asset ${alias}`, error);
       })
       .finally(() => {
         if (EgyptAssetLoader.imageLeases.get(alias) === lease) {
-          EgyptAssetLoader.imageLeases.delete(alias)
+          EgyptAssetLoader.imageLeases.delete(alias);
         }
-      })
+      });
   }
 
   private registerBundles(): void {
-    if (EgyptAssetLoader.registered) return
+    if (EgyptAssetLoader.registered) return;
 
     for (const group of Object.keys(imageBundles) as EgyptImageBundle[]) {
       const assets = Object.entries(imageBundles[group]).map(([asset, src]) => ({
         alias: EgyptAssetLoader.alias(group, asset),
         src,
-      }))
+      }));
 
-      Assets.addBundle(`egypt-${group}`, assets)
+      Assets.addBundle(`egypt-${group}`, assets);
     }
 
-    EgyptAssetLoader.registered = true
+    EgyptAssetLoader.registered = true;
   }
 }

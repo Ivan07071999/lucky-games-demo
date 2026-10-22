@@ -1,7 +1,7 @@
-import i18n from 'i18next'
-import LanguageDetector from 'i18next-browser-languagedetector'
-import { initReactI18next } from 'react-i18next'
-import { resources } from './resources'
+import i18n from 'i18next';
+import LanguageDetector from 'i18next-browser-languagedetector';
+import { initReactI18next } from 'react-i18next';
+import { resources } from './resources';
 
 void i18n
   .use(LanguageDetector)
@@ -16,6 +16,6 @@ void i18n
       caches: ['localStorage'],
     },
     interpolation: { escapeValue: false },
-  })
+  });
 
-export { i18n }
+export { i18n };

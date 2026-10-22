@@ -1,6 +1,6 @@
 type ThemeIconProps = {
-  theme: 'light' | 'dark'
-}
+  theme: 'light' | 'dark';
+};
 
 export function ThemeIcon({ theme }: ThemeIconProps) {
   return theme === 'dark' ? (
@@ -23,5 +23,5 @@ export function ThemeIcon({ theme }: ThemeIconProps) {
         strokeLinejoin="round"
       />
     </svg>
-  )
+  );
 }

@@ -1,14 +1,14 @@
-import 'pixi.js/text-bitmap'
-import { BitmapText, Container } from 'pixi.js'
+import 'pixi.js/text-bitmap';
+import { BitmapText, Container } from 'pixi.js';
 
 export class Coins extends Container {
-  readonly valueText: BitmapText
-  private readonly valueMaxWidth: number
+  readonly valueText: BitmapText;
+  private readonly valueMaxWidth: number;
 
   constructor(width: number, height: number) {
-    super()
+    super();
 
-    this.label = 'coins'
+    this.label = 'coins';
 
     const label = new BitmapText({
       text: 'COINS',
@@ -18,11 +18,11 @@ export class Coins extends Container {
         fill: 0xffe3a1,
         align: 'center',
       },
-    })
-    label.label = 'coins-title'
-    label.anchor.set(0.5)
-    label.position.set(0, -height * 0.15 - 2)
-    label.scale.set(Math.min(1, (width * 0.32) / label.width))
+    });
+    label.label = 'coins-title';
+    label.anchor.set(0.5);
+    label.position.set(0, -height * 0.15 - 2);
+    label.scale.set(Math.min(1, (width * 0.32) / label.width));
 
     this.valueText = new BitmapText({
       text: '250000',
@@ -31,17 +31,17 @@ export class Coins extends Container {
         fontSize: height * 0.23,
         align: 'center',
       },
-    })
-    this.valueText.label = 'coins-value'
-    this.valueText.anchor.set(0.5)
-    this.valueText.position.y = height * 0.05
-    this.valueMaxWidth = width * 0.42
-    this.fitValueText()
+    });
+    this.valueText.label = 'coins-value';
+    this.valueText.anchor.set(0.5);
+    this.valueText.position.y = height * 0.05;
+    this.valueMaxWidth = width * 0.42;
+    this.fitValueText();
 
-    this.addChild(label, this.valueText)
+    this.addChild(label, this.valueText);
   }
 
   private fitValueText(): void {
-    this.valueText.scale.set(Math.min(1, this.valueMaxWidth / this.valueText.width))
+    this.valueText.scale.set(Math.min(1, this.valueMaxWidth / this.valueText.width));
   }
 }

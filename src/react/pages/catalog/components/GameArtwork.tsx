@@ -1,12 +1,12 @@
-import type { Game } from '../model/games'
+import type { Game } from '../model/games';
 
 type GameArtworkProps = {
-  palette: Game['palette']
-  label: string
-}
+  palette: Game['palette'];
+  label: string;
+};
 
 export function GameArtwork({ palette, label }: GameArtworkProps) {
-  const violet = palette === 'violet'
+  const violet = palette === 'violet';
 
   return (
     <div
@@ -37,5 +37,5 @@ export function GameArtwork({ palette, label }: GameArtworkProps) {
       </span>
       <span className="absolute right-[25%] top-[22%] text-lg text-white/75">✧</span>
     </div>
-  )
+  );
 }

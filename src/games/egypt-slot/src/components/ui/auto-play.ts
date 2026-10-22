@@ -1,5 +1,5 @@
-import { EgyptImageAssetKey } from '../../assets'
-import { BetActionButton } from './bet-action-button'
+import { EgyptImageAssetKey } from '../../assets';
+import { BetActionButton } from './bet-action-button';
 
 export class AutoPlayButton extends BetActionButton {
   constructor(width: number, height: number) {
@@ -8,6 +8,6 @@ export class AutoPlayButton extends BetActionButton {
       label: 'bet-panel-left-button',
       textLabel: 'auto-play-label',
       text: 'AUTO\nPLAY',
-    })
+    });
   }
 }

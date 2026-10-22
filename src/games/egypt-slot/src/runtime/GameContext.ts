@@ -1,34 +1,34 @@
-import { Controller } from '../controllers/controller'
-import { ReelsMachine } from '../reelsMachine/ReelsMachine'
+import { Controller } from '../controllers/controller';
+import { ReelsMachine } from '../reelsMachine/ReelsMachine';
 
 export type GameMessages = {
-  loading: string
-}
+  loading: string;
+};
 
 export class GameContext {
-  readonly canvas: HTMLCanvasElement
-  readonly messages: GameMessages
-  readonly controllers = new Controller()
-  private reelsMachineInstance: ReelsMachine | null = null
+  readonly canvas: HTMLCanvasElement;
+  readonly messages: GameMessages;
+  readonly controllers = new Controller();
+  private reelsMachineInstance: ReelsMachine | null = null;
 
   constructor(canvas: HTMLCanvasElement, messages: GameMessages) {
-    this.canvas = canvas
-    this.messages = messages
+    this.canvas = canvas;
+    this.messages = messages;
   }
 
   get reelsMachine(): ReelsMachine {
     if (!this.reelsMachineInstance || this.reelsMachineInstance.destroyed) {
-      this.reelsMachineInstance = new ReelsMachine()
+      this.reelsMachineInstance = new ReelsMachine();
     }
 
-    return this.reelsMachineInstance
+    return this.reelsMachineInstance;
   }
 
   destroy(): void {
     if (this.reelsMachineInstance && !this.reelsMachineInstance.destroyed) {
-      this.reelsMachineInstance.destroy({ children: true })
+      this.reelsMachineInstance.destroy({ children: true });
     }
-    this.reelsMachineInstance = null
-    this.controllers.destroy()
+    this.reelsMachineInstance = null;
+    this.controllers.destroy();
   }
 }

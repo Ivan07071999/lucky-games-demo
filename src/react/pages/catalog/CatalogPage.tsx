@@ -1,6 +1,6 @@
-import { SiteFooter } from '../../shared/ui/site-footer'
-import { CatalogHero } from './components/CatalogHero'
-import { GameCatalog } from './components/GameCatalog'
+import { SiteFooter } from '../../shared/ui/site-footer';
+import { CatalogHero } from './components/CatalogHero';
+import { GameCatalog } from './components/GameCatalog';
 
 export function CatalogPage() {
   return (
@@ -12,5 +12,5 @@ export function CatalogPage() {
       <GameCatalog />
       <SiteFooter />
     </main>
-  )
+  );
 }

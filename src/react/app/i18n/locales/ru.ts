@@ -49,6 +49,6 @@ const ru = {
     },
     footer: { tagline: 'Играй в своём ритме' },
   },
-} as const
+} as const;
 
-export default ru
+export default ru;

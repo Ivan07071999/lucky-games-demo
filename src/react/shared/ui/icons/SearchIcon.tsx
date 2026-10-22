@@ -4,5 +4,5 @@ export function SearchIcon() {
       <circle cx="10.8" cy="10.8" r="6.8" stroke="currentColor" strokeWidth="1.7" />
       <path d="m16 16 4.2 4.2" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" />
     </svg>
-  )
+  );
 }

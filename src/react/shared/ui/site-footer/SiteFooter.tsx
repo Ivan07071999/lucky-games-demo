@@ -1,7 +1,7 @@
-import { useTranslation } from 'react-i18next'
+import { useTranslation } from 'react-i18next';
 
 export function SiteFooter() {
-  const { t } = useTranslation()
+  const { t } = useTranslation();
 
   return (
     <footer
@@ -11,5 +11,5 @@ export function SiteFooter() {
       <p>© 2026 Lucky Games</p>
       <p>{t('footer.tagline')}</p>
     </footer>
-  )
+  );
 }
