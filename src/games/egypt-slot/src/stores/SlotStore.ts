@@ -1,18 +1,10 @@
 import { makeAutoObservable } from 'mobx';
 
-export type SpinRequest = Readonly<{
-  id: number;
-  bet: number;
-  level: number;
-  coinValueCents: number;
-}>;
-
 export class SlotStore {
   bet = 15;
   level = 1;
   coinValueCents = 2;
   coins = 250000;
-  lastSpinRequest: SpinRequest | null = null;
 
   constructor() {
     makeAutoObservable(this, {}, { autoBind: true });
@@ -46,19 +38,6 @@ export class SlotStore {
   setCoins(coins: number): void {
     this.assertNonNegativeInteger(coins, 'coins');
     this.coins = coins;
-  }
-
-  requestSpin(): SpinRequest | null {
-    if (!this.canSpin) return null;
-
-    const request: SpinRequest = {
-      id: (this.lastSpinRequest?.id ?? 0) + 1,
-      bet: this.bet,
-      level: this.level,
-      coinValueCents: this.coinValueCents,
-    };
-    this.lastSpinRequest = request;
-    return request;
   }
 
   private assertNonNegativeInteger(value: number, name: string): void {

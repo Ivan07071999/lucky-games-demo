@@ -85,7 +85,7 @@ export function calculateGameLayout(
     };
   }
 
-  // The controls overlap the bottom of the decorative frame on wide screens.
+  // На широких экранах элементы управления накладываются на нижнюю часть декоративной рамки.
   const overlap = Math.min(reels.height * 0.15, panel.height * 0.82);
   const totalHeight = reels.height + panel.height - overlap;
   const scale = Math.min(

@@ -19,11 +19,11 @@ export class BetPanel extends Container {
   readonly maxBetButton: MaxBetButton;
   private readonly stopObserving: IReactionDisposer;
 
-  constructor(width: number, height: number, store: SlotStore) {
+  constructor(width: number, height: number, store: SlotStore, onSpinRequested: () => void) {
     super();
 
     this.label = 'bet-panel';
-    this.spinButton = new SpinButton(SPIN_DIAMETER / 2, store.requestSpin);
+    this.spinButton = new SpinButton(SPIN_DIAMETER / 2, onSpinRequested);
     this.leftBackground = new LeftBackground(height, store.bet, store.level, {
       onDecrease: store.decreaseLevel,
       onIncrease: store.increaseLevel,

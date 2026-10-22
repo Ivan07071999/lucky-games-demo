@@ -1,5 +1,6 @@
 import type { ApplicationController } from '../controllers/application-controller/ApplicationController';
 import type { AssetsController } from '../controllers/assets-controller/AssetsController';
+import type { MainSceneController } from '../controllers/main-scene-controller/MainSceneController';
 import { StatusScene } from '../scene/StatusScene';
 import type { Phase } from './PhaseManager';
 import { PhaseName, type NextPhase } from './types';
@@ -12,12 +13,19 @@ export class LoadingPhase implements Phase<
 
   private readonly application: ApplicationController;
   private readonly assets: AssetsController;
+  private readonly scene: MainSceneController;
   private readonly message: string;
   private status: StatusScene | null = null;
 
-  constructor(application: ApplicationController, assets: AssetsController, message: string) {
+  constructor(
+    application: ApplicationController,
+    assets: AssetsController,
+    scene: MainSceneController,
+    message: string,
+  ) {
     this.application = application;
     this.assets = assets;
+    this.scene = scene;
     this.message = message;
   }
 
@@ -30,6 +38,7 @@ export class LoadingPhase implements Phase<
 
     await this.assets.loadAll();
     signal.throwIfAborted();
+    this.scene.mount();
     return PhaseName.idle;
   }
 

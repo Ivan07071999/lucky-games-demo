@@ -61,7 +61,7 @@ export class EgyptAssetLoader {
   async loadSpine() {
     EgyptSpineAssets.assertRuntimeCompatible();
 
-    // Importing the runtime registers the .json skeleton and .atlas loaders with PixiJS.
+    // Импорт среды выполнения регистрирует в PixiJS загрузчики скелетов .json и атласов .atlas.
     await import('@esotericsoftware/spine-pixi-v8');
 
     return Assets.load([

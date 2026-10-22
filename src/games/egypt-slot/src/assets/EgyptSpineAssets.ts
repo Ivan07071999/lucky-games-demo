@@ -7,7 +7,7 @@ export class EgyptSpineAssets {
     texture: egyptAssetUrl('Spine/character_anubis/character_anubis.png'),
   } as const;
 
-  // skeleton.spine in character_anubis.json; keep this in sync when replacing the export.
+  // Имя скелета в character_anubis.json; обновляйте его при замене экспорта.
   static readonly exportVersion = '3.8.99';
   static readonly installedRuntimeVersion = '4.3';
 

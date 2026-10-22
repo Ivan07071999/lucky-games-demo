@@ -29,7 +29,12 @@ export class MainScene extends Container {
     background.anchor.set(0.5);
 
     const reelsMachine = new ReelsMachine(INITIAL_REELS);
-    const betPanel = new BetPanel(reelsMachine.width, reelsMachine.height, this.context.slotStore);
+    const betPanel = new BetPanel(
+      reelsMachine.width,
+      reelsMachine.height,
+      this.context.slotStore,
+      () => this.context.emitter.emit('ui:spinRequested'),
+    );
 
     this.background = background;
     this.reelsMachine = reelsMachine;

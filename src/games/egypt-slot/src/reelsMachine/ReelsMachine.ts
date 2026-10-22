@@ -30,7 +30,7 @@ export class ReelsMachine extends Container {
     const background = this.addBackground();
     const logo = this.addLogo();
 
-    // Board coordinates use the original PNG; the cropped sprite begins after its left padding.
+    // Координаты игрового поля рассчитаны по исходному PNG; обрезанный спрайт начинается после левого отступа.
     const boardWidth = frameTexture.width * FRAME_SCALE * 0.65;
     const windowCenterX =
       ((REELS_WINDOW_LEFT + REELS_WINDOW_RIGHT) / 2 - FRAME_TRANSPARENT_LEFT) * FRAME_SCALE;

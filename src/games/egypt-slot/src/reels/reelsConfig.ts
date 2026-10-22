@@ -16,7 +16,7 @@ type FixedLengthTuple<
 export type ReelColumnSymbols = FixedLengthTuple<ReelSymbolKey, typeof VISIBLE_ROWS>;
 export type ReelsMatrix = FixedLengthTuple<ReelColumnSymbols, typeof REEL_COUNT>;
 
-// Columns are listed from left to right; symbols in each column run from top to bottom.
+// Барабаны перечислены слева направо, символы в каждом барабане — сверху вниз.
 export const INITIAL_REELS = [
   ['highAnkh', 'highEye', 'highNecklace'],
   ['highScarab', 'defaultA', 'defaultQ'],
