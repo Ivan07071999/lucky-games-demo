@@ -10,7 +10,7 @@ function createService(balanceCoins = 250000, freeSpinsRemaining = 0) {
     free_spins_remaining: freeSpinsRemaining,
     free_spins_total_win: 0,
     sticky_reels: [],
-    last_bet: { bet: 15, level: 1, coinValue: 0.02, totalCoins: 15 },
+    last_bet: { bet: 15, level: 1, coinValueCents: 2, totalCoins: 15 },
   };
   const rounds = new Map<string, RoundResult>();
   const database = {
@@ -45,7 +45,7 @@ describe('SlotService', () => {
       requestId: 'req_1',
       bet: 15,
       level: 1,
-      coinValue: 0.02,
+      coinValueCents: 2,
     };
     const first = await service.play(command);
     const second = await service.play(command);
@@ -64,7 +64,7 @@ describe('SlotService', () => {
         requestId: 'req_2',
         bet: 15,
         level: 1,
-        coinValue: 0.02,
+        coinValueCents: 2,
       }),
     ).rejects.toMatchObject({ code: 'INSUFFICIENT_BALANCE' } satisfies Partial<SlotError>);
     expect(session.balance_coins).toBe(14);

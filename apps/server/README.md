@@ -20,7 +20,7 @@
 - `GET /api/slot/rounds/<requestId>` восстанавливает сохранённый результат раунда с тем же заголовком.
 - `GET /api/slot/ws` открывает WebSocket. Команды и ответы описаны в `packages/contracts/src/index.ts`.
 
-Команда обычного вращения: `{"type":"SPIN","sessionId":"<UUID>","requestId":"spin_req_001","bet":15,"level":1,"coinValue":0.02}`. Во время бонуса отправляется `{"type":"FREE_SPIN","sessionId":"<UUID>","requestId":"free_req_001"}`. Каждый ответ имеет тип `ROUND_RESULT` и содержит полный `result`, либо тип `ERROR` с кодом. Поля `isWin` и `netCoins` явно показывают выигрыш и чистое изменение баланса. Повтор команды с тем же `requestId` в одной сессии возвращает сохранённый результат; параллельные команды этой сессии сериализуются блокировкой строки БД. Запрос `SPIN` во время Free Spins отклоняется.
+Команда обычного вращения: `{"type":"SPIN","sessionId":"<UUID>","requestId":"spin_req_001","bet":15,"level":1,"coinValueCents":2}`. Во время бонуса отправляется `{"type":"FREE_SPIN","sessionId":"<UUID>","requestId":"free_req_001"}`. Каждый ответ имеет тип `ROUND_RESULT` и содержит полный `result`, либо тип `ERROR` с кодом. Поля `isWin` и `netCoins` явно показывают выигрыш и чистое изменение баланса. Повтор команды с тем же `requestId` в одной сессии возвращает сохранённый результат; параллельные команды этой сессии сериализуются блокировкой строки БД. Запрос `SPIN` во время Free Spins отклоняется. Полный контракт описан в [`packages/contracts/README.md`](../../packages/contracts/README.md).
 
 ## Правила демо
 

@@ -1,4 +1,11 @@
-import type { Bet, ReelGrid, RoundResult, SymbolKey, Win } from '@lucky-games/contracts';
+import type {
+  Bet,
+  ReelGrid,
+  RoundResult,
+  SlotAnimation,
+  SymbolKey,
+  Win,
+} from '@lucky-games/contracts';
 import { SYMBOLS } from '@lucky-games/contracts';
 
 export const PAYLINES = [
@@ -10,7 +17,7 @@ export const PAYLINES = [
 ] as const;
 export const BETS = Array.from({ length: 20 }, (_, i) => i + 1);
 export const LEVELS = Array.from({ length: 10 }, (_, i) => i + 1);
-export const COIN_VALUES = [0.01, 0.02, 0.05, 0.1, 0.2, 0.5, 1];
+export const COIN_VALUES_CENTS = [1, 2, 5, 10, 20, 50, 100];
 export const INITIAL_BALANCE = 250_000;
 export const FREE_SPINS_AWARDED = 8;
 
@@ -29,10 +36,10 @@ const PAYOUTS: PayoutTable = {
 };
 const STOP_SYMBOLS = SYMBOLS.filter((symbol) => symbol !== 'wild');
 
-export function validateBet(bet: number, level: number, coinValue: number): Bet | null {
-  if (!BETS.includes(bet) || !LEVELS.includes(level) || !COIN_VALUES.includes(coinValue))
+export function validateBet(bet: number, level: number, coinValueCents: number): Bet | null {
+  if (!BETS.includes(bet) || !LEVELS.includes(level) || !COIN_VALUES_CENTS.includes(coinValueCents))
     return null;
-  return { bet, level, coinValue, totalCoins: bet * level };
+  return { bet, level, coinValueCents, totalCoins: bet * level };
 }
 
 export function generateReels(randomInt: RandomInt): ReelGrid {
@@ -90,7 +97,7 @@ export function evaluateRound(
   const scatterCount = reels.flat().filter((symbol) => symbol === 'highScarab').length;
   const triggered = mode === 'BASE_GAME' && scatterCount >= 3;
   const multipliers = Object.fromEntries(expandedReels.map((reel) => [reel, 3]));
-  const animations = ['REELS_STOP'];
+  const animations: SlotAnimation[] = ['REELS_STOP'];
   if (expandedReels.length) animations.push('WILD_EXPAND', 'MULTIPLIER_SHOW');
   if (wins.length) animations.push('WIN_LINES', 'WIN_COUNTER');
   if (triggered) animations.push('FREE_SPINS_START');

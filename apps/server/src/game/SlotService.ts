@@ -3,7 +3,7 @@ import type { Bet, RoundResult, SlotCommand, SlotState } from '@lucky-games/cont
 import { Database, SlotError, type SessionRow } from '../storage/Database.js';
 import {
   BETS,
-  COIN_VALUES,
+  COIN_VALUES_CENTS,
   evaluateRound,
   FREE_SPINS_AWARDED,
   generateReels,
@@ -39,7 +39,9 @@ export class SlotService {
       throw new SlotError('INVALID_REQUEST', 'Invalid requestId');
     }
     const bet =
-      command.type === 'SPIN' ? validateBet(command.bet, command.level, command.coinValue) : null;
+      command.type === 'SPIN'
+        ? validateBet(command.bet, command.level, command.coinValueCents)
+        : null;
     if (command.type === 'SPIN' && !bet) {
       throw new SlotError('INVALID_BET', 'Bet, level or coin value is not allowed');
     }
@@ -121,7 +123,7 @@ export class SlotService {
       config: {
         bets: BETS,
         levels: LEVELS,
-        coinValues: COIN_VALUES,
+        coinValuesCents: COIN_VALUES_CENTS,
         paylines: PAYLINES.map((line) => [...line]),
       },
     };

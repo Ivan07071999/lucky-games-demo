@@ -5,6 +5,11 @@ import { defineConfig } from 'vitest/config';
 // https://vite.dev/config/
 export default defineConfig({
   plugins: [react(), tailwindcss()],
+  server: {
+    proxy: {
+      '/api/slot': { target: 'http://127.0.0.1:3001', ws: true },
+    },
+  },
   test: {
     environment: 'jsdom',
     setupFiles: ['./src/test/setup.ts'],

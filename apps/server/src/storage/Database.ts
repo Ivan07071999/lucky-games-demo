@@ -1,6 +1,6 @@
 import { randomUUID } from 'node:crypto';
 import pg from 'pg';
-import type { Bet, GameAction, RoundResult } from '@lucky-games/contracts';
+import type { Bet, GameAction, RoundResult, SlotErrorCode } from '@lucky-games/contracts';
 import { INITIAL_BALANCE } from '../game/rules.js';
 
 export interface SessionRow {
@@ -14,7 +14,7 @@ export interface SessionRow {
 
 export class SlotError extends Error {
   constructor(
-    readonly code: string,
+    readonly code: SlotErrorCode,
     message: string,
   ) {
     super(message);
@@ -72,7 +72,7 @@ export class Database {
       'SELECT result FROM slot_rounds WHERE session_id = $1 AND request_id = $2',
       [sessionId, requestId],
     );
-    return result.rows[0]?.result ?? null;
+    return result.rows[0] ? normalizeRound(result.rows[0].result) : null;
   }
 
   async executeRound(
@@ -103,7 +103,7 @@ export class Database {
           );
         }
         await client.query('COMMIT');
-        return existing.rows[0].result;
+        return normalizeRound(existing.rows[0].result);
       }
 
       const result = calculate(normalizeSession(session));
@@ -143,5 +143,17 @@ function normalizeSession(row: SessionRow): SessionRow {
     ...row,
     balance_coins: Number(row.balance_coins),
     free_spins_total_win: Number(row.free_spins_total_win),
+    last_bet: row.last_bet ? normalizeBet(row.last_bet) : null,
   };
+}
+
+function normalizeRound(result: RoundResult): RoundResult {
+  return { ...result, bet: normalizeBet(result.bet) };
+}
+
+function normalizeBet(bet: Bet): Bet {
+  const { coinValue, ...rest } = bet as Bet & { coinValue?: number };
+  if (rest.coinValueCents !== undefined) return rest;
+  if (coinValue === undefined) throw new Error('Stored bet has no coin value');
+  return { ...rest, coinValueCents: Math.round(coinValue * 100) };
 }

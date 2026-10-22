@@ -46,6 +46,9 @@ const en = {
     game: {
       canvasLabel: 'Golden Temple game canvas',
       loading: 'Loading the game…',
+      loadError: 'Could not load the game. Please try again.',
+      incompatibleServer: 'The game server uses an outdated API version. Restart the server.',
+      retry: 'Retry',
     },
     footer: { tagline: 'Play at your own pace' },
   },

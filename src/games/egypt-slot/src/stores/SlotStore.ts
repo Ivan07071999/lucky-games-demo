@@ -1,48 +1,33 @@
+import type { RoundResult, SlotState } from '@lucky-games/contracts';
 import { makeAutoObservable } from 'mobx';
+import { PanelStore } from './PanelStore';
+import { ReelsStore } from './ReelsStore';
+import { RoundStore } from './RoundStore';
 
 export class SlotStore {
-  bet = 15;
-  level = 1;
-  coinValueCents = 2;
-  coins = 250000;
+  readonly round = new RoundStore();
+  readonly panel = new PanelStore(this.round);
+  readonly reels = new ReelsStore();
 
   constructor() {
-    makeAutoObservable(this, {}, { autoBind: true });
+    makeAutoObservable(this, { round: false, panel: false, reels: false }, { autoBind: true });
   }
 
   get canSpin(): boolean {
-    return this.bet > 0 && this.coins >= this.bet;
+    if (!this.round.ready || !this.round.sessionId || this.round.isSpinning) return false;
+    if (this.round.nextAction === 'FREE_SPIN') return this.round.freeSpins.remaining > 0;
+    return this.panel.canPlaceBet;
   }
 
-  increaseLevel(): void {
-    if (this.level < Number.MAX_SAFE_INTEGER) this.level += 1;
+  applyInitialState(state: SlotState): void {
+    this.panel.applyInitialState(state);
+    this.round.applyInitialState(state);
+    this.reels.reset();
   }
 
-  decreaseLevel(): void {
-    this.level = Math.max(1, this.level - 1);
-  }
-
-  increaseCoinValue(): void {
-    if (this.coinValueCents < Number.MAX_SAFE_INTEGER) this.coinValueCents += 1;
-  }
-
-  decreaseCoinValue(): void {
-    this.coinValueCents = Math.max(1, this.coinValueCents - 1);
-  }
-
-  setBet(bet: number): void {
-    this.assertNonNegativeInteger(bet, 'bet');
-    this.bet = bet;
-  }
-
-  setCoins(coins: number): void {
-    this.assertNonNegativeInteger(coins, 'coins');
-    this.coins = coins;
-  }
-
-  private assertNonNegativeInteger(value: number, name: string): void {
-    if (!Number.isSafeInteger(value) || value < 0) {
-      throw new RangeError(`${name} must be a non-negative safe integer`);
-    }
+  applyRoundResult(result: RoundResult): void {
+    this.panel.applyRoundResult(result);
+    this.round.applyRoundResult(result);
+    this.reels.applyRoundResult(result);
   }
 }

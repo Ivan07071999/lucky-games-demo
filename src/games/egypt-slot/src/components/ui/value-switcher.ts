@@ -45,7 +45,9 @@ class ValueSwitcherArrow extends Container {
     icon.label = `${this.label}-icon`;
     this.addChild(icon);
 
-    this.on('pointertap', onClick);
+    this.on('pointerdown', (event) => {
+      if (event.button === 0) onClick();
+    });
     this.on('pointerover', this.scaleUp, this);
     this.on('pointerout', this.scaleDown, this);
   }
@@ -53,6 +55,16 @@ class ValueSwitcherArrow extends Container {
   override destroy(options?: Parameters<Container['destroy']>[0]): void {
     gsap.killTweensOf(this.scale);
     super.destroy(options);
+  }
+
+  setEnabled(enabled: boolean): void {
+    this.eventMode = enabled ? 'static' : 'none';
+    this.cursor = enabled ? 'pointer' : 'default';
+    this.alpha = enabled ? 1 : 0.5;
+    if (!enabled) {
+      gsap.killTweensOf(this.scale);
+      this.scale.set(1);
+    }
   }
 
   private scaleUp(): void {
@@ -70,6 +82,7 @@ export class ValueSwitcher extends Container {
   readonly valueText: BitmapText;
   private readonly valueMaxWidth: number;
   private readonly formatValue: (value: number) => string;
+  private readonly arrows: readonly ValueSwitcherArrow[];
 
   constructor({
     id,
@@ -133,8 +146,13 @@ export class ValueSwitcher extends Container {
     );
     decreaseButton.position.set(-arrowOffset, this.valueText.position.y + 6);
     increaseButton.position.set(arrowOffset, this.valueText.position.y + 6);
+    this.arrows = [decreaseButton, increaseButton];
 
     this.addChild(label, this.valueText, decreaseButton, increaseButton);
+  }
+
+  setEnabled(enabled: boolean): void {
+    this.arrows.forEach((arrow) => arrow.setEnabled(enabled));
   }
 
   setValue(value: number): void {

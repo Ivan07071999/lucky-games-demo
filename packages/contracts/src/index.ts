@@ -11,15 +11,42 @@ export const SYMBOLS = [
 ] as const;
 
 export type SymbolKey = (typeof SYMBOLS)[number];
-export type ReelGrid = [SymbolKey[], SymbolKey[], SymbolKey[], SymbolKey[], SymbolKey[]];
+export type Reel = [SymbolKey, SymbolKey, SymbolKey];
+export type ReelGrid = [Reel, Reel, Reel, Reel, Reel];
 export type Position = [reelIndex: number, rowIndex: number];
 export type GameAction = 'SPIN' | 'FREE_SPIN';
 export type NextAction = GameAction;
 
+export const SLOT_ERROR_CODES = [
+  'UNAUTHORIZED',
+  'SESSION_NOT_FOUND',
+  'ROUND_NOT_FOUND',
+  'REQUEST_ID_CONFLICT',
+  'INVALID_REQUEST',
+  'INVALID_BET',
+  'INSUFFICIENT_BALANCE',
+  'FREE_SPINS_PENDING',
+  'NO_FREE_SPINS',
+  'SPIN_IN_PROGRESS',
+  'BALANCE_OVERFLOW',
+  'INTERNAL_ERROR',
+] as const;
+export type SlotErrorCode = (typeof SLOT_ERROR_CODES)[number];
+
+export const SLOT_ANIMATIONS = [
+  'REELS_STOP',
+  'WILD_EXPAND',
+  'MULTIPLIER_SHOW',
+  'WIN_LINES',
+  'WIN_COUNTER',
+  'FREE_SPINS_START',
+] as const;
+export type SlotAnimation = (typeof SLOT_ANIMATIONS)[number];
+
 export interface Bet {
   bet: number;
   level: number;
-  coinValue: number;
+  coinValueCents: number;
   totalCoins: number;
 }
 
@@ -60,7 +87,7 @@ export interface RoundResult {
       totalWinCoins: number;
     };
   };
-  animations: string[];
+  animations: SlotAnimation[];
   nextAction: NextAction;
 }
 
@@ -73,7 +100,7 @@ export interface SlotState {
   config: {
     bets: number[];
     levels: number[];
-    coinValues: number[];
+    coinValuesCents: number[];
     paylines: number[][];
   };
 }
@@ -85,10 +112,10 @@ export type SlotCommand =
       requestId: string;
       bet: number;
       level: number;
-      coinValue: number;
+      coinValueCents: number;
     }
   | { type: 'FREE_SPIN'; sessionId: string; requestId: string };
 
 export type SlotMessage =
   | { type: 'ROUND_RESULT'; requestId: string; result: RoundResult }
-  | { type: 'ERROR'; requestId: string | null; code: string; message: string };
+  | { type: 'ERROR'; requestId: string | null; code: SlotErrorCode; message: string };

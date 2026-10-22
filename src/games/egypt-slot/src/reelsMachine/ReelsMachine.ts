@@ -1,7 +1,9 @@
 import { Container, Rectangle, Sprite, Texture } from 'pixi.js';
+import type { Win } from '@lucky-games/contracts';
 import { EgyptImageAssetKey } from '../assets';
 import { ReelsBoard } from '../reels/ReelsBoard';
 import type { ReelsMatrix } from '../reels/reelsConfig';
+import type { ReelsCommand } from './commands';
 
 const FRAME_SCALE = 0.55;
 const FRAME_TRANSPARENT_LEFT = 96;
@@ -48,6 +50,27 @@ export class ReelsMachine extends Container {
 
   setSymbols(reels: ReelsMatrix): void {
     this.reelsBoard.setSymbols(reels);
+  }
+
+  execute(command: ReelsCommand, signal: AbortSignal): void | Promise<void> {
+    signal.throwIfAborted();
+    return command.execute(this, signal);
+  }
+
+  spin(signal: AbortSignal): void {
+    this.reelsBoard.spin(signal);
+  }
+
+  land(reels: ReelsMatrix, signal: AbortSignal): Promise<void> {
+    return this.reelsBoard.land(reels, signal);
+  }
+
+  showWins(wins: readonly Win[], signal: AbortSignal): Promise<void> {
+    return this.reelsBoard.showWins(wins, signal);
+  }
+
+  showWild(expandedReels: readonly number[], signal: AbortSignal): Promise<void> {
+    return this.reelsBoard.showWild(expandedReels, signal);
   }
 
   override destroy(options?: Parameters<Container['destroy']>[0]): void {

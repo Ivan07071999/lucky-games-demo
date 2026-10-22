@@ -1,8 +1,8 @@
 import { Container, Sprite, Texture } from 'pixi.js';
 import { EgyptImageAssetKey } from '../assets';
 import { BetPanel } from '../components/bet-panel';
-import { INITIAL_REELS } from '../reels/reelsConfig';
 import { ReelsMachine } from '../reelsMachine/ReelsMachine';
+import type { ReelsCommand } from '../reelsMachine/commands';
 import { GameContext, type GameMessages } from '../runtime/GameContext';
 import {
   calculateGameLayout,
@@ -28,7 +28,7 @@ export class MainScene extends Container {
     const background = new Sprite(Texture.from(EgyptImageAssetKey.scene.background));
     background.anchor.set(0.5);
 
-    const reelsMachine = new ReelsMachine(INITIAL_REELS);
+    const reelsMachine = new ReelsMachine(this.context.slotStore.reels.reels);
     const betPanel = new BetPanel(
       reelsMachine.width,
       reelsMachine.height,
@@ -64,6 +64,11 @@ export class MainScene extends Container {
 
     this.place(reelsMachine, reelsBounds, layout.reels);
     this.place(panel, panelBounds, layout.panel);
+  }
+
+  executeReels(command: ReelsCommand, signal: AbortSignal): void | Promise<void> {
+    if (!this.reelsMachine) throw new Error('ReelsMachine has not been initialized');
+    return this.reelsMachine.execute(command, signal);
   }
 
   private place(container: Container, bounds: LayoutBounds, placement: LayoutPlacement): void {

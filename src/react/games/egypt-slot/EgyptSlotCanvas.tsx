@@ -6,18 +6,21 @@ export function EgyptSlotCanvas() {
   const { t } = useTranslation();
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const loading = t('game.loading');
+  const loadError = t('game.loadError');
+  const incompatibleServer = t('game.incompatibleServer');
+  const retry = t('game.retry');
 
   useEffect(() => {
     const canvas = canvasRef.current;
     if (!canvas) return;
 
-    const flow = new EgyptSlotFlow(canvas, { loading });
+    const flow = new EgyptSlotFlow(canvas, { loading, loadError, incompatibleServer, retry });
     void flow.start().catch((error: unknown) => {
       console.error('Failed to initialize Egypt slot', error);
     });
 
     return () => flow.stop();
-  }, [loading]);
+  }, [loading, loadError, incompatibleServer, retry]);
 
   return (
     <canvas

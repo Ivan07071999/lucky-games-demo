@@ -22,15 +22,16 @@ export class BetPanel extends Container {
   constructor(width: number, height: number, store: SlotStore, onSpinRequested: () => void) {
     super();
 
+    const panel = store.panel;
     this.label = 'bet-panel';
     this.spinButton = new SpinButton(SPIN_DIAMETER / 2, onSpinRequested);
-    this.leftBackground = new LeftBackground(height, store.bet, store.level, {
-      onDecrease: store.decreaseLevel,
-      onIncrease: store.increaseLevel,
+    this.leftBackground = new LeftBackground(height, panel.bet, panel.level, {
+      onDecrease: panel.decreaseLevel,
+      onIncrease: panel.increaseLevel,
     });
-    this.rightBackground = new RightBackground(height, store.coins, store.coinValueCents, {
-      onDecrease: store.decreaseCoinValue,
-      onIncrease: store.increaseCoinValue,
+    this.rightBackground = new RightBackground(height, panel.balanceCoins, panel.coinValueCents, {
+      onDecrease: panel.decreaseCoinValue,
+      onIncrease: panel.increaseCoinValue,
     });
     this.autoPlayButton = new AutoPlayButton(width, height);
     this.maxBetButton = new MaxBetButton(width, height);
@@ -45,10 +46,12 @@ export class BetPanel extends Container {
     this.setLayout('wide');
 
     this.stopObserving = autorun(() => {
-      this.leftBackground.bet.setValue(store.bet);
-      this.leftBackground.levelSwitcher.setValue(store.level);
-      this.rightBackground.coinValueSwitcher.setValue(store.coinValueCents);
-      this.rightBackground.coins.setValue(store.coins);
+      this.leftBackground.bet.setValue(panel.bet);
+      this.leftBackground.levelSwitcher.setValue(panel.level);
+      this.rightBackground.coinValueSwitcher.setValue(panel.coinValueCents);
+      this.leftBackground.levelSwitcher.setEnabled(store.round.canEditBet);
+      this.rightBackground.coinValueSwitcher.setEnabled(store.round.canEditBet);
+      this.rightBackground.coins.setValue(panel.balanceCoins);
       this.spinButton.eventMode = store.canSpin ? 'static' : 'none';
       this.spinButton.alpha = store.canSpin ? 1 : 0.5;
     });
