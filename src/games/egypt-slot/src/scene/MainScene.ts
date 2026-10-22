@@ -2,6 +2,12 @@ import { Container, Sprite, Texture } from 'pixi.js';
 import { EgyptImageAssetKey } from '../assets';
 import { BetPanel } from '../components/bet-panel';
 import { GameContext, type GameMessages } from '../runtime/GameContext';
+import {
+  calculateGameLayout,
+  getGameLayoutMode,
+  type LayoutBounds,
+  type LayoutPlacement,
+} from './gameLayout';
 
 export class MainScene extends Container {
   readonly context: GameContext;
@@ -35,12 +41,25 @@ export class MainScene extends Container {
     this.background.scale.set(backgroundScale);
     this.background.position.set(width / 2, height / 2);
 
-    const reelsMachine = this.context.reelsMachine;
-    reelsMachine.position.set(width / 2, height / 2);
+    const panel = this.betPanel;
+    if (!panel) return;
 
-    this.betPanel?.position.set(
-      reelsMachine.position.x,
-      reelsMachine.position.y + reelsMachine.height - reelsMachine.pivot.y - 40,
+    const reelsMachine = this.context.reelsMachine;
+    const mode = getGameLayoutMode(width, height);
+    panel.setLayout(mode === 'wide' ? 'wide' : 'compact');
+    const reelsBounds = reelsMachine.getLocalBounds();
+    const panelBounds = panel.getLocalBounds();
+    const layout = calculateGameLayout(width, height, reelsBounds, panelBounds, mode);
+
+    this.place(reelsMachine, reelsBounds, layout.reels);
+    this.place(panel, panelBounds, layout.panel);
+  }
+
+  private place(container: Container, bounds: LayoutBounds, placement: LayoutPlacement): void {
+    container.scale.set(placement.scale);
+    container.position.set(
+      placement.left + (container.pivot.x - bounds.x) * placement.scale,
+      placement.top + (container.pivot.y - bounds.y) * placement.scale,
     );
   }
 }

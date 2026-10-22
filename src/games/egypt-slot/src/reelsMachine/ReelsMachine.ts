@@ -1,25 +1,44 @@
-import { Container, Sprite, Texture } from 'pixi.js';
+import { Container, Rectangle, Sprite, Texture } from 'pixi.js';
 import { EgyptImageAssetKey } from '../assets';
 import { ReelsBoard } from '../reels/ReelsBoard';
 import type { ReelSymbols } from '../reels/reelsConfig';
 
+const FRAME_SCALE = 0.55;
+const FRAME_TRANSPARENT_LEFT = 96;
+const FRAME_TRANSPARENT_RIGHT = 69;
+const REELS_WINDOW_LEFT = 320;
+const REELS_WINDOW_RIGHT = 1705;
+
 export class ReelsMachine extends Container {
   readonly reelsBoard: ReelsBoard;
+  private readonly croppedFrameTexture: Texture;
 
   constructor() {
     super();
 
+    const frameTexture = Texture.from(EgyptImageAssetKey.scene.reelFrameFilled);
+    this.croppedFrameTexture = new Texture({
+      source: frameTexture.source,
+      frame: new Rectangle(
+        FRAME_TRANSPARENT_LEFT,
+        0,
+        frameTexture.width - FRAME_TRANSPARENT_LEFT - FRAME_TRANSPARENT_RIGHT,
+        frameTexture.height,
+      ),
+    });
+
     const background = this.addBackground();
     const logo = this.addLogo();
 
-    // The purple window is offset from the center of the frame texture.
-    const boardWidth = background.width * 0.65;
-    const windowCenterX = ((320 + 1705) / 2) * background.scale.x;
+    // Board coordinates use the original PNG; the cropped sprite begins after its left padding.
+    const boardWidth = frameTexture.width * FRAME_SCALE * 0.65;
+    const windowCenterX =
+      ((REELS_WINDOW_LEFT + REELS_WINDOW_RIGHT) / 2 - FRAME_TRANSPARENT_LEFT) * FRAME_SCALE;
     this.reelsBoard = new ReelsBoard(boardWidth, background.height * 0.57);
     this.reelsBoard.position.set(windowCenterX - boardWidth / 2, background.height * 0.23);
 
     logo.anchor.set(0.5, 0);
-    logo.position.x = background.width / 2;
+    logo.position.x = (frameTexture.width / 2 - FRAME_TRANSPARENT_LEFT) * FRAME_SCALE;
 
     this.addChild(background, this.reelsBoard, logo);
 
@@ -31,11 +50,15 @@ export class ReelsMachine extends Container {
     this.reelsBoard.setSymbols(reels);
   }
 
+  override destroy(options?: Parameters<Container['destroy']>[0]): void {
+    super.destroy(options);
+    this.croppedFrameTexture.destroy();
+  }
+
   private addBackground(): Sprite {
-    const reelFrameFilledTexture = Texture.from(EgyptImageAssetKey.scene.reelFrameFilled);
-    const frameBackground = new Sprite(reelFrameFilledTexture);
+    const frameBackground = new Sprite(this.croppedFrameTexture);
     frameBackground.label = 'reel-frame-filled-background';
-    frameBackground.scale.set(0.55);
+    frameBackground.scale.set(FRAME_SCALE);
 
     return frameBackground;
   }
