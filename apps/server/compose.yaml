@@ -1,0 +1,14 @@
+services:
+  postgres:
+    image: postgres:17-alpine
+    environment:
+      POSTGRES_USER: lucky_games
+      POSTGRES_PASSWORD: lucky_games
+      POSTGRES_DB: lucky_games
+    ports:
+      - '5432:5432'
+    volumes:
+      - slot_postgres_data:/var/lib/postgresql/data
+
+volumes:
+  slot_postgres_data:

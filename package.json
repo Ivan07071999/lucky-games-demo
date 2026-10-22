@@ -16,7 +16,10 @@
     "assets:optimize": "node scripts/optimize-egypt-assets.mjs",
     "assets:font:bold": "node scripts/generate-bold-bitmap-font.mjs",
     "prepare": "husky",
-    "preview": "vite preview"
+    "preview": "vite preview",
+    "server:dev": "pnpm --filter @lucky-games/server dev",
+    "server:start": "pnpm --filter @lucky-games/server start",
+    "server:check": "pnpm --filter @lucky-games/server typecheck"
   },
   "dependencies": {
     "@esotericsoftware/spine-pixi-v8": "^4.3.13",
