@@ -1,17 +1,17 @@
 import { Container, Graphics } from 'pixi.js';
 import { ReelColumn } from './ReelColumn';
-import { INITIAL_REELS, REEL_COUNT, VISIBLE_ROWS, type ReelsMatrix } from './reelsConfig';
+import { REEL_COUNT, VISIBLE_ROWS, type ReelsMatrix } from './reelsConfig';
 
 export class ReelsBoard extends Container {
   private readonly columns: ReelColumn[];
 
-  constructor(width: number, height: number) {
+  constructor(width: number, height: number, initialReels: ReelsMatrix) {
     super();
 
     this.label = 'reels-board';
     const columnWidth = width / REEL_COUNT;
     const rowHeight = height / VISIBLE_ROWS;
-    this.columns = INITIAL_REELS.map((values, index) => {
+    this.columns = initialReels.map((values, index) => {
       const column = new ReelColumn(columnWidth, rowHeight, values);
       column.position.x = index * columnWidth;
       column.label = `reel-${index + 1}`;

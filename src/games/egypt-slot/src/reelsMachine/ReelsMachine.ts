@@ -13,7 +13,7 @@ export class ReelsMachine extends Container {
   readonly reelsBoard: ReelsBoard;
   private readonly croppedFrameTexture: Texture;
 
-  constructor() {
+  constructor(initialReels: ReelsMatrix) {
     super();
 
     const frameTexture = Texture.from(EgyptImageAssetKey.scene.reelFrameFilled);
@@ -34,7 +34,7 @@ export class ReelsMachine extends Container {
     const boardWidth = frameTexture.width * FRAME_SCALE * 0.65;
     const windowCenterX =
       ((REELS_WINDOW_LEFT + REELS_WINDOW_RIGHT) / 2 - FRAME_TRANSPARENT_LEFT) * FRAME_SCALE;
-    this.reelsBoard = new ReelsBoard(boardWidth, background.height * 0.57);
+    this.reelsBoard = new ReelsBoard(boardWidth, background.height * 0.57, initialReels);
     this.reelsBoard.position.set(windowCenterX - boardWidth / 2, background.height * 0.23);
 
     logo.anchor.set(0.5, 0);

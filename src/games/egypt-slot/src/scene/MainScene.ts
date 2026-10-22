@@ -1,6 +1,8 @@
 import { Container, Sprite, Texture } from 'pixi.js';
 import { EgyptImageAssetKey } from '../assets';
 import { BetPanel } from '../components/bet-panel';
+import { INITIAL_REELS } from '../reels/reelsConfig';
+import { ReelsMachine } from '../reelsMachine/ReelsMachine';
 import { GameContext, type GameMessages } from '../runtime/GameContext';
 import {
   calculateGameLayout,
@@ -12,6 +14,7 @@ import {
 export class MainScene extends Container {
   readonly context: GameContext;
   private background: Sprite | null = null;
+  private reelsMachine: ReelsMachine | null = null;
   private betPanel: BetPanel | null = null;
 
   constructor(canvas: HTMLCanvasElement, messages: GameMessages) {
@@ -24,12 +27,15 @@ export class MainScene extends Container {
 
     const background = new Sprite(Texture.from(EgyptImageAssetKey.scene.background));
     background.anchor.set(0.5);
+
+    const reelsMachine = new ReelsMachine(INITIAL_REELS);
+    const betPanel = new BetPanel(reelsMachine.width, reelsMachine.height, this.context.slotStore);
+
     this.background = background;
+    this.reelsMachine = reelsMachine;
+    this.betPanel = betPanel;
 
-    const reelsMachine = this.context.reelsMachine;
-    this.betPanel = new BetPanel(reelsMachine.width, reelsMachine.height, this.context.slotStore);
-
-    this.addChild(background, reelsMachine, this.betPanel);
+    this.addChild(background, reelsMachine, betPanel);
   }
 
   resize(width: number, height: number): void {
@@ -42,9 +48,9 @@ export class MainScene extends Container {
     this.background.position.set(width / 2, height / 2);
 
     const panel = this.betPanel;
-    if (!panel) return;
+    const reelsMachine = this.reelsMachine;
+    if (!panel || !reelsMachine) return;
 
-    const reelsMachine = this.context.reelsMachine;
     const mode = getGameLayoutMode(width, height);
     panel.setLayout(mode === 'wide' ? 'wide' : 'compact');
     const reelsBounds = reelsMachine.getLocalBounds();
