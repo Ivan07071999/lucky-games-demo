@@ -19,6 +19,10 @@ export class EgyptImageAssets {
   } as const;
 
   static readonly symbols = {
+    defaultA: egyptAssetUrl('PNG/symbols/default/default_a.png'),
+    defaultJ: egyptAssetUrl('PNG/symbols/default/default_j.png'),
+    defaultK: egyptAssetUrl('PNG/symbols/default/default_k.png'),
+    defaultQ: egyptAssetUrl('PNG/symbols/default/default_q.png'),
     highAnkh: egyptAssetUrl('PNG/symbols/high/high_ankh.png'),
     highAnkhNoFrame: egyptAssetUrl('PNG/symbols/high/high_ankh_no_frame.png'),
     highEye: egyptAssetUrl('PNG/symbols/high/high_eye.png'),
