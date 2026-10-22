@@ -5,7 +5,7 @@ export class Coins extends Container {
   readonly valueText: BitmapText;
   private readonly valueMaxWidth: number;
 
-  constructor(width: number, height: number) {
+  constructor(width: number, height: number, value: number) {
     super();
 
     this.label = 'coins';
@@ -25,7 +25,7 @@ export class Coins extends Container {
     label.scale.set(Math.min(1, (width * 0.32) / label.width));
 
     this.valueText = new BitmapText({
-      text: '250000',
+      text: String(value),
       style: {
         fontFamily: 'CasinoGold',
         fontSize: height * 0.23,
@@ -39,6 +39,11 @@ export class Coins extends Container {
     this.fitValueText();
 
     this.addChild(label, this.valueText);
+  }
+
+  setValue(value: number): void {
+    this.valueText.text = String(value);
+    this.fitValueText();
   }
 
   private fitValueText(): void {

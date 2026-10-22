@@ -3,8 +3,9 @@ import { BitmapText, Container } from 'pixi.js';
 
 export class Bet extends Container {
   readonly valueText: BitmapText;
+  private readonly valueMaxWidth: number;
 
-  constructor(width: number, height: number) {
+  constructor(width: number, height: number, value: number) {
     super();
 
     this.label = 'bet';
@@ -24,7 +25,7 @@ export class Bet extends Container {
     label.scale.set(Math.min(1, (width * 0.32) / label.width));
 
     this.valueText = new BitmapText({
-      text: '15',
+      text: String(value),
       style: {
         fontFamily: 'CasinoGold',
         fontSize: height * 0.23,
@@ -34,8 +35,18 @@ export class Bet extends Container {
     this.valueText.label = 'bet-value';
     this.valueText.anchor.set(0.5);
     this.valueText.position.y = height * 0.05;
-    this.valueText.scale.set(Math.min(1, (width * 0.32) / this.valueText.width));
+    this.valueMaxWidth = width * 0.32;
+    this.fitValueText();
 
     this.addChild(label, this.valueText);
+  }
+
+  setValue(value: number): void {
+    this.valueText.text = String(value);
+    this.fitValueText();
+  }
+
+  private fitValueText(): void {
+    this.valueText.scale.set(Math.min(1, this.valueMaxWidth / this.valueText.width));
   }
 }

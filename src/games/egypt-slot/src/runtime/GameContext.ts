@@ -1,5 +1,6 @@
 import { Controller } from '../controllers/controller';
 import { ReelsMachine } from '../reelsMachine/ReelsMachine';
+import { SlotStore } from '../stores/SlotStore';
 
 export type GameMessages = {
   loading: string;
@@ -9,6 +10,7 @@ export class GameContext {
   readonly canvas: HTMLCanvasElement;
   readonly messages: GameMessages;
   readonly controllers = new Controller();
+  readonly slotStore = new SlotStore();
   private reelsMachineInstance: ReelsMachine | null = null;
 
   constructor(canvas: HTMLCanvasElement, messages: GameMessages) {

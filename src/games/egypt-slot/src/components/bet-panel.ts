@@ -1,4 +1,6 @@
 import { Container } from 'pixi.js';
+import { autorun, type IReactionDisposer } from 'mobx';
+import { SlotStore } from '../stores/SlotStore';
 import { AutoPlayButton } from './ui/auto-play';
 import { LeftBackground } from './ui/left-background';
 import { MaxBetButton } from './ui/max-bet';
@@ -15,14 +17,21 @@ export class BetPanel extends Container {
   readonly rightBackground: RightBackground;
   readonly autoPlayButton: AutoPlayButton;
   readonly maxBetButton: MaxBetButton;
+  private readonly stopObserving: IReactionDisposer;
 
-  constructor(width: number, height: number, onSpin?: () => void) {
+  constructor(width: number, height: number, store: SlotStore) {
     super();
 
     this.label = 'bet-panel';
-    this.spinButton = new SpinButton(SPIN_DIAMETER / 2, onSpin);
-    this.leftBackground = new LeftBackground(height);
-    this.rightBackground = new RightBackground(height);
+    this.spinButton = new SpinButton(SPIN_DIAMETER / 2, store.requestSpin);
+    this.leftBackground = new LeftBackground(height, store.bet, store.level, {
+      onDecrease: store.decreaseLevel,
+      onIncrease: store.increaseLevel,
+    });
+    this.rightBackground = new RightBackground(height, store.coins, store.coinValueCents, {
+      onDecrease: store.decreaseCoinValue,
+      onIncrease: store.increaseCoinValue,
+    });
     this.autoPlayButton = new AutoPlayButton(width, height);
     this.maxBetButton = new MaxBetButton(width, height);
 
@@ -34,6 +43,20 @@ export class BetPanel extends Container {
       this.rightBackground,
     );
     this.setLayout('wide');
+
+    this.stopObserving = autorun(() => {
+      this.leftBackground.bet.setValue(store.bet);
+      this.leftBackground.levelSwitcher.setValue(store.level);
+      this.rightBackground.coinValueSwitcher.setValue(store.coinValueCents);
+      this.rightBackground.coins.setValue(store.coins);
+      this.spinButton.eventMode = store.canSpin ? 'static' : 'none';
+      this.spinButton.alpha = store.canSpin ? 1 : 0.5;
+    });
+  }
+
+  override destroy(options?: Parameters<Container['destroy']>[0]): void {
+    this.stopObserving();
+    super.destroy(options);
   }
 
   setLayout(layout: BetPanelLayout): void {

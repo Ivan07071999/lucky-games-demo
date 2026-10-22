@@ -2,13 +2,19 @@ import { Container, Sprite, Texture } from 'pixi.js';
 import { EgyptImageAssetKey } from '../../assets';
 import { CoinValueSwitcher } from './coin-value-switcher';
 import { Coins } from './coins';
+import type { ValueSwitcherActions } from './value-switcher';
 
 export class RightBackground extends Container {
   readonly background: Sprite;
   readonly coinValueSwitcher: CoinValueSwitcher;
   readonly coins: Coins;
 
-  constructor(height: number) {
+  constructor(
+    height: number,
+    coins: number,
+    coinValueCents: number,
+    coinValueActions: ValueSwitcherActions,
+  ) {
     super();
 
     this.label = 'bet-panel-right-background';
@@ -19,10 +25,15 @@ export class RightBackground extends Container {
     this.background.width =
       this.background.height * (this.background.texture.width / this.background.texture.height);
 
-    this.coinValueSwitcher = new CoinValueSwitcher(this.background.width, this.background.height);
+    this.coinValueSwitcher = new CoinValueSwitcher(
+      this.background.width,
+      this.background.height,
+      coinValueCents,
+      coinValueActions,
+    );
     this.coinValueSwitcher.position.x = -this.background.width * 0.25;
     this.coinValueSwitcher.position.y = -10;
-    this.coins = new Coins(this.background.width, this.background.height);
+    this.coins = new Coins(this.background.width, this.background.height, coins);
     this.coins.position.set(this.background.width * 0.2, -10);
     this.addChild(this.background, this.coinValueSwitcher, this.coins);
   }

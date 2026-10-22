@@ -27,7 +27,7 @@ export class MainScene extends Container {
     this.background = background;
 
     const reelsMachine = this.context.reelsMachine;
-    this.betPanel = new BetPanel(reelsMachine.width, reelsMachine.height);
+    this.betPanel = new BetPanel(reelsMachine.width, reelsMachine.height, this.context.slotStore);
 
     this.addChild(background, reelsMachine, this.betPanel);
   }

@@ -1,15 +1,15 @@
-import { ValueSwitcher } from './value-switcher';
+import { ValueSwitcher, type ValueSwitcherActions } from './value-switcher';
 
 export class CoinValueSwitcher extends ValueSwitcher {
-  constructor(width: number, height: number) {
+  constructor(width: number, height: number, value: number, actions: ValueSwitcherActions) {
     super({
       id: 'coin-value',
       title: 'COIN VALUE',
       width,
       height,
-      initialValue: 2,
-      minValue: 1,
+      initialValue: value,
       formatValue: (value) => (value / 100).toFixed(2).replace('.', ','),
+      ...actions,
     });
   }
 }

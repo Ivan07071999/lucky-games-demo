@@ -4,13 +4,17 @@ import { gsap } from 'gsap';
 
 type Direction = 'left' | 'right';
 
-type ValueSwitcherOptions = {
+export type ValueSwitcherActions = {
+  onDecrease: () => void;
+  onIncrease: () => void;
+};
+
+type ValueSwitcherOptions = ValueSwitcherActions & {
   id: string;
   title: string;
   width: number;
   height: number;
   initialValue: number;
-  minValue: number;
   formatValue: (value: number) => string;
 };
 
@@ -65,9 +69,7 @@ class ValueSwitcherArrow extends Container {
 export class ValueSwitcher extends Container {
   readonly valueText: BitmapText;
   private readonly valueMaxWidth: number;
-  private readonly minValue: number;
   private readonly formatValue: (value: number) => string;
-  private value: number;
 
   constructor({
     id,
@@ -75,14 +77,13 @@ export class ValueSwitcher extends Container {
     width,
     height,
     initialValue,
-    minValue,
     formatValue,
+    onDecrease,
+    onIncrease,
   }: ValueSwitcherOptions) {
     super();
 
     this.label = `${id}-switcher`;
-    this.value = initialValue;
-    this.minValue = minValue;
     this.formatValue = formatValue;
 
     const label = new BitmapText({
@@ -100,7 +101,7 @@ export class ValueSwitcher extends Container {
     label.scale.set(Math.min(1, (width * 0.62) / label.width));
 
     this.valueText = new BitmapText({
-      text: this.formatValue(this.value),
+      text: this.formatValue(initialValue),
       style: {
         fontFamily: 'CasinoGold',
         fontSize: height * 0.23,
@@ -116,11 +117,19 @@ export class ValueSwitcher extends Container {
     const arrowSize = height * 0.13;
     const arrowHitAreaSize = height * 0.16;
     const arrowOffset = width * 0.16;
-    const decreaseButton = new ValueSwitcherArrow(id, 'left', arrowSize, arrowHitAreaSize, () =>
-      this.changeValue(-1),
+    const decreaseButton = new ValueSwitcherArrow(
+      id,
+      'left',
+      arrowSize,
+      arrowHitAreaSize,
+      onDecrease,
     );
-    const increaseButton = new ValueSwitcherArrow(id, 'right', arrowSize, arrowHitAreaSize, () =>
-      this.changeValue(1),
+    const increaseButton = new ValueSwitcherArrow(
+      id,
+      'right',
+      arrowSize,
+      arrowHitAreaSize,
+      onIncrease,
     );
     decreaseButton.position.set(-arrowOffset, this.valueText.position.y + 6);
     increaseButton.position.set(arrowOffset, this.valueText.position.y + 6);
@@ -128,9 +137,8 @@ export class ValueSwitcher extends Container {
     this.addChild(label, this.valueText, decreaseButton, increaseButton);
   }
 
-  private changeValue(step: number): void {
-    this.value = Math.max(this.minValue, this.value + step);
-    this.valueText.text = this.formatValue(this.value);
+  setValue(value: number): void {
+    this.valueText.text = this.formatValue(value);
     this.valueText.anchor.set(0.5);
     this.fitValueText();
   }
