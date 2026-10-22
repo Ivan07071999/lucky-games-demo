@@ -1,6 +1,6 @@
 import { Container, Graphics } from 'pixi.js';
 import { ReelColumn } from './ReelColumn';
-import { INITIAL_REELS, REEL_COUNT, VISIBLE_ROWS, type ReelSymbols } from './reelsConfig';
+import { INITIAL_REELS, REEL_COUNT, VISIBLE_ROWS, type ReelsMatrix } from './reelsConfig';
 
 export class ReelsBoard extends Container {
   private readonly columns: ReelColumn[];
@@ -23,7 +23,7 @@ export class ReelsBoard extends Container {
     this.mask = mask;
   }
 
-  setSymbols(reels: ReelSymbols): void {
+  setSymbols(reels: ReelsMatrix): void {
     if (reels.length !== REEL_COUNT || reels.some((reel) => reel.length !== VISIBLE_ROWS)) {
       throw new Error(`Expected ${REEL_COUNT} reels with ${VISIBLE_ROWS} symbols each`);
     }

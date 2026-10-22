@@ -1,11 +1,11 @@
 import { Container } from 'pixi.js';
 import { ReelSymbol } from './reelSymbol';
-import { VISIBLE_ROWS, type ReelSymbolKey } from './reelsConfig';
+import { VISIBLE_ROWS, type ReelColumnSymbols } from './reelsConfig';
 
 export class ReelColumn extends Container {
   private readonly symbols: ReelSymbol[];
 
-  constructor(width: number, rowHeight: number, values: readonly ReelSymbolKey[]) {
+  constructor(width: number, rowHeight: number, values: ReelColumnSymbols) {
     super();
 
     this.label = 'reel-column';
@@ -17,7 +17,7 @@ export class ReelColumn extends Container {
     this.addChild(...this.symbols);
   }
 
-  setSymbols(values: readonly ReelSymbolKey[]): void {
+  setSymbols(values: ReelColumnSymbols): void {
     this.symbols.forEach((symbol, row) => symbol.setValue(values[row]));
   }
 }

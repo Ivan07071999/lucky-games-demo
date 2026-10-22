@@ -1,7 +1,7 @@
 import { Container, Rectangle, Sprite, Texture } from 'pixi.js';
 import { EgyptImageAssetKey } from '../assets';
 import { ReelsBoard } from '../reels/ReelsBoard';
-import type { ReelSymbols } from '../reels/reelsConfig';
+import type { ReelsMatrix } from '../reels/reelsConfig';
 
 const FRAME_SCALE = 0.55;
 const FRAME_TRANSPARENT_LEFT = 96;
@@ -46,7 +46,7 @@ export class ReelsMachine extends Container {
     this.pivot.set(bounds.x + bounds.width / 2, bounds.y + bounds.height / 2.2);
   }
 
-  setSymbols(reels: ReelSymbols): void {
+  setSymbols(reels: ReelsMatrix): void {
     this.reelsBoard.setSymbols(reels);
   }
 
