@@ -49,6 +49,7 @@ const en = {
       loadError: 'Could not load the game. Please try again.',
       incompatibleServer: 'The game server uses an outdated API version. Restart the server.',
       retry: 'Retry',
+      insufficientBalance: 'Not enough coins for MAX BET.',
     },
     footer: { tagline: 'Play at your own pace' },
   },

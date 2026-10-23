@@ -9,7 +9,12 @@ const state: SlotState = {
   freeSpins: { remaining: 0, totalWinCoins: 0, stickyReels: [] },
   lastBet: null,
   nextAction: 'SPIN',
-  config: { bets: [15], levels: [1], coinValuesCents: [2], paylines: [[0, 0, 0, 0, 0]] },
+  config: {
+    bets: [15],
+    levels: [1],
+    coinValuesCents: [2],
+    paylines: [[0, 0, 0, 0, 0]],
+  },
 };
 
 const service = {

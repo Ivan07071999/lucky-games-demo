@@ -9,7 +9,13 @@ export class LeftBackground extends Container {
   readonly bet: Bet;
   readonly levelSwitcher: LevelSwitcher;
 
-  constructor(height: number, bet: number, level: number, levelActions: ValueSwitcherActions) {
+  constructor(
+    height: number,
+    bet: number,
+    level: number,
+    levelActions: ValueSwitcherActions,
+    onBetRequested: () => void,
+  ) {
     super();
 
     this.label = 'bet-panel-left-background';
@@ -20,7 +26,7 @@ export class LeftBackground extends Container {
     this.background.width =
       this.background.height * (this.background.texture.width / this.background.texture.height);
 
-    this.bet = new Bet(this.background.width, this.background.height, bet);
+    this.bet = new Bet(this.background.width, this.background.height, bet, onBetRequested);
     this.bet.position.set(-this.background.width * 0.25, -10);
     this.levelSwitcher = new LevelSwitcher(
       this.background.width,

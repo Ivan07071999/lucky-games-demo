@@ -19,22 +19,36 @@ export class BetPanel extends Container {
   readonly maxBetButton: MaxBetButton;
   private readonly stopObserving: IReactionDisposer;
 
-  constructor(width: number, height: number, store: SlotStore, onSpinRequested: () => void) {
+  constructor(
+    width: number,
+    height: number,
+    store: SlotStore,
+    onSpinRequested: () => void,
+    onBetRequested: () => void,
+    onMaxBetRequested: () => void,
+    onAutoPlayRequested: () => void,
+  ) {
     super();
 
     const panel = store.panel;
     this.label = 'bet-panel';
     this.spinButton = new SpinButton(SPIN_DIAMETER / 2, onSpinRequested);
-    this.leftBackground = new LeftBackground(height, panel.bet, panel.level, {
-      onDecrease: panel.decreaseLevel,
-      onIncrease: panel.increaseLevel,
-    });
+    this.leftBackground = new LeftBackground(
+      height,
+      panel.bet,
+      panel.level,
+      {
+        onDecrease: panel.decreaseLevel,
+        onIncrease: panel.increaseLevel,
+      },
+      onBetRequested,
+    );
     this.rightBackground = new RightBackground(height, panel.balanceCoins, panel.coinValueCents, {
       onDecrease: panel.decreaseCoinValue,
       onIncrease: panel.increaseCoinValue,
     });
-    this.autoPlayButton = new AutoPlayButton(width, height);
-    this.maxBetButton = new MaxBetButton(width, height);
+    this.autoPlayButton = new AutoPlayButton(width, height, onAutoPlayRequested);
+    this.maxBetButton = new MaxBetButton(width, height, onMaxBetRequested);
 
     this.addChild(
       this.leftBackground,
@@ -47,13 +61,38 @@ export class BetPanel extends Container {
 
     this.stopObserving = autorun(() => {
       this.leftBackground.bet.setValue(panel.bet);
+      this.leftBackground.bet.setEnabled(panel.canEditBet);
       this.leftBackground.levelSwitcher.setValue(panel.level);
       this.rightBackground.coinValueSwitcher.setValue(panel.coinValueCents);
-      this.leftBackground.levelSwitcher.setEnabled(store.round.canEditBet);
-      this.rightBackground.coinValueSwitcher.setEnabled(store.round.canEditBet);
+      this.leftBackground.levelSwitcher.setEnabled(panel.canEditBet);
+      this.rightBackground.coinValueSwitcher.setEnabled(panel.canEditBet);
       this.rightBackground.coins.setValue(panel.balanceCoins);
-      this.spinButton.eventMode = store.canSpin ? 'static' : 'none';
-      this.spinButton.alpha = store.canSpin ? 1 : 0.5;
+      this.spinButton.setSpinning(store.round.isSpinning);
+      const canPressSpin =
+        (store.canSpin && (!store.round.isFreeSpin || !!store.round.errorMessage)) ||
+        store.round.canQuickStop ||
+        store.round.canSkipWin;
+      this.spinButton.eventMode = canPressSpin ? 'static' : 'none';
+      this.spinButton.alpha = canPressSpin ? 1 : 0.5;
+      const canPressMaxBet = store.canRequestMaxBet;
+      this.maxBetButton.eventMode = canPressMaxBet ? 'static' : 'none';
+      this.maxBetButton.alpha = canPressMaxBet ? 1 : 0.5;
+      const autoPlay = store.autoPlay;
+      const canStopAutoPlay = autoPlay.isBetLocked && autoPlay.state !== 'stopRequested';
+      const canOpenAutoPlay =
+        autoPlay.canConfigure &&
+        store.round.ready &&
+        store.round.stage === 'idle' &&
+        !store.round.isFreeSpin &&
+        !store.round.errorMessage;
+      const canPressAutoPlay = canStopAutoPlay || canOpenAutoPlay;
+      this.autoPlayButton.setAutoPlayStatus(
+        autoPlay.isBetLocked,
+        autoPlay.completed,
+        autoPlay.remaining,
+      );
+      this.autoPlayButton.eventMode = canPressAutoPlay ? 'static' : 'none';
+      this.autoPlayButton.alpha = canPressAutoPlay ? 1 : 0.5;
     });
   }
 

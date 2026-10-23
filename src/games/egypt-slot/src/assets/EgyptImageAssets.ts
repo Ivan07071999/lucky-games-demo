@@ -6,6 +6,7 @@ export class EgyptImageAssets {
     panelBackground: egyptAssetUrl('PNG/background/panel_background.png'),
     right: egyptAssetUrl('PNG/buttons/button_right.png'),
     spinButton: egyptAssetUrl('PNG/buttons/spin_button.png'),
+    spinningButton: egyptAssetUrl('PNG/buttons/spining-button.png'),
   } as const;
 
   static readonly scene = {

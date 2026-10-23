@@ -45,9 +45,7 @@ class ValueSwitcherArrow extends Container {
     icon.label = `${this.label}-icon`;
     this.addChild(icon);
 
-    this.on('pointerdown', (event) => {
-      if (event.button === 0) onClick();
-    });
+    this.on('pointertap', onClick);
     this.on('pointerover', this.scaleUp, this);
     this.on('pointerout', this.scaleDown, this);
   }

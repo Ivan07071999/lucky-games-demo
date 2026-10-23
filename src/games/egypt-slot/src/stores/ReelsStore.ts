@@ -5,6 +5,7 @@ import { INITIAL_REELS, type ReelsMatrix } from '../reels/reelsConfig';
 export class ReelsStore {
   reels: ReelsMatrix = INITIAL_REELS;
   wins: readonly Win[] = [];
+  isSpinning = false;
 
   constructor() {
     makeAutoObservable(this, { reels: observableRef, wins: observableRef }, { autoBind: true });
@@ -13,6 +14,11 @@ export class ReelsStore {
   reset(): void {
     this.reels = INITIAL_REELS;
     this.wins = [];
+    this.isSpinning = false;
+  }
+
+  setSpinning(isSpinning: boolean): void {
+    this.isSpinning = isSpinning;
   }
 
   applyRoundResult(result: RoundResult): void {

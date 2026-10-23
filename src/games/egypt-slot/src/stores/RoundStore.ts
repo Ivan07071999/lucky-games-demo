@@ -1,6 +1,8 @@
 import type { NextAction, RoundResult, SlotState } from '@lucky-games/contracts';
 import { makeAutoObservable, observableRef } from 'mobx';
 
+export type RoundStage = 'idle' | 'waitingResult' | 'landing' | 'showingWin';
+
 export class RoundStore {
   sessionId: string | null = null;
   nextAction: NextAction = 'SPIN';
@@ -10,7 +12,10 @@ export class RoundStore {
     stickyReels: [],
   };
   ready = false;
-  isSpinning = false;
+  stage: RoundStage = 'idle';
+  quickStopRequested = false;
+  skipWinRequested = false;
+  isBonusRound = false;
   errorMessage: string | null = null;
   currentRound: RoundResult | null = null;
   lastRoundResult: RoundResult | null = null;
@@ -28,7 +33,32 @@ export class RoundStore {
   }
 
   get canEditBet(): boolean {
-    return !this.isSpinning && this.nextAction !== 'FREE_SPIN';
+    return !this.isSpinning && !this.isFreeSpin;
+  }
+
+  get isSpinning(): boolean {
+    return this.stage !== 'idle';
+  }
+
+  get isFreeSpin(): boolean {
+    return this.nextAction === 'FREE_SPIN' && this.freeSpins.remaining > 0;
+  }
+
+  get canQuickStop(): boolean {
+    return (
+      !this.isBonusRound &&
+      !this.quickStopRequested &&
+      (this.stage === 'waitingResult' || this.stage === 'landing')
+    );
+  }
+
+  get canSkipWin(): boolean {
+    return (
+      !this.isBonusRound &&
+      !this.isFreeSpin &&
+      !this.skipWinRequested &&
+      this.stage === 'showingWin'
+    );
   }
 
   applyInitialState(state: SlotState): void {
@@ -39,7 +69,10 @@ export class RoundStore {
       totalWinCoins: state.freeSpins.totalWinCoins,
       stickyReels: [...state.freeSpins.stickyReels],
     };
-    this.isSpinning = false;
+    this.stage = 'idle';
+    this.quickStopRequested = false;
+    this.skipWinRequested = false;
+    this.isBonusRound = false;
     this.currentRound = null;
     this.lastRoundResult = null;
     this.errorMessage = null;
@@ -58,9 +91,32 @@ export class RoundStore {
   }
 
   startRound(): void {
-    this.isSpinning = true;
+    this.isBonusRound = this.isFreeSpin;
+    this.stage = 'waitingResult';
+    this.quickStopRequested = false;
+    this.skipWinRequested = false;
     this.errorMessage = null;
     this.currentRound = null;
+  }
+
+  startLanding(): void {
+    this.stage = 'landing';
+  }
+
+  startShowingWin(): void {
+    this.stage = 'showingWin';
+  }
+
+  requestQuickStop(): boolean {
+    if (!this.canQuickStop) return false;
+    this.quickStopRequested = true;
+    return true;
+  }
+
+  requestSkipWin(): boolean {
+    if (!this.canSkipWin) return false;
+    this.skipWinRequested = true;
+    return true;
   }
 
   receiveRound(result: RoundResult): void {
@@ -68,7 +124,10 @@ export class RoundStore {
   }
 
   finishRound(): void {
-    this.isSpinning = false;
+    this.stage = 'idle';
+    this.quickStopRequested = false;
+    this.skipWinRequested = false;
+    this.isBonusRound = false;
     this.currentRound = null;
   }
 

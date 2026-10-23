@@ -1,6 +1,9 @@
 import type { RoundResult, SlotCommand } from '@lucky-games/contracts';
 import { isSlotErrorCode, SlotApiError } from './SlotApiError';
 
+const CONNECTION_TIMEOUT_MS = 10_000;
+const ROUND_TIMEOUT_MS = 15_000;
+
 type PendingRequest = {
   requestId: string;
   resolve: (result: RoundResult) => void;
@@ -26,19 +29,27 @@ export class SlotSocketClient {
     signal?.throwIfAborted();
 
     return new Promise<RoundResult>((resolve, reject) => {
+      const timeoutId = window.setTimeout(() => {
+        this.rejectPending(new SlotApiError('WebSocket round timed out'));
+      }, ROUND_TIMEOUT_MS);
+      const cleanup = () => {
+        window.clearTimeout(timeoutId);
+        signal?.removeEventListener('abort', onAbort);
+      };
       const onAbort = () => {
         this.pending = null;
+        cleanup();
         reject(signal?.reason ?? new SlotApiError('Round was cancelled'));
       };
       signal?.addEventListener('abort', onAbort, { once: true });
       this.pending = {
         requestId: command.requestId,
         resolve: (result) => {
-          signal?.removeEventListener('abort', onAbort);
+          cleanup();
           resolve(result);
         },
         reject: (error) => {
-          signal?.removeEventListener('abort', onAbort);
+          cleanup();
           reject(error);
         },
       };
@@ -65,6 +76,11 @@ export class SlotSocketClient {
     socket.addEventListener('close', this.onClose);
 
     this.connecting = new Promise<WebSocket>((resolve, reject) => {
+      const timeoutId = window.setTimeout(() => {
+        cleanup();
+        socket.close();
+        reject(new SlotApiError('WebSocket connection timed out'));
+      }, CONNECTION_TIMEOUT_MS);
       const onOpen = () => {
         cleanup();
         resolve(socket);
@@ -79,6 +95,7 @@ export class SlotSocketClient {
         reject(signal?.reason ?? new SlotApiError('Connection was cancelled'));
       };
       const cleanup = () => {
+        window.clearTimeout(timeoutId);
         socket.removeEventListener('open', onOpen);
         socket.removeEventListener('error', onFailure);
         socket.removeEventListener('close', onFailure);
