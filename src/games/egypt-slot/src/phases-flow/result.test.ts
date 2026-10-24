@@ -37,7 +37,7 @@ const result = {
 } satisfies RoundResult;
 
 describe('ResultPhase', () => {
-  it('enters the Free Spins phase after a bonus is awarded', async () => {
+  it('enters the Free Spins intro after a bonus is awarded', async () => {
     const store = new SlotStore();
     const emitter = new GameEmitter<GameEvents>();
     const reels = {
@@ -61,7 +61,7 @@ describe('ResultPhase', () => {
     store.round.startRound();
     store.round.receiveRound(bonusResult);
 
-    await expect(phase.enter(new AbortController().signal)).resolves.toBe('freeSpins');
+    await expect(phase.enter(new AbortController().signal)).resolves.toBe('freeSpinsIntro');
     expect(store.round.isFreeSpin).toBe(true);
   });
 

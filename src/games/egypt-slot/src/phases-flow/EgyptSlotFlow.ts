@@ -3,8 +3,11 @@ import { MainSceneController } from '../controllers/main-scene-controller/MainSc
 import { ReelsController } from '../controllers/reels-controller/ReelsController';
 import { BalanceController } from '../controllers/balance-controller/BalanceController';
 import { WinPopupController } from '../controllers/win-popup-controller/WinPopupController';
+import { FreeSpinsThemeController } from '../controllers/free-spins-theme-controller/FreeSpinsThemeController';
 import { MainScene } from '../scene/MainScene';
 import { FreeSpinsPhase } from './free-spins';
+import { FreeSpinsIntroPhase } from './free-spins-intro';
+import { FreeSpinsOutroPhase } from './free-spins-outro';
 import { IdlePhase } from './idle';
 import { InitPhase } from './init';
 import { LoadingPhase } from './loading';
@@ -27,6 +30,7 @@ export class EgyptSlotFlow extends PhaseManager<PhaseName, typeof phaseTransitio
     );
     const balanceController = new BalanceController(slotStore.panel);
     const winPopupController = new WinPopupController(sceneController);
+    const themeController = new FreeSpinsThemeController(sceneController);
     const unsubscribeMaxBetError = emitter.on('ui:maxBetInsufficientBalance', () => {
       sceneController.showError(messages.insufficientBalance);
     });
@@ -56,6 +60,8 @@ export class EgyptSlotFlow extends PhaseManager<PhaseName, typeof phaseTransitio
         reelsController,
         balanceController,
       ),
+      [PhaseName.freeSpinsIntro]: new FreeSpinsIntroPhase(themeController),
+      [PhaseName.freeSpinsOutro]: new FreeSpinsOutroPhase(themeController),
       [PhaseName.result]: new ResultPhase(
         slotStore,
         emitter,

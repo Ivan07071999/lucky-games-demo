@@ -7,6 +7,7 @@ import { EgyptSpineAssets } from './EgyptSpineAssets';
 const imageBundles = {
   buttons: EgyptImageAssets.buttons,
   scene: EgyptImageAssets.scene,
+  transitions: EgyptImageAssets.transitions,
   symbols: EgyptImageAssets.symbols,
   popups: EgyptImageAssets.popups,
 } as const;

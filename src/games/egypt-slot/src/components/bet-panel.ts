@@ -1,6 +1,7 @@
 import { Container } from 'pixi.js';
 import { autorun, type IReactionDisposer } from 'mobx';
 import { SlotStore } from '../stores/SlotStore';
+import type { SceneTheme } from '../scene/sceneTheme';
 import { AutoPlayButton } from './ui/auto-play';
 import { LeftBackground } from './ui/left-background';
 import { MaxBetButton } from './ui/max-bet';
@@ -104,6 +105,11 @@ export class BetPanel extends Container {
   override destroy(options?: Parameters<Container['destroy']>[0]): void {
     this.stopObserving();
     super.destroy(options);
+  }
+
+  setTheme(theme: SceneTheme): void {
+    this.leftBackground.setTheme(theme);
+    this.rightBackground.setTheme(theme);
   }
 
   setLayout(layout: BetPanelLayout): void {

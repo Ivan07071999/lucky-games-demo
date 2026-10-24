@@ -1,5 +1,6 @@
 import { Container, Sprite, Texture } from 'pixi.js';
 import { EgyptImageAssetKey } from '../../assets';
+import type { SceneTheme } from '../../scene/sceneTheme';
 import { CoinValueSwitcher } from './coin-value-switcher';
 import { Coins } from './coins';
 import type { ValueSwitcherActions } from './value-switcher';
@@ -36,5 +37,17 @@ export class RightBackground extends Container {
     this.coins = new Coins(this.background.width, this.background.height, coins);
     this.coins.position.set(this.background.width * 0.2, -10);
     this.addChild(this.background, this.coinValueSwitcher, this.coins);
+  }
+
+  setTheme(theme: SceneTheme): void {
+    const width = this.background.width;
+    const height = this.background.height;
+    this.background.texture = Texture.from(
+      theme === 'freeSpins'
+        ? EgyptImageAssetKey.buttons.panelBackgroundFreeSpins
+        : EgyptImageAssetKey.buttons.panelBackground,
+    );
+    this.background.width = width;
+    this.background.height = height;
   }
 }

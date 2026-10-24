@@ -4,6 +4,7 @@ export class EgyptImageAssets {
   static readonly buttons = {
     left: egyptAssetUrl('PNG/buttons/button_left.png'),
     panelBackground: egyptAssetUrl('PNG/background/panel_background.png'),
+    panelBackgroundFreeSpins: egyptAssetUrl('PNG/background/panel_background_fs.png'),
     right: egyptAssetUrl('PNG/buttons/button_right.png'),
     spinButton: egyptAssetUrl('PNG/buttons/spin_button.png'),
     spinningButton: egyptAssetUrl('PNG/buttons/spining-button.png'),
@@ -11,12 +12,19 @@ export class EgyptImageAssets {
 
   static readonly scene = {
     background: egyptAssetUrl('PNG/background/background.webp'),
+    backgroundFreeSpins: egyptAssetUrl('PNG/background/background_fs.png'),
     anubis: egyptAssetUrl('PNG/characters/anubis.png'),
     anubisFrame: egyptAssetUrl('PNG/characters/anubis_frame.png'),
     logoLong: egyptAssetUrl('PNG/logo/logo_long.png'),
     logoShort: egyptAssetUrl('PNG/logo/logo_short.png'),
     reelFrameEmpty: egyptAssetUrl('PNG/reel/reel_frame_empty.png'),
     reelFrameFilled: egyptAssetUrl('PNG/reel/reel_frame_filled.png'),
+    reelFrameFreeSpins: egyptAssetUrl('PNG/reel/reel_frame_fs.png'),
+  } as const;
+
+  static readonly transitions = {
+    freeSpinsActivated: egyptAssetUrl('PNG/transition/transition_fs_activated.png'),
+    freeSpinsComplete: egyptAssetUrl('PNG/transition/transition_fs_complete.png'),
   } as const;
 
   static readonly symbols = {

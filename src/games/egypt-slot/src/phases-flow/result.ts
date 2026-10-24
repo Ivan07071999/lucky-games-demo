@@ -68,6 +68,12 @@ export class ResultPhase implements Phase<
 
     signal.throwIfAborted();
     this.emitter.emit('round:completed', result);
+    if (result.mode === 'BASE_GAME' && this.store.round.isFreeSpin) {
+      return PhaseName.freeSpinsIntro;
+    }
+    if (result.mode === 'FREE_SPINS' && !this.store.round.isFreeSpin) {
+      return PhaseName.freeSpinsOutro;
+    }
     return this.store.round.isFreeSpin ? PhaseName.freeSpins : PhaseName.idle;
   }
 }

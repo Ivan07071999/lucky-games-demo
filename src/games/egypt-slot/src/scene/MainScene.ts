@@ -5,10 +5,15 @@ import { BetSelectionModal } from '../components/ui/bet-selection-modal';
 import { AutoPlayModal } from '../components/ui/auto-play-modal';
 import { FreeSpinsStatus } from '../components/ui/free-spins-status';
 import { WinPopup } from '../components/win-popup/WinPopup';
+import {
+  FreeSpinsTransition,
+  type FreeSpinsTransitionKind,
+} from '../components/free-spins-transition/FreeSpinsTransition';
 import type { WinType } from '@lucky-games/contracts';
 import { ReelsMachine } from '../reelsMachine/ReelsMachine';
 import type { ReelsCommand } from '../reelsMachine/commands';
 import { GameContext, type GameMessages } from '../runtime/GameContext';
+import type { SceneTheme } from './sceneTheme';
 import {
   calculateGameLayout,
   getGameLayoutMode,
@@ -25,6 +30,10 @@ export class MainScene extends Container {
   private autoPlayModal: AutoPlayModal | null = null;
   private freeSpinsStatus: FreeSpinsStatus | null = null;
   private winPopup: WinPopup | null = null;
+  private freeSpinsTransition: FreeSpinsTransition | null = null;
+  private theme: SceneTheme = 'base';
+  private viewportWidth = 0;
+  private viewportHeight = 0;
 
   constructor(canvas: HTMLCanvasElement, messages: GameMessages) {
     super();
@@ -57,6 +66,7 @@ export class MainScene extends Container {
     const freeSpinsStatus = new FreeSpinsStatus(this.context.slotStore.round);
     const winPopup = new WinPopup();
     winPopup.on('pointertap', () => this.context.emitter.emit('ui:skipWinRequested'));
+    const freeSpinsTransition = new FreeSpinsTransition();
 
     this.background = background;
     this.reelsMachine = reelsMachine;
@@ -65,6 +75,7 @@ export class MainScene extends Container {
     this.autoPlayModal = autoPlayModal;
     this.freeSpinsStatus = freeSpinsStatus;
     this.winPopup = winPopup;
+    this.freeSpinsTransition = freeSpinsTransition;
 
     this.addChild(
       background,
@@ -74,12 +85,16 @@ export class MainScene extends Container {
       betSelectionModal,
       autoPlayModal,
       winPopup,
+      freeSpinsTransition,
     );
+    if (this.context.slotStore.round.isFreeSpin) this.setTheme('freeSpins');
   }
 
   resize(width: number, height: number): void {
     if (!this.background) throw new Error('MainScene has not been initialized');
     if (width <= 0 || height <= 0) return;
+    this.viewportWidth = width;
+    this.viewportHeight = height;
 
     const texture = this.background.texture;
     const backgroundScale = Math.max(width / texture.width, height / texture.height);
@@ -89,6 +104,7 @@ export class MainScene extends Container {
     this.autoPlayModal?.resize(width, height);
     this.freeSpinsStatus?.resize(width, height);
     this.winPopup?.resize(width, height);
+    this.freeSpinsTransition?.resize(width, height);
 
     const panel = this.betPanel;
     const reelsMachine = this.reelsMachine;
@@ -96,7 +112,7 @@ export class MainScene extends Container {
 
     const mode = getGameLayoutMode(width, height);
     panel.setLayout(mode === 'wide' ? 'wide' : 'compact');
-    const reelsBounds = reelsMachine.getLocalBounds();
+    const reelsBounds = reelsMachine.getLayoutBounds();
     const panelBounds = panel.getLocalBounds();
     const layout = calculateGameLayout(width, height, reelsBounds, panelBounds, mode);
 
@@ -116,6 +132,38 @@ export class MainScene extends Container {
 
   hideWinPopup(): void {
     this.winPopup?.hide();
+  }
+
+  setTheme(theme: SceneTheme): void {
+    if (this.theme === theme) return;
+    if (!this.background || !this.reelsMachine || !this.betPanel) {
+      throw new Error('MainScene has not been initialized');
+    }
+    this.theme = theme;
+    this.background.texture = Texture.from(
+      theme === 'freeSpins'
+        ? EgyptImageAssetKey.scene.backgroundFreeSpins
+        : EgyptImageAssetKey.scene.background,
+    );
+    this.reelsMachine.setTheme(theme);
+    this.betPanel.setTheme(theme);
+    if (this.viewportWidth && this.viewportHeight) {
+      this.resize(this.viewportWidth, this.viewportHeight);
+    }
+  }
+
+  showFreeSpinsTransition(kind: FreeSpinsTransitionKind): void {
+    if (!this.freeSpinsTransition) throw new Error('MainScene has not been initialized');
+    this.freeSpinsTransition.show(kind);
+  }
+
+  fadeFreeSpinsTransition(alpha: number, duration: number, signal: AbortSignal): Promise<void> {
+    if (!this.freeSpinsTransition) throw new Error('MainScene has not been initialized');
+    return this.freeSpinsTransition.fadeTo(alpha, duration, signal);
+  }
+
+  hideFreeSpinsTransition(): void {
+    this.freeSpinsTransition?.hide();
   }
 
   private place(container: Container, bounds: LayoutBounds, placement: LayoutPlacement): void {

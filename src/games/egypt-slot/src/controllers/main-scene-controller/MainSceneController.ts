@@ -2,6 +2,8 @@ import type { Application } from 'pixi.js';
 import type { WinType } from '@lucky-games/contracts';
 import type { ReelsCommand } from '../../reelsMachine/commands';
 import type { MainScene } from '../../scene/MainScene';
+import type { FreeSpinsTransitionKind } from '../../components/free-spins-transition/FreeSpinsTransition';
+import type { SceneTheme } from '../../scene/sceneTheme';
 import { StatusScene } from '../../scene/StatusScene';
 import type { ApplicationController } from '../application-controller/ApplicationController';
 
@@ -52,6 +54,22 @@ export class MainSceneController {
 
   hideWinPopup(): void {
     if (!this.scene.destroyed) this.scene.hideWinPopup();
+  }
+
+  setTheme(theme: SceneTheme): void {
+    this.scene.setTheme(theme);
+  }
+
+  showFreeSpinsTransition(kind: FreeSpinsTransitionKind): void {
+    this.scene.showFreeSpinsTransition(kind);
+  }
+
+  fadeFreeSpinsTransition(alpha: number, duration: number, signal: AbortSignal): Promise<void> {
+    return this.scene.fadeFreeSpinsTransition(alpha, duration, signal);
+  }
+
+  hideFreeSpinsTransition(): void {
+    if (!this.scene.destroyed) this.scene.hideFreeSpinsTransition();
   }
 
   showError(message: string): void {
