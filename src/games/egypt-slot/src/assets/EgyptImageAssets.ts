@@ -36,7 +36,15 @@ export class EgyptImageAssets {
   } as const;
 
   static readonly popups = {
-    bigWin: egyptAssetUrl('PNG/popups/big_win.png'),
-    bigWinDecor: egyptAssetUrl('PNG/popups/big_win_decor.png'),
+    scrollBackground: egyptAssetUrl('PNG/popups/scroll_bg.png'),
+    bigWin: egyptAssetUrl('PNG/popups/big-win/big_win.png'),
+    bigWinBackground: egyptAssetUrl('PNG/popups/big-win/big_win_bg.png'),
+    bigWinDecor: egyptAssetUrl('PNG/popups/big-win/big_win_decor.png'),
+    megaWin: egyptAssetUrl('PNG/popups/mega-win/mega_win.png'),
+    megaWinBackground: egyptAssetUrl('PNG/popups/mega-win/mega_win_bg.png'),
+    megaWinDecor: egyptAssetUrl('PNG/popups/mega-win/mega_win_decor.png'),
+    superMegaWin: egyptAssetUrl('PNG/popups/super-mega-win/super_mega_win.png'),
+    superMegaWinBackground: egyptAssetUrl('PNG/popups/super-mega-win/super_mega_win_bg.png'),
+    superMegaWinDecor: egyptAssetUrl('PNG/popups/super-mega-win/super_mega_win_decor.png'),
   } as const;
 }

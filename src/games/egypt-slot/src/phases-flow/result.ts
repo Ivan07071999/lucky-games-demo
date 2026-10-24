@@ -2,6 +2,7 @@ import type { GameEvents } from '../events';
 import type { GameEmitter } from '../events/GameEmitter';
 import type { ReelsController } from '../controllers/reels-controller/ReelsController';
 import type { BalanceController } from '../controllers/balance-controller/BalanceController';
+import type { WinPopupController } from '../controllers/win-popup-controller/WinPopupController';
 import type { SlotStore } from '../stores/SlotStore';
 import type { Phase } from './PhaseManager';
 import { PhaseName, type NextPhase } from './types';
@@ -15,20 +16,23 @@ export class ResultPhase implements Phase<
   private readonly emitter: GameEmitter<GameEvents>;
   private readonly reels: ReelsController;
   private readonly balance: BalanceController;
+  private readonly popup: WinPopupController;
 
   constructor(
     store: SlotStore,
     emitter: GameEmitter<GameEvents>,
     reels: ReelsController,
     balance: BalanceController,
+    popup: WinPopupController,
   ) {
     this.store = store;
     this.emitter = emitter;
     this.reels = reels;
     this.balance = balance;
+    this.popup = popup;
   }
 
-  async enter(signal: AbortSignal): Promise<typeof PhaseName.idle> {
+  async enter(signal: AbortSignal): Promise<NextPhase<typeof PhaseName.result>> {
     const result = this.store.round.currentRound;
     if (!result) throw new Error('Round result is missing');
 
@@ -44,21 +48,26 @@ export class ResultPhase implements Phase<
       this.store.applyRoundOutcome(result);
       this.store.round.startShowingWin();
       await this.reels.presentResult(result, presentation.signal);
-      await this.balance.showWin(result, presentation.signal);
+      await Promise.all([
+        this.balance.showWin(result, presentation.signal),
+        this.popup.present(result, presentation.signal),
+      ]);
     } catch (error) {
       if (signal.aborted) throw error;
       if (!this.store.round.skipWinRequested) {
         console.error('Egypt slot result presentation failed', error);
       }
     } finally {
+      presentation.abort();
       unsubscribeSkipWin();
       signal.removeEventListener('abort', abortPresentation);
+      this.popup.hide();
       this.balance.settle(result);
       this.store.round.finishRound();
     }
 
     signal.throwIfAborted();
     this.emitter.emit('round:completed', result);
-    return PhaseName.idle;
+    return this.store.round.isFreeSpin ? PhaseName.freeSpins : PhaseName.idle;
   }
 }

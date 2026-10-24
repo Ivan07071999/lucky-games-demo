@@ -43,10 +43,15 @@ export class BetPanel extends Container {
       },
       onBetRequested,
     );
-    this.rightBackground = new RightBackground(height, panel.balanceCoins, panel.coinValueCents, {
-      onDecrease: panel.decreaseCoinValue,
-      onIncrease: panel.increaseCoinValue,
-    });
+    this.rightBackground = new RightBackground(
+      height,
+      panel.displayBalanceCoins,
+      panel.coinValueCents,
+      {
+        onDecrease: panel.decreaseCoinValue,
+        onIncrease: panel.increaseCoinValue,
+      },
+    );
     this.autoPlayButton = new AutoPlayButton(width, height, onAutoPlayRequested);
     this.maxBetButton = new MaxBetButton(width, height, onMaxBetRequested);
 
@@ -66,7 +71,7 @@ export class BetPanel extends Container {
       this.rightBackground.coinValueSwitcher.setValue(panel.coinValueCents);
       this.leftBackground.levelSwitcher.setEnabled(panel.canEditBet);
       this.rightBackground.coinValueSwitcher.setEnabled(panel.canEditBet);
-      this.rightBackground.coins.setValue(panel.balanceCoins);
+      this.rightBackground.coins.setValue(panel.displayBalanceCoins);
       this.spinButton.setSpinning(store.round.isSpinning);
       const canPressSpin =
         (store.canSpin && (!store.round.isFreeSpin || !!store.round.errorMessage)) ||

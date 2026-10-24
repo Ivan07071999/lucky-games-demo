@@ -41,8 +41,7 @@ export class SpinningPhase implements Phase<
     this.scene.clearError();
 
     try {
-      const isFreeSpin = this.store.round.isFreeSpin;
-      if (!isFreeSpin) this.balance.showPendingBet(this.store.panel.totalBetCoins);
+      this.balance.showPendingBet(this.store.panel.totalBetCoins);
 
       const bet = {
         bet: this.store.panel.bet,
@@ -50,8 +49,7 @@ export class SpinningPhase implements Phase<
         coinValueCents: this.store.panel.coinValueCents,
       };
       const result = await this.reels.playRound(
-        (requestSignal) =>
-          isFreeSpin ? this.api.freeSpin(requestSignal) : this.api.spin(bet, requestSignal),
+        (requestSignal) => this.api.spin(bet, requestSignal),
         previousReels,
         (confirmedResult) => this.balance.showConfirmedBet(confirmedResult),
         signal,

@@ -7,7 +7,10 @@ export class PanelStore {
   bet = 15;
   level = 1;
   coinValueCents = 2;
+  // Последний баланс, подтверждённый сервером.
   balanceCoins = 0;
+  // Баланс, который видит игрок во время анимации раунда.
+  displayBalanceCoins = 0;
   private bets: number[] = [];
   private levels: number[] = [];
   private coinValuesCents: number[] = [];
@@ -96,6 +99,7 @@ export class PanelStore {
     this.coinValueCents =
       state.lastBet?.coinValueCents ?? this.chooseValue(this.coinValuesCents, this.coinValueCents);
     this.balanceCoins = state.balanceCoins;
+    this.displayBalanceCoins = state.balanceCoins;
   }
 
   applyRoundResult(result: RoundResult): void {
@@ -103,17 +107,19 @@ export class PanelStore {
     this.level = result.bet.level;
     this.coinValueCents = result.bet.coinValueCents;
     this.balanceCoins = result.balance.afterWin;
+    this.displayBalanceCoins = result.balance.afterWin;
   }
 
   applyConfirmedBet(result: RoundResult): void {
     this.bet = result.bet.bet;
     this.level = result.bet.level;
     this.coinValueCents = result.bet.coinValueCents;
-    this.balanceCoins = result.balance.afterBet;
+    this.balanceCoins = result.balance.afterWin;
+    this.displayBalanceCoins = result.balance.afterBet;
   }
 
-  setBalanceCoins(balanceCoins: number): void {
-    this.balanceCoins = balanceCoins;
+  setDisplayBalanceCoins(balanceCoins: number): void {
+    this.displayBalanceCoins = balanceCoins;
   }
 
   private chooseValue(values: number[], preferred: number): number {

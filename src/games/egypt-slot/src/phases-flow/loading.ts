@@ -54,7 +54,7 @@ export class LoadingPhase implements Phase<
         this.store.applyInitialState(state);
         if (recoveredRound) this.store.applyRoundResult(recoveredRound);
         this.scene.mount();
-        return PhaseName.idle;
+        return this.store.round.isFreeSpin ? PhaseName.freeSpins : PhaseName.idle;
       } catch (error) {
         if (signal.aborted) throw error;
         console.error('Egypt slot loading failed', error);

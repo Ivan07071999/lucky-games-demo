@@ -2,7 +2,9 @@ import type { GameMessages } from '../runtime/GameContext';
 import { MainSceneController } from '../controllers/main-scene-controller/MainSceneController';
 import { ReelsController } from '../controllers/reels-controller/ReelsController';
 import { BalanceController } from '../controllers/balance-controller/BalanceController';
+import { WinPopupController } from '../controllers/win-popup-controller/WinPopupController';
 import { MainScene } from '../scene/MainScene';
+import { FreeSpinsPhase } from './free-spins';
 import { IdlePhase } from './idle';
 import { InitPhase } from './init';
 import { LoadingPhase } from './loading';
@@ -24,6 +26,7 @@ export class EgyptSlotFlow extends PhaseManager<PhaseName, typeof phaseTransitio
       slotStore.round,
     );
     const balanceController = new BalanceController(slotStore.panel);
+    const winPopupController = new WinPopupController(sceneController);
     const unsubscribeMaxBetError = emitter.on('ui:maxBetInsufficientBalance', () => {
       sceneController.showError(messages.insufficientBalance);
     });
@@ -46,7 +49,20 @@ export class EgyptSlotFlow extends PhaseManager<PhaseName, typeof phaseTransitio
         balanceController,
         autoPlayController,
       ),
-      [PhaseName.result]: new ResultPhase(slotStore, emitter, reelsController, balanceController),
+      [PhaseName.freeSpins]: new FreeSpinsPhase(
+        api,
+        slotStore,
+        sceneController,
+        reelsController,
+        balanceController,
+      ),
+      [PhaseName.result]: new ResultPhase(
+        slotStore,
+        emitter,
+        reelsController,
+        balanceController,
+        winPopupController,
+      ),
     } satisfies PhaseRegistry<PhaseName, typeof phaseTransitions>;
 
     super(PhaseName.init, phases, phaseTransitions, () => {

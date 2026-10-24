@@ -43,6 +43,13 @@ export const SLOT_ANIMATIONS = [
 ] as const;
 export type SlotAnimation = (typeof SLOT_ANIMATIONS)[number];
 
+export type WinType = 'NO_WIN' | 'NORMAL_WIN' | 'BIG_WIN' | 'MEGA_WIN' | 'SUPER_MEGA_WIN';
+
+export interface WinClassification {
+  winType: WinType;
+  winMultiplier: number;
+}
+
 export interface Bet {
   bet: number;
   level: number;
@@ -72,6 +79,9 @@ export interface RoundResult {
   reels: ReelGrid;
   wins: Win[];
   totalWinCoins: number;
+  // Старые сохранённые раунды могут не содержать классификацию.
+  winType?: WinType;
+  winMultiplier?: number;
   features: {
     wild: {
       triggered: boolean;
@@ -85,6 +95,10 @@ export interface RoundResult {
       awarded: number;
       remaining: number;
       totalWinCoins: number;
+      completion?: WinClassification & {
+        baseBetCoins: number;
+        totalWinCoins: number;
+      };
     };
   };
   animations: SlotAnimation[];

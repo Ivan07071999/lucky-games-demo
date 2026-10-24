@@ -1,9 +1,14 @@
 import 'pixi.js/text-bitmap';
 import { BitmapText, Container, Graphics, Rectangle } from 'pixi.js';
+import { ScrollModalBackground } from './scroll-modal-background';
+import { ScrollModalCloseButton } from './scroll-modal-close-button';
+import { SCROLL_MODAL_COLORS } from './scroll-modal-theme';
 
 const MAX_MODAL_WIDTH = 520;
 const MODAL_MARGIN = 16;
-const MODAL_PADDING = 20;
+const MODAL_PADDING_X = 44;
+const MODAL_PADDING_TOP = 48;
+const MODAL_PADDING_BOTTOM = 40;
 const BUTTON_GAP = 8;
 const BUTTON_HEIGHT = 46;
 
@@ -27,6 +32,7 @@ class BetOptionButton extends Container {
       style: {
         fontFamily: 'CasinoGold',
         fontSize: 26,
+        fill: SCROLL_MODAL_COLORS.ink,
         align: 'center',
       },
     });
@@ -59,13 +65,14 @@ class BetOptionButton extends Container {
   }
 
   private draw(): void {
-    const fill = this.selected ? 0xa66a13 : this.hovered ? 0x5b254f : 0x32152f;
-    const stroke = this.selected ? 0xffd778 : 0xb87b3a;
+    const stroke = this.selected
+      ? SCROLL_MODAL_COLORS.buttonBorderSelected
+      : SCROLL_MODAL_COLORS.buttonBorder;
 
     this.background
       .clear()
       .roundRect(-this.buttonWidth / 2, -BUTTON_HEIGHT / 2, this.buttonWidth, BUTTON_HEIGHT, 9)
-      .fill({ color: fill, alpha: 0.98 })
+      .fill({ color: SCROLL_MODAL_COLORS.buttonHover, alpha: this.hovered ? 0.14 : 0 })
       .stroke({ color: stroke, width: this.selected ? 2.5 : 1.5 });
   }
 }
@@ -77,7 +84,9 @@ export type BetSelectionModalOptions = {
 
 export class BetSelectionModal extends Container {
   private readonly backdrop = new Graphics();
-  private readonly card = new Graphics();
+  private readonly content = new Container();
+  private readonly card = new ScrollModalBackground();
+  private readonly closeButton: ScrollModalCloseButton;
   private readonly title: BitmapText;
   private readonly onSelect: (value: number) => void;
   private optionButtons: BetOptionButton[] = [];
@@ -98,20 +107,20 @@ export class BetSelectionModal extends Container {
     this.backdrop.on('pointertap', onClose);
 
     this.card.label = 'bet-selection-card';
-    this.card.eventMode = 'static';
-
+    this.closeButton = new ScrollModalCloseButton(onClose);
     this.title = new BitmapText({
       text: 'SELECT BET',
       style: {
         fontFamily: 'CasinoGoldBold',
         fontSize: 28,
-        fill: 0xffe3a1,
+        fill: SCROLL_MODAL_COLORS.heading,
         align: 'center',
       },
     });
     this.title.anchor.set(0.5);
 
-    this.addChild(this.backdrop, this.card, this.title);
+    this.addChild(this.backdrop, this.content);
+    this.content.addChild(this.card, this.title, this.closeButton);
   }
 
   open(values: readonly number[], selectedValue: number): void {
@@ -139,7 +148,7 @@ export class BetSelectionModal extends Container {
     this.optionButtons = values.map((value) => {
       const button = new BetOptionButton(value, this.onSelect);
       button.setSelected(value === selectedValue);
-      this.addChild(button);
+      this.content.addChild(button);
       return button;
     });
   }
@@ -153,35 +162,35 @@ export class BetSelectionModal extends Container {
       .fill({ color: 0x09030f, alpha: 0.72 });
     this.backdrop.hitArea = new Rectangle(0, 0, this.viewportWidth, this.viewportHeight);
 
-    const columns = this.viewportWidth < 480 ? 4 : 5;
     const modalWidth = Math.min(MAX_MODAL_WIDTH, this.viewportWidth - MODAL_MARGIN * 2);
-    const buttonWidth = (modalWidth - MODAL_PADDING * 2 - BUTTON_GAP * (columns - 1)) / columns;
+    const columns = modalWidth >= 480 ? 5 : modalWidth >= 360 ? 4 : modalWidth >= 260 ? 3 : 2;
+    const buttonWidth = (modalWidth - MODAL_PADDING_X * 2 - BUTTON_GAP * (columns - 1)) / columns;
     const rows = Math.ceil(this.optionButtons.length / columns);
     const titleAreaHeight = 58;
     const modalHeight =
-      MODAL_PADDING +
+      MODAL_PADDING_TOP +
       titleAreaHeight +
       rows * BUTTON_HEIGHT +
       (rows - 1) * BUTTON_GAP +
-      MODAL_PADDING;
-    const modalX = (this.viewportWidth - modalWidth) / 2;
-    const modalY = (this.viewportHeight - modalHeight) / 2;
+      MODAL_PADDING_BOTTOM;
+    const scale = Math.min(1, (this.viewportHeight - MODAL_MARGIN * 2) / modalHeight);
+    this.content.scale.set(scale);
+    this.content.position.set(
+      (this.viewportWidth - modalWidth * scale) / 2,
+      (this.viewportHeight - modalHeight * scale) / 2,
+    );
 
-    this.card
-      .clear()
-      .roundRect(modalX, modalY, modalWidth, modalHeight, 18)
-      .fill({ color: 0x211126, alpha: 0.99 })
-      .stroke({ color: 0xd69838, width: 3 });
-    this.title.position.set(this.viewportWidth / 2, modalY + MODAL_PADDING + 15);
+    this.card.resize(modalWidth, modalHeight);
+    this.title.position.set(modalWidth / 2, MODAL_PADDING_TOP + 7);
+    this.closeButton.position.set(modalWidth - MODAL_PADDING_X, MODAL_PADDING_TOP + 7);
 
     this.optionButtons.forEach((button, index) => {
       const column = index % columns;
       const row = Math.floor(index / columns);
       button.resize(buttonWidth);
       button.position.set(
-        modalX + MODAL_PADDING + buttonWidth / 2 + column * (buttonWidth + BUTTON_GAP),
-        modalY +
-          MODAL_PADDING +
+        MODAL_PADDING_X + buttonWidth / 2 + column * (buttonWidth + BUTTON_GAP),
+        MODAL_PADDING_TOP +
           titleAreaHeight +
           BUTTON_HEIGHT / 2 +
           row * (BUTTON_HEIGHT + BUTTON_GAP),

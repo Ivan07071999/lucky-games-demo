@@ -53,6 +53,9 @@ describe('SlotService', () => {
     expect(first.balance.before).toBe(250000);
     expect(first.balance.afterBet).toBe(249985);
     expect(session.balance_coins).toBe(first.balance.afterWin);
+    expect(first.totalWinCoins).toBe(375);
+    expect(first.winType).toBe('BIG_WIN');
+    expect(first.winMultiplier).toBe(25);
   });
 
   it('does not charge a player with insufficient coins', async () => {
@@ -81,5 +84,27 @@ describe('SlotService', () => {
     expect(result.balance.afterBet).toBe(100);
     expect(result.nextAction).toBe('SPIN');
     expect(session.free_spins_remaining).toBe(0);
+  });
+
+  it('classifies a free spin and the completed bonus against the saved paid bet', async () => {
+    const { service, session } = createService(100, 1);
+    session.free_spins_total_win = 1200;
+    const result = await service.play({
+      type: 'FREE_SPIN',
+      sessionId: session.id,
+      requestId: 'free_bonus_final',
+    });
+
+    expect(result.bet.totalCoins).toBe(15);
+    expect(result.balance.afterBet).toBe(100);
+    expect(result.winType).toBe('BIG_WIN');
+    expect(result.winMultiplier).toBe(25);
+    expect(result.features.freeSpins.completion).toEqual({
+      baseBetCoins: 15,
+      totalWinCoins: 1575,
+      winMultiplier: 105,
+      winType: 'SUPER_MEGA_WIN',
+    });
+    expect(session.free_spins_total_win).toBe(1575);
   });
 });

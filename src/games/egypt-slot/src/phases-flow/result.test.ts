@@ -3,6 +3,7 @@ import type { ReelGrid, RoundResult } from '@lucky-games/contracts';
 import { describe, expect, it, vi } from 'vitest';
 import { BalanceController } from '../controllers/balance-controller/BalanceController';
 import type { ReelsController } from '../controllers/reels-controller/ReelsController';
+import type { WinPopupController } from '../controllers/win-popup-controller/WinPopupController';
 import { GameEmitter } from '../events/GameEmitter';
 import type { GameEvents } from '../events/GameEvents';
 import { INITIAL_REELS } from '../reels/reelsConfig';
@@ -36,6 +37,34 @@ const result = {
 } satisfies RoundResult;
 
 describe('ResultPhase', () => {
+  it('enters the Free Spins phase after a bonus is awarded', async () => {
+    const store = new SlotStore();
+    const emitter = new GameEmitter<GameEvents>();
+    const reels = {
+      presentResult: vi.fn().mockResolvedValue(undefined),
+    } as unknown as ReelsController;
+    const balance = new BalanceController(store.panel);
+    const popup = { present: vi.fn(), hide: vi.fn() } as unknown as WinPopupController;
+    const phase = new ResultPhase(store, emitter, reels, balance, popup);
+    const bonusResult: RoundResult = {
+      ...result,
+      isWin: false,
+      netCoins: -15,
+      totalWinCoins: 0,
+      balance: { before: 250000, afterBet: 249985, afterWin: 249985 },
+      nextAction: 'FREE_SPIN',
+      features: {
+        ...result.features,
+        freeSpins: { triggered: true, awarded: 8, remaining: 8, totalWinCoins: 0 },
+      },
+    };
+    store.round.startRound();
+    store.round.receiveRound(bonusResult);
+
+    await expect(phase.enter(new AbortController().signal)).resolves.toBe('freeSpins');
+    expect(store.round.isFreeSpin).toBe(true);
+  });
+
   it('skips a long win presentation and settles the server balance', async () => {
     const store = new SlotStore();
     const emitter = new GameEmitter<GameEvents>();
@@ -49,7 +78,8 @@ describe('ResultPhase', () => {
     );
     const reels = { presentResult } as unknown as ReelsController;
     const balance = new BalanceController(store.panel);
-    const phase = new ResultPhase(store, emitter, reels, balance);
+    const popup = { present: vi.fn(), hide: vi.fn() } as unknown as WinPopupController;
+    const phase = new ResultPhase(store, emitter, reels, balance, popup);
     store.round.startRound();
     store.round.receiveRound(result);
 
@@ -61,5 +91,72 @@ describe('ResultPhase', () => {
     expect(store.panel.balanceCoins).toBe(result.balance.afterWin);
     expect(store.round.stage).toBe('idle');
     expect(presentResult).toHaveBeenCalledOnce();
+  });
+
+  it('waits for the popup before completing a round', async () => {
+    const store = new SlotStore();
+    const emitter = new GameEmitter<GameEvents>();
+    const reels = {
+      presentResult: vi.fn().mockResolvedValue(undefined),
+    } as unknown as ReelsController;
+    const balance = {
+      showWin: vi.fn().mockResolvedValue(undefined),
+      settle: vi.fn(),
+    } as unknown as BalanceController;
+    let finishPopup: () => void = () => {};
+    const popup = {
+      present: vi.fn(() => new Promise<void>((resolve) => (finishPopup = resolve))),
+      hide: vi.fn(),
+    } as unknown as WinPopupController;
+    const phase = new ResultPhase(store, emitter, reels, balance, popup);
+    const onCompleted = vi.fn();
+    emitter.on('round:completed', onCompleted);
+    store.round.startRound();
+    store.round.receiveRound({ ...result, winType: 'BIG_WIN', winMultiplier: 20 });
+
+    const completion = phase.enter(new AbortController().signal);
+    await vi.waitFor(() => expect(popup.present).toHaveBeenCalledOnce());
+    expect(onCompleted).not.toHaveBeenCalled();
+    expect(store.round.stage).toBe('showingWin');
+
+    finishPopup();
+    await expect(completion).resolves.toBe('idle');
+    expect(popup.hide).toHaveBeenCalled();
+    expect(onCompleted).toHaveBeenCalledOnce();
+  });
+
+  it('skips an open popup and still settles the round', async () => {
+    const store = new SlotStore();
+    const emitter = new GameEmitter<GameEvents>();
+    const reels = {
+      presentResult: vi.fn().mockResolvedValue(undefined),
+    } as unknown as ReelsController;
+    const balance = {
+      showWin: vi.fn().mockResolvedValue(undefined),
+      settle: vi.fn(),
+    } as unknown as BalanceController;
+    const popup = {
+      present: vi.fn(
+        (_result: RoundResult, signal: AbortSignal) =>
+          new Promise<void>((_resolve, reject) => {
+            signal.addEventListener('abort', () => reject(new Error('Popup skipped')), {
+              once: true,
+            });
+          }),
+      ),
+      hide: vi.fn(),
+    } as unknown as WinPopupController;
+    const phase = new ResultPhase(store, emitter, reels, balance, popup);
+    store.round.startRound();
+    store.round.receiveRound({ ...result, winType: 'BIG_WIN', winMultiplier: 20 });
+
+    const completion = phase.enter(new AbortController().signal);
+    await vi.waitFor(() => expect(popup.present).toHaveBeenCalledOnce());
+    emitter.emit('ui:skipWinRequested');
+
+    await expect(completion).resolves.toBe('idle');
+    expect(popup.hide).toHaveBeenCalled();
+    expect(balance.settle).toHaveBeenCalledOnce();
+    expect(store.round.stage).toBe('idle');
   });
 });

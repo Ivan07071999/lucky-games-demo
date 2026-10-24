@@ -4,6 +4,8 @@ import { BetPanel } from '../components/bet-panel';
 import { BetSelectionModal } from '../components/ui/bet-selection-modal';
 import { AutoPlayModal } from '../components/ui/auto-play-modal';
 import { FreeSpinsStatus } from '../components/ui/free-spins-status';
+import { WinPopup } from '../components/win-popup/WinPopup';
+import type { WinType } from '@lucky-games/contracts';
 import { ReelsMachine } from '../reelsMachine/ReelsMachine';
 import type { ReelsCommand } from '../reelsMachine/commands';
 import { GameContext, type GameMessages } from '../runtime/GameContext';
@@ -22,6 +24,7 @@ export class MainScene extends Container {
   private betSelectionModal: BetSelectionModal | null = null;
   private autoPlayModal: AutoPlayModal | null = null;
   private freeSpinsStatus: FreeSpinsStatus | null = null;
+  private winPopup: WinPopup | null = null;
 
   constructor(canvas: HTMLCanvasElement, messages: GameMessages) {
     super();
@@ -52,6 +55,8 @@ export class MainScene extends Container {
       this.context.autoPlayController.start(),
     );
     const freeSpinsStatus = new FreeSpinsStatus(this.context.slotStore.round);
+    const winPopup = new WinPopup();
+    winPopup.on('pointertap', () => this.context.emitter.emit('ui:skipWinRequested'));
 
     this.background = background;
     this.reelsMachine = reelsMachine;
@@ -59,6 +64,7 @@ export class MainScene extends Container {
     this.betSelectionModal = betSelectionModal;
     this.autoPlayModal = autoPlayModal;
     this.freeSpinsStatus = freeSpinsStatus;
+    this.winPopup = winPopup;
 
     this.addChild(
       background,
@@ -67,6 +73,7 @@ export class MainScene extends Container {
       freeSpinsStatus,
       betSelectionModal,
       autoPlayModal,
+      winPopup,
     );
   }
 
@@ -81,6 +88,7 @@ export class MainScene extends Container {
     this.betSelectionModal?.resize(width, height);
     this.autoPlayModal?.resize(width, height);
     this.freeSpinsStatus?.resize(width, height);
+    this.winPopup?.resize(width, height);
 
     const panel = this.betPanel;
     const reelsMachine = this.reelsMachine;
@@ -99,6 +107,15 @@ export class MainScene extends Container {
   executeReels(command: ReelsCommand, signal: AbortSignal): void | Promise<void> {
     if (!this.reelsMachine) throw new Error('ReelsMachine has not been initialized');
     return this.reelsMachine.execute(command, signal);
+  }
+
+  showWinPopup(winType: WinType, totalWinCoins: number): void {
+    if (!this.winPopup) throw new Error('MainScene has not been initialized');
+    this.winPopup.show(winType, totalWinCoins);
+  }
+
+  hideWinPopup(): void {
+    this.winPopup?.hide();
   }
 
   private place(container: Container, bounds: LayoutBounds, placement: LayoutPlacement): void {

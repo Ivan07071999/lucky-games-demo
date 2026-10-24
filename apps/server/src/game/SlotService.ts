@@ -11,6 +11,7 @@ import {
   PAYLINES,
   validateBet,
 } from './rules.js';
+import { classifyWin } from './winClassification.js';
 
 export class SlotService {
   constructor(
@@ -84,11 +85,21 @@ export class SlotService {
         ? FREE_SPINS_AWARDED
         : 0;
     const totalBonusWin = isFreeSpin ? session.free_spins_total_win + outcome.totalWinCoins : 0;
+    if (!Number.isSafeInteger(totalBonusWin)) {
+      throw new SlotError('BALANCE_OVERFLOW', 'Bonus win is too large');
+    }
     const finalBalance = session.balance_coins - cost + outcome.totalWinCoins;
     if (!Number.isSafeInteger(finalBalance))
       throw new SlotError('BALANCE_OVERFLOW', 'Balance is too large');
     outcome.features.freeSpins.remaining = remaining;
     outcome.features.freeSpins.totalWinCoins = totalBonusWin;
+    if (isFreeSpin && remaining === 0) {
+      outcome.features.freeSpins.completion = {
+        baseBetCoins: bet.totalCoins,
+        totalWinCoins: totalBonusWin,
+        ...classifyWin(totalBonusWin, bet.totalCoins),
+      };
+    }
     if (remaining === 0) outcome.features.wild.stickyReels = [];
 
     return {
@@ -98,6 +109,7 @@ export class SlotService {
       mode: isFreeSpin ? 'FREE_SPINS' : 'BASE_GAME',
       isWin: outcome.totalWinCoins > 0,
       netCoins: outcome.totalWinCoins - cost,
+      ...classifyWin(outcome.totalWinCoins, bet.totalCoins),
       bet,
       balance: {
         before: session.balance_coins,

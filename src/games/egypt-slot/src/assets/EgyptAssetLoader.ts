@@ -37,7 +37,11 @@ export class EgyptAssetLoader {
   async loadAll(): Promise<void> {
     await Promise.all([
       this.loadAllImages(),
-      Assets.load([EgyptBitmapFontAssets.casinoGold, EgyptBitmapFontAssets.casinoGoldBold]),
+      Assets.load([
+        EgyptBitmapFontAssets.casinoGold,
+        EgyptBitmapFontAssets.casinoGoldBold,
+        EgyptBitmapFontAssets.luckyGoldDigits,
+      ]),
     ]);
   }
 

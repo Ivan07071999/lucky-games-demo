@@ -5,27 +5,21 @@ const WIN_COUNT_DURATION_MS = 900;
 
 export class BalanceController {
   private readonly panel: PanelStore;
-  private balanceBeforeSpin: number | null = null;
 
   constructor(panel: PanelStore) {
     this.panel = panel;
   }
 
   showPendingBet(totalBetCoins: number): void {
-    this.balanceBeforeSpin = this.panel.balanceCoins;
-    this.panel.setBalanceCoins(this.panel.balanceCoins - totalBetCoins);
+    this.panel.setDisplayBalanceCoins(this.panel.balanceCoins - totalBetCoins);
   }
 
   showConfirmedBet(result: RoundResult): void {
-    this.balanceBeforeSpin = null;
     this.panel.applyConfirmedBet(result);
   }
 
   rollbackPendingBet(): void {
-    if (this.balanceBeforeSpin === null) return;
-
-    this.panel.setBalanceCoins(this.balanceBeforeSpin);
-    this.balanceBeforeSpin = null;
+    this.panel.setDisplayBalanceCoins(this.panel.balanceCoins);
   }
 
   async showWin(result: RoundResult, signal: AbortSignal): Promise<void> {
@@ -33,16 +27,15 @@ export class BalanceController {
 
     const { afterBet, afterWin } = result.balance;
     if (afterWin <= afterBet) {
-      this.panel.setBalanceCoins(afterWin);
+      this.panel.setDisplayBalanceCoins(afterWin);
       return;
     }
 
-    this.panel.setBalanceCoins(afterBet);
+    this.panel.setDisplayBalanceCoins(afterBet);
     await this.animateBalance(afterBet, afterWin, signal);
   }
 
   settle(result: RoundResult): void {
-    this.balanceBeforeSpin = null;
     this.panel.applyRoundResult(result);
   }
 
@@ -66,7 +59,7 @@ export class BalanceController {
         const easedProgress = 1 - Math.pow(1 - progress, 3);
         const balance = Math.floor(from + (to - from) * easedProgress);
 
-        this.panel.setBalanceCoins(balance);
+        this.panel.setDisplayBalanceCoins(balance);
 
         if (progress < 1) {
           frameId = requestAnimationFrame(update);
@@ -74,7 +67,7 @@ export class BalanceController {
         }
 
         cleanup();
-        this.panel.setBalanceCoins(to);
+        this.panel.setDisplayBalanceCoins(to);
         resolve();
       };
 
