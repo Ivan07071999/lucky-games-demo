@@ -10,11 +10,18 @@ const START_INTERVAL_SECONDS = 0.09;
 export class ReelsBoard extends Container {
   private readonly columns: ReelColumn[];
   private readonly winLine: WinLineOverlay;
+  private readonly onReelStopped?: (index: number) => void;
   private readonly scheduledStarts = new Set<gsap.core.Tween>();
   private startSignal: AbortSignal | null = null;
 
-  constructor(width: number, height: number, initialReels: ReelsMatrix) {
+  constructor(
+    width: number,
+    height: number,
+    initialReels: ReelsMatrix,
+    onReelStopped?: (index: number) => void,
+  ) {
     super();
+    this.onReelStopped = onReelStopped;
 
     this.label = 'reels-board';
     const columnWidth = width / REEL_COUNT;
@@ -65,6 +72,7 @@ export class ReelsBoard extends Container {
     for (let index = 0; index < this.columns.length; index += 1) {
       signal.throwIfAborted();
       await this.columns[index].land(reels[index], signal);
+      this.onReelStopped?.(index);
     }
   }
 

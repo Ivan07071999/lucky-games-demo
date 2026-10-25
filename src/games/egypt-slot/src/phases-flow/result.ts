@@ -3,6 +3,7 @@ import type { GameEmitter } from '../events/GameEmitter';
 import type { ReelsController } from '../controllers/reels-controller/ReelsController';
 import type { BalanceController } from '../controllers/balance-controller/BalanceController';
 import type { WinPopupController } from '../controllers/win-popup-controller/WinPopupController';
+import type { AudioController } from '../controllers/audio-controller/AudioController';
 import type { SlotStore } from '../stores/SlotStore';
 import type { Phase } from './PhaseManager';
 import { PhaseName, type NextPhase } from './types';
@@ -17,6 +18,7 @@ export class ResultPhase implements Phase<
   private readonly reels: ReelsController;
   private readonly balance: BalanceController;
   private readonly popup: WinPopupController;
+  private readonly audio?: AudioController;
 
   constructor(
     store: SlotStore,
@@ -24,12 +26,14 @@ export class ResultPhase implements Phase<
     reels: ReelsController,
     balance: BalanceController,
     popup: WinPopupController,
+    audio?: AudioController,
   ) {
     this.store = store;
     this.emitter = emitter;
     this.reels = reels;
     this.balance = balance;
     this.popup = popup;
+    this.audio = audio;
   }
 
   async enter(signal: AbortSignal): Promise<NextPhase<typeof PhaseName.result>> {
@@ -48,6 +52,7 @@ export class ResultPhase implements Phase<
       this.store.applyRoundOutcome(result);
       this.store.round.startShowingWin();
       await this.reels.presentResult(result, presentation.signal);
+      this.audio?.playWin((result.features.freeSpins.completion ?? result).winType ?? 'NO_WIN');
       await Promise.all([
         this.balance.showWin(result, presentation.signal),
         this.popup.present(result, presentation.signal),

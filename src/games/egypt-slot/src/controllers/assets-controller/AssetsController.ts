@@ -1,5 +1,6 @@
 import {
   EgyptAssetLoader,
+  type EgyptAudioAssetKeyType,
   EgyptImageAssetKey,
   EgyptImageAssets,
   EgyptSpineAssets,
@@ -25,6 +26,14 @@ export class AssetsController {
 
   loadImage(asset: EgyptImageAssetKeyType) {
     return this.loader.loadImage(asset);
+  }
+
+  loadBackgroundMusic() {
+    return this.loader.loadBackgroundMusic();
+  }
+
+  loadAudio(asset: EgyptAudioAssetKeyType) {
+    return this.loader.loadAudio(asset);
   }
 
   destroy(): void {

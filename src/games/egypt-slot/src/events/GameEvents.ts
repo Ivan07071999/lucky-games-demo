@@ -6,6 +6,7 @@ export type GameEvents = {
   'ui:quickStopRequested': void;
   'ui:skipWinRequested': void;
   'spin:started': void;
+  'reel:stopped': number;
   'spin:landed': RoundResult;
   'round:completed': RoundResult;
 };

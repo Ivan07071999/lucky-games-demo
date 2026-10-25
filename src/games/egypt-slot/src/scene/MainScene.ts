@@ -3,6 +3,7 @@ import { EgyptImageAssetKey } from '../assets';
 import { BetPanel } from '../components/bet-panel';
 import { BetSelectionModal } from '../components/ui/bet-selection-modal';
 import { AutoPlayModal } from '../components/ui/auto-play-modal';
+import { AudioPanel } from '../components/ui/audio-panel';
 import { FreeSpinsStatus } from '../components/ui/free-spins-status';
 import { WinPopup } from '../components/win-popup/WinPopup';
 import {
@@ -28,6 +29,7 @@ export class MainScene extends Container {
   private betPanel: BetPanel | null = null;
   private betSelectionModal: BetSelectionModal | null = null;
   private autoPlayModal: AutoPlayModal | null = null;
+  private audioPanel: AudioPanel | null = null;
   private freeSpinsStatus: FreeSpinsStatus | null = null;
   private winPopup: WinPopup | null = null;
   private freeSpinsTransition: FreeSpinsTransition | null = null;
@@ -46,10 +48,13 @@ export class MainScene extends Container {
     const background = new Sprite(Texture.from(EgyptImageAssetKey.scene.background));
     background.anchor.set(0.5);
 
-    const reelsMachine = new ReelsMachine(this.context.slotStore.reels.reels);
+    const reelsMachine = new ReelsMachine(this.context.slotStore.reels.reels, (index) => {
+      this.context.emitter.emit('reel:stopped', index);
+    });
+    const reelsBounds = reelsMachine.getLayoutBounds();
     const betPanel = new BetPanel(
-      reelsMachine.width,
-      reelsMachine.height,
+      reelsBounds.width,
+      reelsBounds.height,
       this.context.slotStore,
       this.handleSpinButtonPress,
       this.openBetSelection,
@@ -63,6 +68,9 @@ export class MainScene extends Container {
     const autoPlayModal = new AutoPlayModal(this.context.slotStore, () =>
       this.context.autoPlayController.start(),
     );
+    const audioPanel = new AudioPanel(this.context.audio);
+    betPanel.on('pointerover', () => this.context.audio.playHover());
+    betPanel.on('pointertap', () => this.context.audio.playClick());
     const freeSpinsStatus = new FreeSpinsStatus(this.context.slotStore.round);
     const winPopup = new WinPopup();
     winPopup.on('pointertap', () => this.context.emitter.emit('ui:skipWinRequested'));
@@ -73,6 +81,7 @@ export class MainScene extends Container {
     this.betPanel = betPanel;
     this.betSelectionModal = betSelectionModal;
     this.autoPlayModal = autoPlayModal;
+    this.audioPanel = audioPanel;
     this.freeSpinsStatus = freeSpinsStatus;
     this.winPopup = winPopup;
     this.freeSpinsTransition = freeSpinsTransition;
@@ -82,6 +91,7 @@ export class MainScene extends Container {
       reelsMachine,
       betPanel,
       freeSpinsStatus,
+      audioPanel,
       betSelectionModal,
       autoPlayModal,
       winPopup,
@@ -103,6 +113,7 @@ export class MainScene extends Container {
     this.betSelectionModal?.resize(width, height);
     this.autoPlayModal?.resize(width, height);
     this.freeSpinsStatus?.resize(width, height);
+    this.audioPanel?.resize(width, height);
     this.winPopup?.resize(width, height);
     this.freeSpinsTransition?.resize(width, height);
 
@@ -179,6 +190,7 @@ export class MainScene extends Container {
     if (!store.panel.canEditBet) return;
 
     this.betSelectionModal?.open(store.panel.availableBets, store.panel.bet);
+    this.context.audio.playMenuOpen();
   };
 
   private readonly handleSpinButtonPress = (): void => {
@@ -214,6 +226,7 @@ export class MainScene extends Container {
       !slotStore.round.errorMessage
     ) {
       this.autoPlayModal?.open();
+      this.context.audio.playMenuOpen();
     }
   };
 

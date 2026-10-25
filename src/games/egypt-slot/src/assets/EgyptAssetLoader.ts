@@ -1,4 +1,7 @@
 import { Assets, type Texture } from 'pixi.js';
+import type { Sound } from '@pixi/sound';
+import { EgyptAudioAssetKey } from './EgyptAudioAssetKey';
+import { EgyptAudioAssets } from './EgyptAudioAssets';
 import { EgyptBitmapFontAssets } from './EgyptBitmapFontAssets';
 import { EgyptImageAssets } from './EgyptImageAssets';
 import { type EgyptImageAssetKey } from './EgyptImageAssetKey';
@@ -18,11 +21,18 @@ type ImageLease = {
   promise: Promise<Texture>;
   unloading: Promise<void> | null;
 };
+type AudioLease = {
+  users: number;
+  promise: Promise<Sound>;
+  unloading: Promise<void> | null;
+};
 
 export class EgyptAssetLoader {
   private static registered = false;
   private static readonly imageLeases = new Map<string, ImageLease>();
+  private static readonly audioLeases = new Map<string, AudioLease>();
   private readonly acquiredImages = new Set<string>();
+  private readonly acquiredAudio = new Set<string>();
   private disposed = false;
 
   static alias(group: EgyptImageBundle, asset: PropertyKey): string {
@@ -63,6 +73,17 @@ export class EgyptAssetLoader {
     return this.acquireImage(asset);
   }
 
+  loadBackgroundMusic(): Promise<Sound> {
+    return this.loadAudio(EgyptAudioAssetKey.background);
+  }
+
+  async loadAudio(asset: EgyptAudioAssetKey): Promise<Sound> {
+    // Регистрируем загрузчик звука только после пользовательского действия.
+    await import('@pixi/sound');
+    this.registerBundles();
+    return this.acquireAudio(asset);
+  }
+
   async loadSpine() {
     EgyptSpineAssets.assertRuntimeCompatible();
 
@@ -80,6 +101,7 @@ export class EgyptAssetLoader {
     this.disposed = true;
 
     for (const alias of this.acquiredImages) this.releaseImage(alias);
+    for (const alias of this.acquiredAudio) this.releaseAudio(alias);
   }
 
   private async acquireImage(alias: string): Promise<Texture> {
@@ -131,6 +153,55 @@ export class EgyptAssetLoader {
       });
   }
 
+  private async acquireAudio(alias: string): Promise<Sound> {
+    if (this.disposed) throw new Error('Asset loader has been destroyed');
+
+    let lease = EgyptAssetLoader.audioLeases.get(alias);
+    while (lease?.unloading) {
+      await lease.unloading;
+      if (this.disposed) throw new Error('Asset loader has been destroyed');
+      lease = EgyptAssetLoader.audioLeases.get(alias);
+    }
+
+    if (!lease) {
+      lease = { users: 0, promise: Assets.load<Sound>(alias), unloading: null };
+      EgyptAssetLoader.audioLeases.set(alias, lease);
+    }
+
+    if (!this.acquiredAudio.has(alias)) {
+      this.acquiredAudio.add(alias);
+      lease.users++;
+    }
+
+    try {
+      return await lease.promise;
+    } catch (error) {
+      this.releaseAudio(alias);
+      throw error;
+    }
+  }
+
+  private releaseAudio(alias: string): void {
+    if (!this.acquiredAudio.delete(alias)) return;
+
+    const lease = EgyptAssetLoader.audioLeases.get(alias);
+    if (!lease || --lease.users > 0) return;
+
+    lease.unloading = lease.promise
+      .then(
+        () => Assets.unload(alias),
+        () => undefined,
+      )
+      .catch((error: unknown) => {
+        console.warn(`Failed to unload audio asset ${alias}`, error);
+      })
+      .finally(() => {
+        if (EgyptAssetLoader.audioLeases.get(alias) === lease) {
+          EgyptAssetLoader.audioLeases.delete(alias);
+        }
+      });
+  }
+
   private registerBundles(): void {
     if (EgyptAssetLoader.registered) return;
 
@@ -142,6 +213,14 @@ export class EgyptAssetLoader {
 
       Assets.addBundle(`egypt-${group}`, assets);
     }
+
+    Assets.addBundle(
+      'egypt-audio',
+      (Object.keys(EgyptAudioAssets) as (keyof typeof EgyptAudioAssets)[]).map((name) => ({
+        alias: EgyptAudioAssetKey[name],
+        src: EgyptAudioAssets[name],
+      })),
+    );
 
     EgyptAssetLoader.registered = true;
   }

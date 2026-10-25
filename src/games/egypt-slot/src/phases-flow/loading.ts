@@ -1,5 +1,6 @@
 import type { ApplicationController } from '../controllers/application-controller/ApplicationController';
 import type { AssetsController } from '../controllers/assets-controller/AssetsController';
+import type { AudioController } from '../controllers/audio-controller/AudioController';
 import type { MainSceneController } from '../controllers/main-scene-controller/MainSceneController';
 import type { SlotApi } from '../network/SlotApi';
 import { SlotContractError } from '../network/SlotApiError';
@@ -17,6 +18,7 @@ export class LoadingPhase implements Phase<
 
   private readonly application: ApplicationController;
   private readonly assets: AssetsController;
+  private readonly audio: AudioController;
   private readonly api: SlotApi;
   private readonly store: SlotStore;
   private readonly scene: MainSceneController;
@@ -26,6 +28,7 @@ export class LoadingPhase implements Phase<
   constructor(
     application: ApplicationController,
     assets: AssetsController,
+    audio: AudioController,
     api: SlotApi,
     store: SlotStore,
     scene: MainSceneController,
@@ -33,6 +36,7 @@ export class LoadingPhase implements Phase<
   ) {
     this.application = application;
     this.assets = assets;
+    this.audio = audio;
     this.api = api;
     this.store = store;
     this.scene = scene;
@@ -54,6 +58,7 @@ export class LoadingPhase implements Phase<
         this.store.applyInitialState(state);
         if (recoveredRound) this.store.applyRoundResult(recoveredRound);
         this.scene.mount();
+        this.audio.load();
         return this.store.round.isFreeSpin ? PhaseName.freeSpins : PhaseName.idle;
       } catch (error) {
         if (signal.aborted) throw error;

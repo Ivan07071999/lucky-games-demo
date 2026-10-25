@@ -20,7 +20,7 @@ export class EgyptSlotFlow extends PhaseManager<PhaseName, typeof phaseTransitio
   constructor(canvas: HTMLCanvasElement, messages: GameMessages) {
     const scene = new MainScene(canvas, messages);
     const { application, assets } = scene.context.controllers;
-    const { api, autoPlayController, emitter, slotStore } = scene.context;
+    const { api, audio, autoPlayController, emitter, slotStore } = scene.context;
     const sceneController = new MainSceneController(application, scene);
     const reelsController = new ReelsController(
       sceneController,
@@ -30,7 +30,7 @@ export class EgyptSlotFlow extends PhaseManager<PhaseName, typeof phaseTransitio
     );
     const balanceController = new BalanceController(slotStore.panel);
     const winPopupController = new WinPopupController(sceneController);
-    const themeController = new FreeSpinsThemeController(sceneController);
+    const themeController = new FreeSpinsThemeController(sceneController, audio);
     const unsubscribeMaxBetError = emitter.on('ui:maxBetInsufficientBalance', () => {
       sceneController.showError(messages.insufficientBalance);
     });
@@ -39,6 +39,7 @@ export class EgyptSlotFlow extends PhaseManager<PhaseName, typeof phaseTransitio
       [PhaseName.loading]: new LoadingPhase(
         application,
         assets,
+        audio,
         api,
         slotStore,
         sceneController,
@@ -68,6 +69,7 @@ export class EgyptSlotFlow extends PhaseManager<PhaseName, typeof phaseTransitio
         reelsController,
         balanceController,
         winPopupController,
+        audio,
       ),
     } satisfies PhaseRegistry<PhaseName, typeof phaseTransitions>;
 

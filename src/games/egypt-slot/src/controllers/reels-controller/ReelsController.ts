@@ -60,6 +60,7 @@ export class ReelsController {
       this.round.startLanding();
       if (this.round.quickStopRequested) {
         this.scene.executeReels(new SetReelsCommand(result.reels), signal);
+        this.emitter.emit('reel:stopped', 0);
       } else {
         await this.scene.executeReels(new LandReelsCommand(result.reels), signal);
       }
@@ -70,6 +71,7 @@ export class ReelsController {
 
       if (result) {
         this.scene.executeReels(new SetReelsCommand(result.reels), signal);
+        this.emitter.emit('reel:stopped', 0);
         this.emitter.emit('spin:landed', result);
         return result;
       }

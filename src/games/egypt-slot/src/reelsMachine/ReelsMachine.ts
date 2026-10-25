@@ -7,9 +7,12 @@ import type { ReelsCommand } from './commands';
 import type { SceneTheme } from '../scene/sceneTheme';
 
 const FRAME_SCALE = 0.55;
+const BASE_FRAME_SCALE_X = 0.535;
+const BASE_FRAME_SCALE_Y = 0.54;
 const FRAME_TRANSPARENT_LEFT = 96;
 const FRAME_TRANSPARENT_RIGHT = 69;
 const FREE_FRAME_SCALE = 0.678;
+const FREE_FRAME_SCALE_X = 0.705;
 const FREE_FRAME_TRANSPARENT_SIDE = 30;
 const FREE_FRAME_Y = 42;
 const REELS_WINDOW_LEFT = 320;
@@ -23,7 +26,7 @@ export class ReelsMachine extends Container {
   private readonly layoutBounds: Rectangle;
   private theme: SceneTheme = 'base';
 
-  constructor(initialReels: ReelsMatrix) {
+  constructor(initialReels: ReelsMatrix, onReelStopped?: (index: number) => void) {
     super();
 
     const frameTexture = Texture.from(EgyptImageAssetKey.scene.reelFrameFilled);
@@ -49,26 +52,43 @@ export class ReelsMachine extends Container {
     this.frameTextures = { base: baseFrame, freeSpins: freeFrame };
 
     this.frameBackground = this.addBackground();
+    this.positionBaseFrame();
     this.logo = this.addLogo();
 
     // Координаты игрового поля рассчитаны по исходному PNG; обрезанный спрайт начинается после левого отступа.
     const boardWidth = frameTexture.width * FRAME_SCALE * 0.65;
     const windowCenterX =
       ((REELS_WINDOW_LEFT + REELS_WINDOW_RIGHT) / 2 - FRAME_TRANSPARENT_LEFT) * FRAME_SCALE;
-    this.reelsBoard = new ReelsBoard(boardWidth, this.frameBackground.height * 0.57, initialReels);
+    this.reelsBoard = new ReelsBoard(
+      boardWidth,
+      frameTexture.height * FRAME_SCALE * 0.57,
+      initialReels,
+      onReelStopped,
+    );
     this.reelsBoard.position.set(
       windowCenterX - boardWidth / 2,
-      this.frameBackground.height * 0.23,
+      frameTexture.height * FRAME_SCALE * 0.23,
     );
 
     this.logo.anchor.set(0.5, 0);
     this.logo.position.x = (frameTexture.width / 2 - FRAME_TRANSPARENT_LEFT) * FRAME_SCALE;
+    this.logo.position.y = this.frameBackground.position.y;
 
     this.addChild(this.frameBackground, this.reelsBoard, this.logo);
 
     const bounds = this.getLocalBounds();
-    this.layoutBounds = new Rectangle(bounds.x, bounds.y, bounds.width, bounds.height);
-    this.pivot.set(bounds.x + bounds.width / 2, bounds.y + bounds.height / 2.2);
+    const left = Math.min(0, bounds.x);
+    const top = Math.min(0, bounds.y);
+    this.layoutBounds = new Rectangle(
+      left,
+      top,
+      Math.max(baseFrame.width * FRAME_SCALE, bounds.x + bounds.width) - left,
+      Math.max(baseFrame.height * FRAME_SCALE, bounds.y + bounds.height) - top,
+    );
+    this.pivot.set(
+      this.layoutBounds.x + this.layoutBounds.width / 2,
+      this.layoutBounds.y + this.layoutBounds.height / 2.2,
+    );
   }
 
   getLayoutBounds(): Rectangle {
@@ -80,16 +100,15 @@ export class ReelsMachine extends Container {
     this.theme = theme;
     this.frameBackground.texture = this.frameTextures[theme];
     if (theme === 'freeSpins') {
-      this.frameBackground.scale.set(FREE_FRAME_SCALE);
+      this.frameBackground.scale.set(FREE_FRAME_SCALE_X, FREE_FRAME_SCALE);
       this.frameBackground.position.set(
         (this.frameTextures.base.width * FRAME_SCALE -
-          this.frameTextures.freeSpins.width * FREE_FRAME_SCALE) /
+          this.frameTextures.freeSpins.width * FREE_FRAME_SCALE_X) /
           2,
         FREE_FRAME_Y,
       );
     } else {
-      this.frameBackground.scale.set(FRAME_SCALE);
-      this.frameBackground.position.set(0, 0);
+      this.positionBaseFrame();
     }
     this.logo.visible = theme === 'base';
   }
@@ -131,6 +150,15 @@ export class ReelsMachine extends Container {
     frameBackground.scale.set(FRAME_SCALE);
 
     return frameBackground;
+  }
+
+  private positionBaseFrame(): void {
+    const baseFrame = this.frameTextures.base;
+    this.frameBackground.scale.set(BASE_FRAME_SCALE_X, BASE_FRAME_SCALE_Y);
+    this.frameBackground.position.set(
+      (baseFrame.width * (FRAME_SCALE - BASE_FRAME_SCALE_X)) / 2,
+      (baseFrame.height * (FRAME_SCALE - BASE_FRAME_SCALE_Y)) / 2,
+    );
   }
 
   private addLogo(): Sprite {

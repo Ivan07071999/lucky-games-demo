@@ -1,5 +1,6 @@
 import type { MainSceneController } from '../main-scene-controller/MainSceneController';
 import type { SceneTheme } from '../../scene/sceneTheme';
+import type { AudioController } from '../audio-controller/AudioController';
 
 const FADE_SECONDS = 0.45;
 const HOLD_MS = 1600;
@@ -23,9 +24,11 @@ function hold(signal: AbortSignal): Promise<void> {
 
 export class FreeSpinsThemeController {
   private readonly scene: MainSceneController;
+  private readonly audio: AudioController;
 
-  constructor(scene: MainSceneController) {
+  constructor(scene: MainSceneController, audio: AudioController) {
     this.scene = scene;
+    this.audio = audio;
   }
 
   async enter(signal: AbortSignal): Promise<void> {
@@ -38,6 +41,8 @@ export class FreeSpinsThemeController {
 
   private async play(theme: SceneTheme, signal: AbortSignal): Promise<void> {
     signal.throwIfAborted();
+    if (theme === 'freeSpins') this.audio.playFreeSpinsIntro();
+    else this.audio.playFreeSpinsOutro();
     this.scene.showFreeSpinsTransition(theme === 'freeSpins' ? 'activated' : 'complete');
     try {
       await this.scene.fadeFreeSpinsTransition(1, FADE_SECONDS, signal);
