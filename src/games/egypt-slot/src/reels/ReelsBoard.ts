@@ -1,12 +1,17 @@
 import { Container, Graphics } from 'pixi.js';
+import { gsap } from 'gsap';
 import type { Win } from '@lucky-games/contracts';
 import { ReelColumn } from './ReelColumn';
 import { REEL_COUNT, VISIBLE_ROWS, type ReelsMatrix } from './reelsConfig';
 import { WinLineOverlay } from './WinLineOverlay';
 
+const START_INTERVAL_SECONDS = 0.09;
+
 export class ReelsBoard extends Container {
   private readonly columns: ReelColumn[];
   private readonly winLine: WinLineOverlay;
+  private readonly scheduledStarts = new Set<gsap.core.Tween>();
+  private startSignal: AbortSignal | null = null;
 
   constructor(width: number, height: number, initialReels: ReelsMatrix) {
     super();
@@ -32,11 +37,25 @@ export class ReelsBoard extends Container {
       throw new Error(`Expected ${REEL_COUNT} reels with ${VISIBLE_ROWS} symbols each`);
     }
 
+    this.cancelScheduledStarts();
     this.columns.forEach((column, index) => column.setSymbols(reels[index]));
   }
 
   spin(signal: AbortSignal): void {
-    this.columns.forEach((column) => column.spin(signal));
+    signal.throwIfAborted();
+    this.cancelScheduledStarts();
+    this.startSignal = signal;
+    signal.addEventListener('abort', this.cancelScheduledStarts, { once: true });
+
+    this.columns[0].spin(signal);
+    for (let index = 1; index < this.columns.length; index += 1) {
+      const start = gsap.delayedCall(index * START_INTERVAL_SECONDS, () => {
+        this.scheduledStarts.delete(start);
+        if (!signal.aborted) this.columns[index].spin(signal);
+        if (this.scheduledStarts.size === 0) this.detachStartSignal();
+      });
+      this.scheduledStarts.add(start);
+    }
   }
 
   async land(reels: ReelsMatrix, signal: AbortSignal): Promise<void> {
@@ -70,5 +89,21 @@ export class ReelsBoard extends Container {
       signal.throwIfAborted();
       await this.columns[reelIndex]?.showWild(signal);
     }
+  }
+
+  override destroy(options?: Parameters<Container['destroy']>[0]): void {
+    this.cancelScheduledStarts();
+    super.destroy(options);
+  }
+
+  private readonly cancelScheduledStarts = (): void => {
+    this.scheduledStarts.forEach((start) => start.kill());
+    this.scheduledStarts.clear();
+    this.detachStartSignal();
+  };
+
+  private detachStartSignal(): void {
+    this.startSignal?.removeEventListener('abort', this.cancelScheduledStarts);
+    this.startSignal = null;
   }
 }
