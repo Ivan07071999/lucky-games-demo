@@ -11,7 +11,6 @@ export type BetActionButtonOptions = {
 
 export class BetActionButton extends Container {
   readonly background: Sprite;
-  readonly weightLayers: BitmapText[];
   readonly labelText: BitmapText;
 
   constructor(width: number, height: number, options: BetActionButtonOptions) {
@@ -26,7 +25,7 @@ export class BetActionButton extends Container {
     this.background.height = height * 0.12;
 
     const style = {
-      fontFamily: 'CasinoGold',
+      fontFamily: 'CasinoGoldBold',
       fontSize: this.background.height * 0.25,
       lineHeight: this.background.height * 0.24,
       align: 'center' as const,
@@ -43,22 +42,7 @@ export class BetActionButton extends Container {
     );
     this.labelText.scale.set(textScale);
 
-    const weightOffset = 0.6;
-    this.weightLayers = [
-      [-weightOffset, 0],
-      [weightOffset, 0],
-      [0, -weightOffset],
-      [0, weightOffset],
-    ].map(([x, y], index) => {
-      const weightLayer = new BitmapText({ text: options.text, style });
-      weightLayer.label = `${options.textLabel}-weight-${index + 1}`;
-      weightLayer.anchor.set(0.5);
-      weightLayer.scale.set(textScale);
-      weightLayer.position.set(x, this.labelText.position.y + y);
-      return weightLayer;
-    });
-
-    this.addChild(this.background, ...this.weightLayers, this.labelText);
+    this.addChild(this.background, this.labelText);
     this.on('pointerover', this.scaleUp, this);
     this.on('pointerout', this.scaleDown, this);
   }

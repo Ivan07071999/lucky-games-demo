@@ -1,53 +1,61 @@
 import 'pixi.js/text-bitmap';
-import { BitmapText, Container, Graphics } from 'pixi.js';
+import { BitmapText, Container, Sprite, Texture } from 'pixi.js';
 import { autorun, type IReactionDisposer } from 'mobx';
+import { EgyptImageAssetKey } from '../../assets';
 import type { RoundStore } from '../../stores/RoundStore';
+import type { SceneTheme } from '../../scene/sceneTheme';
+
+const TABLET_WIDTH = 300;
+const TABLET_HEIGHT = 100;
+const TITLE_COLOR = 0xffdda0;
 
 export class FreeSpinsStatus extends Container {
-  private readonly background = new Graphics();
+  private readonly background: Sprite;
   private readonly title: BitmapText;
-  private readonly detail: BitmapText;
+  private readonly round: RoundStore;
   private readonly stopObserving: IReactionDisposer;
+  private theme: SceneTheme = 'base';
   private viewportWidth = 0;
   private viewportHeight = 0;
 
   constructor(round: RoundStore) {
     super();
 
+    this.round = round;
     this.label = 'free-spins-status';
     this.eventMode = 'none';
     this.visible = false;
 
+    this.background = new Sprite(Texture.from(EgyptImageAssetKey.popups.freeSpinsTablet));
+    this.background.anchor.set(0.5);
+    this.background.width = TABLET_WIDTH;
+    this.background.height = TABLET_HEIGHT;
+
     this.title = new BitmapText({
       text: '',
-      style: { fontFamily: 'CasinoGoldBold', fontSize: 26, fill: 0xffe3a1, align: 'center' },
+      style: {
+        fontFamily: 'CasinoGoldBold',
+        fontSize: 22,
+        fill: TITLE_COLOR,
+        align: 'center',
+      },
     });
     this.title.anchor.set(0.5);
-    this.title.position.y = -11;
+    this.title.position.y = -4;
 
-    this.detail = new BitmapText({
-      text: 'BET LOCKED  NO COINS CHARGED',
-      style: { fontFamily: 'CasinoGoldBold', fontSize: 14, fill: 0xffffff, align: 'center' },
-    });
-    this.detail.anchor.set(0.5);
-    this.detail.position.y = 14;
-
-    this.addChild(this.background, this.title, this.detail);
+    this.addChild(this.background, this.title);
 
     this.stopObserving = autorun(() => {
       const remaining = round.freeSpins.remaining;
-      this.visible = round.isFreeSpin;
-      if (!this.visible) return;
-
       this.title.text = `FREE SPINS ${remaining}`;
-      const width = Math.max(this.title.width, this.detail.width) + 38;
-      this.background
-        .clear()
-        .roundRect(-width / 2, -34, width, 68, 12)
-        .fill({ color: 0x211126, alpha: 0.93 })
-        .stroke({ color: 0xd69838, width: 2 });
+      this.updateVisibility();
       this.layout();
     });
+  }
+
+  setTheme(theme: SceneTheme): void {
+    this.theme = theme;
+    this.updateVisibility();
   }
 
   resize(width: number, height: number): void {
@@ -56,14 +64,18 @@ export class FreeSpinsStatus extends Container {
     this.layout();
   }
 
+  private updateVisibility(): void {
+    this.visible = this.theme === 'freeSpins' && this.round.isFreeSpin;
+  }
+
   private layout(): void {
     if (this.viewportWidth <= 0 || this.viewportHeight <= 0) return;
 
-    const scale = Math.min(1, (this.viewportWidth - 24) / Math.max(this.background.width, 1));
+    const scale = Math.min(1, (this.viewportWidth - 24) / TABLET_WIDTH);
     this.scale.set(scale);
     this.position.set(
       this.viewportWidth / 2,
-      Math.max(38 * scale + 8, Math.min(this.viewportHeight * 0.07, 60)),
+      Math.max(TABLET_HEIGHT * scale * 0.39 + 8, Math.min(this.viewportHeight * 0.07, 60)),
     );
   }
 

@@ -59,3 +59,15 @@ export class ShowWinLinesCommand implements ReelsCommand {
     return machine.showWins(this.wins, signal);
   }
 }
+
+export class ShowFreeSpinsTriggerCommand implements ReelsCommand {
+  private readonly reels: ReelsMatrix;
+
+  constructor(reels: ReelsMatrix) {
+    this.reels = reels;
+  }
+
+  execute(machine: ReelsMachine, signal: AbortSignal): Promise<void> {
+    return machine.showFreeSpinsTrigger(this.reels, signal);
+  }
+}

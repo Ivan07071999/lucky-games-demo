@@ -8,6 +8,8 @@ export class EgyptImageAssets {
     right: egyptAssetUrl('PNG/buttons/button_right.png'),
     spinButton: egyptAssetUrl('PNG/buttons/spin_button.png'),
     spinningButton: egyptAssetUrl('PNG/buttons/spining-button.png'),
+    soundOn: egyptAssetUrl('PNG/sound/sound_on.png'),
+    soundOff: egyptAssetUrl('PNG/sound/sound_off.png'),
   } as const;
 
   static readonly scene = {
@@ -45,6 +47,7 @@ export class EgyptImageAssets {
 
   static readonly popups = {
     scrollBackground: egyptAssetUrl('PNG/popups/scroll_bg.png'),
+    freeSpinsTablet: egyptAssetUrl('PNG/popups/tablet_bg.png'),
     bigWin: egyptAssetUrl('PNG/popups/big-win/big_win.png'),
     bigWinBackground: egyptAssetUrl('PNG/popups/big-win/big_win_bg.png'),
     bigWinDecor: egyptAssetUrl('PNG/popups/big-win/big_win_decor.png'),

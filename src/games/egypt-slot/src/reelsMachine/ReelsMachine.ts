@@ -138,6 +138,10 @@ export class ReelsMachine extends Container {
     return this.reelsBoard.showWild(expandedReels, signal);
   }
 
+  showFreeSpinsTrigger(reels: ReelsMatrix, signal: AbortSignal): Promise<void> {
+    return this.reelsBoard.showFreeSpinsTrigger(reels, signal);
+  }
+
   override destroy(options?: Parameters<Container['destroy']>[0]): void {
     super.destroy(options);
     this.frameTextures.base.destroy();

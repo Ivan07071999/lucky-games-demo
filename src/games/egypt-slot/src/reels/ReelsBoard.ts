@@ -2,6 +2,7 @@ import { Container, Graphics } from 'pixi.js';
 import { gsap } from 'gsap';
 import type { Win } from '@lucky-games/contracts';
 import { ReelColumn } from './ReelColumn';
+import { FreeSpinsTriggerOverlay } from './FreeSpinsTriggerOverlay';
 import { REEL_COUNT, VISIBLE_ROWS, type ReelsMatrix } from './reelsConfig';
 import { WinLineOverlay } from './WinLineOverlay';
 
@@ -10,6 +11,7 @@ const START_INTERVAL_SECONDS = 0.09;
 export class ReelsBoard extends Container {
   private readonly columns: ReelColumn[];
   private readonly winLine: WinLineOverlay;
+  private readonly freeSpinsTrigger: FreeSpinsTriggerOverlay;
   private readonly onReelStopped?: (index: number) => void;
   private readonly scheduledStarts = new Set<gsap.core.Tween>();
   private startSignal: AbortSignal | null = null;
@@ -34,8 +36,9 @@ export class ReelsBoard extends Container {
     });
 
     this.winLine = new WinLineOverlay(columnWidth, rowHeight);
+    this.freeSpinsTrigger = new FreeSpinsTriggerOverlay(columnWidth, rowHeight);
     const mask = new Graphics().roundRect(0, 0, width, height, 12).fill(0xffffff);
-    this.addChild(...this.columns, this.winLine, mask);
+    this.addChild(...this.columns, this.winLine, this.freeSpinsTrigger, mask);
     this.mask = mask;
   }
 
@@ -97,6 +100,10 @@ export class ReelsBoard extends Container {
       signal.throwIfAborted();
       await this.columns[reelIndex]?.showWild(signal);
     }
+  }
+
+  showFreeSpinsTrigger(reels: ReelsMatrix, signal: AbortSignal): Promise<void> {
+    return this.freeSpinsTrigger.show(reels, signal);
   }
 
   override destroy(options?: Parameters<Container['destroy']>[0]): void {

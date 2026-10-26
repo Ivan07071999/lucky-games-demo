@@ -158,6 +158,7 @@ export class MainScene extends Container {
     );
     this.reelsMachine.setTheme(theme);
     this.betPanel.setTheme(theme);
+    this.freeSpinsStatus?.setTheme(theme);
     if (this.viewportWidth && this.viewportHeight) {
       this.resize(this.viewportWidth, this.viewportHeight);
     }

@@ -7,6 +7,7 @@ import type { RoundStore } from '../../stores/RoundStore';
 import {
   LandReelsCommand,
   SetReelsCommand,
+  ShowFreeSpinsTriggerCommand,
   ShowWildCommand,
   ShowWinLinesCommand,
   StartReelsCommand,
@@ -106,5 +107,9 @@ export class ReelsController {
     if (result.wins.length > 0) {
       await this.scene.executeReels(new ShowWinLinesCommand(result.wins), signal);
     }
+  }
+
+  async presentFreeSpinsTrigger(result: RoundResult, signal: AbortSignal): Promise<void> {
+    await this.scene.executeReels(new ShowFreeSpinsTriggerCommand(result.reels), signal);
   }
 }

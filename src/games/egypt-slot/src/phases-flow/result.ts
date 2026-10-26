@@ -68,6 +68,13 @@ export class ResultPhase implements Phase<
       signal.removeEventListener('abort', abortPresentation);
       this.popup.hide();
       this.balance.settle(result);
+      try {
+        if (!signal.aborted && result.mode === 'BASE_GAME' && this.store.round.isFreeSpin) {
+          await this.reels.presentFreeSpinsTrigger(result, signal);
+        }
+      } catch (error) {
+        if (!signal.aborted) console.error('Free Spins trigger presentation failed', error);
+      }
       this.store.round.finishRound();
     }
 
