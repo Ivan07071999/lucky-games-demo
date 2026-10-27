@@ -12,6 +12,7 @@ import { IdlePhase } from './idle';
 import { InitPhase } from './init';
 import { LoadingPhase } from './loading';
 import { PhaseManager, type PhaseRegistry } from './PhaseManager';
+import { RecoveringPhase } from './recovering';
 import { ResultPhase } from './result';
 import { SpinningPhase } from './spinning';
 import { PhaseName, phaseTransitions } from './types';
@@ -27,6 +28,7 @@ export class EgyptSlotFlow extends PhaseManager<PhaseName, typeof phaseTransitio
       emitter,
       slotStore.reels,
       slotStore.round,
+      () => slotStore.spinSettings.turboEnabled,
     );
     const balanceController = new BalanceController(slotStore.panel);
     const winPopupController = new WinPopupController(sceneController);
@@ -60,6 +62,14 @@ export class EgyptSlotFlow extends PhaseManager<PhaseName, typeof phaseTransitio
         sceneController,
         reelsController,
         balanceController,
+      ),
+      [PhaseName.recovering]: new RecoveringPhase(
+        api,
+        slotStore,
+        sceneController,
+        reelsController,
+        balanceController,
+        messages,
       ),
       [PhaseName.freeSpinsIntro]: new FreeSpinsIntroPhase(themeController),
       [PhaseName.freeSpinsOutro]: new FreeSpinsOutroPhase(themeController),

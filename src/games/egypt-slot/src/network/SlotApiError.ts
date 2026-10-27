@@ -11,8 +11,8 @@ export class SlotApiError extends Error {
 }
 
 export class SlotContractError extends Error {
-  constructor() {
-    super('The slot server returned an incompatible game state');
+  constructor(source = 'game state', cause?: unknown) {
+    super(`The slot server returned an incompatible ${source}`, { cause });
     this.name = 'SlotContractError';
   }
 }

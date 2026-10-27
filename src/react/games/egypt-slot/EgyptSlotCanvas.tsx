@@ -7,6 +7,8 @@ export function EgyptSlotCanvas() {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const loading = t('game.loading');
   const loadError = t('game.loadError');
+  const recoveringRound = t('game.recoveringRound');
+  const recoverRoundError = t('game.recoverRoundError');
   const incompatibleServer = t('game.incompatibleServer');
   const retry = t('game.retry');
   const insufficientBalance = t('game.insufficientBalance');
@@ -18,6 +20,8 @@ export function EgyptSlotCanvas() {
     const flow = new EgyptSlotFlow(canvas, {
       loading,
       loadError,
+      recoveringRound,
+      recoverRoundError,
       incompatibleServer,
       retry,
       insufficientBalance,
@@ -27,7 +31,15 @@ export function EgyptSlotCanvas() {
     });
 
     return () => flow.stop();
-  }, [loading, loadError, incompatibleServer, retry, insufficientBalance]);
+  }, [
+    loading,
+    loadError,
+    recoveringRound,
+    recoverRoundError,
+    incompatibleServer,
+    retry,
+    insufficientBalance,
+  ]);
 
   return (
     <canvas

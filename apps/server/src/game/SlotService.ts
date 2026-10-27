@@ -1,5 +1,11 @@
 import { randomInt, randomUUID } from 'node:crypto';
-import type { Bet, RoundResult, SlotCommand, SlotState } from '@lucky-games/contracts';
+import {
+  SYMBOLS,
+  type Bet,
+  type RoundResult,
+  type SlotCommand,
+  type SlotState,
+} from '@lucky-games/contracts';
 import { Database, SlotError, type SessionRow } from '../storage/Database.js';
 import {
   BETS,
@@ -12,6 +18,7 @@ import {
   validateBet,
 } from './rules.js';
 import { classifyWin } from './winClassification.js';
+import { SLOT_MATH } from './mathConfig.js';
 
 export class SlotService {
   constructor(
@@ -73,10 +80,11 @@ export class SlotService {
       throw new SlotError('INSUFFICIENT_BALANCE', 'Insufficient balance');
     }
 
+    const mode = isFreeSpin ? 'FREE_SPINS' : 'BASE_GAME';
     const outcome = evaluateRound(
-      generateReels(this.random),
+      generateReels(this.random, mode),
       bet,
-      isFreeSpin ? 'FREE_SPINS' : 'BASE_GAME',
+      mode,
       session.sticky_reels,
     );
     const remaining = isFreeSpin
@@ -133,10 +141,17 @@ export class SlotService {
       lastBet: session.last_bet,
       nextAction: session.free_spins_remaining ? 'FREE_SPIN' : 'SPIN',
       config: {
-        bets: BETS,
-        levels: LEVELS,
-        coinValuesCents: COIN_VALUES_CENTS,
+        bets: [...BETS],
+        levels: [...LEVELS],
+        coinValuesCents: [...COIN_VALUES_CENTS],
         paylines: PAYLINES.map((line) => [...line]),
+        payouts: Object.fromEntries(
+          SYMBOLS.map((symbol) => [symbol, [...SLOT_MATH.payouts[symbol]]]),
+        ) as SlotState['config']['payouts'],
+        wildMultiplier: SLOT_MATH.wildMultiplier,
+        scatterSymbol: SLOT_MATH.scatterSymbol,
+        scatterTriggerCount: SLOT_MATH.scatterTriggerCount,
+        freeSpinsAwarded: SLOT_MATH.freeSpinsAwarded,
       },
     };
   }

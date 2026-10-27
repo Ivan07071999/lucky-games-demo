@@ -58,7 +58,12 @@ export class LoadingPhase implements Phase<
         this.store.applyInitialState(state);
         if (recoveredRound) this.store.applyRoundResult(recoveredRound);
         this.scene.mount();
+        if (this.api.hasPendingRound) {
+          this.store.round.startRecovery(this.api.pendingAction === 'FREE_SPIN');
+          this.scene.setTheme(this.api.pendingAction === 'FREE_SPIN' ? 'freeSpins' : 'base');
+        }
         this.audio.load();
+        if (this.api.hasPendingRound) return PhaseName.recovering;
         return this.store.round.isFreeSpin ? PhaseName.freeSpins : PhaseName.idle;
       } catch (error) {
         if (signal.aborted) throw error;

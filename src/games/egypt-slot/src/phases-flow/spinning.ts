@@ -59,6 +59,10 @@ export class SpinningPhase implements Phase<
     } catch (error) {
       this.balance.rollbackPendingBet();
       if (signal.aborted) throw error;
+      if (this.api.hasPendingRound) {
+        this.store.round.startRecovery();
+        return PhaseName.recovering;
+      }
       this.autoPlay.onRoundFailed();
       const message = error instanceof Error ? error.message : 'Round failed';
       this.store.round.failRound(message);

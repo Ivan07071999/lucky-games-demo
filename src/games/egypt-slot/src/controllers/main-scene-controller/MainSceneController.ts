@@ -72,10 +72,10 @@ export class MainSceneController {
     if (!this.scene.destroyed) this.scene.hideFreeSpinsTransition();
   }
 
-  showError(message: string): void {
+  showError(message: string, actionLabel?: string, onAction?: () => void): void {
     if (!this.application) return;
     this.clearError();
-    this.errorStatus = new StatusScene(message).show(this.application);
+    this.errorStatus = new StatusScene(message, actionLabel, onAction).show(this.application);
   }
 
   clearError(): void {

@@ -47,6 +47,8 @@ const en = {
       canvasLabel: 'Golden Temple game canvas',
       loading: 'Loading the game…',
       loadError: 'Could not load the game. Please try again.',
+      recoveringRound: 'Restoring the previous round…',
+      recoverRoundError: 'Could not restore the round. Retry when the connection returns.',
       incompatibleServer: 'The game server uses an outdated API version. Restart the server.',
       retry: 'Retry',
       insufficientBalance: 'Not enough coins for MAX BET.',

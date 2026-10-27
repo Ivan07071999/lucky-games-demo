@@ -9,6 +9,8 @@ import { AudioStore } from '../stores/AudioStore';
 export type GameMessages = {
   loading: string;
   loadError: string;
+  recoveringRound: string;
+  recoverRoundError: string;
   incompatibleServer: string;
   retry: string;
   insufficientBalance: string;

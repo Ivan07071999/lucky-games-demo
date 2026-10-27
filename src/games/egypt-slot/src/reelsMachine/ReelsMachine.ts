@@ -8,7 +8,7 @@ import type { SceneTheme } from '../scene/sceneTheme';
 
 const FRAME_SCALE = 0.55;
 const BASE_FRAME_SCALE_X = 0.535;
-const BASE_FRAME_SCALE_Y = 0.54;
+const BASE_FRAME_SCALE_Y = 0.515; //54
 const FRAME_TRANSPARENT_LEFT = 96;
 const FRAME_TRANSPARENT_RIGHT = 69;
 const FREE_FRAME_SCALE = 0.678;
@@ -122,12 +122,16 @@ export class ReelsMachine extends Container {
     return command.execute(this, signal);
   }
 
-  spin(signal: AbortSignal): void {
-    this.reelsBoard.spin(signal);
+  spin(signal: AbortSignal, turbo = false): void {
+    this.reelsBoard.spin(signal, turbo);
   }
 
-  land(reels: ReelsMatrix, signal: AbortSignal): Promise<void> {
-    return this.reelsBoard.land(reels, signal);
+  land(reels: ReelsMatrix, signal: AbortSignal, quickStop = false): Promise<void> {
+    return this.reelsBoard.land(reels, signal, quickStop);
+  }
+
+  requestQuickStop(reels: ReelsMatrix, signal: AbortSignal): void {
+    this.reelsBoard.requestQuickStop(reels, signal);
   }
 
   showWins(wins: readonly Win[], signal: AbortSignal): Promise<void> {

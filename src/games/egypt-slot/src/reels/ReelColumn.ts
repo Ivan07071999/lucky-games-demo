@@ -10,6 +10,8 @@ const ANTICIPATION_SECONDS = 0.22;
 const ANTICIPATION_HOLD_SECONDS = 0.1;
 const ANTICIPATION_PIXELS = 12;
 const MINIMUM_SPIN_STEPS = 5;
+const QUICK_STOP_STEP_SECONDS = 0.055;
+const QUICK_STOP_TWEEN_SPEED = 4;
 
 export class ReelColumn extends Container {
   private readonly symbols: ReelSymbol[];
@@ -18,6 +20,8 @@ export class ReelColumn extends Container {
   private stopTarget: ReelColumnSymbols | null = null;
   private cancelStep: ((reason: unknown) => void) | null = null;
   private cancelled = false;
+  private quickStopRequested = false;
+  private activeTween: gsap.core.Tween | null = null;
 
   constructor(width: number, rowHeight: number, values: ReelColumnSymbols) {
     super();
@@ -47,15 +51,24 @@ export class ReelColumn extends Container {
     });
   }
 
-  spin(signal: AbortSignal): void {
+  spin(signal: AbortSignal, turbo = false): void {
     if (this.spinTask) return;
     this.cancelled = false;
+    this.quickStopRequested = false;
     this.stopTarget = null;
-    this.spinTask = this.runSpin(signal).finally(() => {
+    this.spinTask = this.runSpin(signal, turbo).finally(() => {
       this.spinTask = null;
       this.stopTarget = null;
     });
     void this.spinTask.catch(() => undefined);
+  }
+
+  quickLand(values: ReelColumnSymbols, signal: AbortSignal, turbo = false): void {
+    signal.throwIfAborted();
+    this.spin(signal, turbo);
+    this.stopTarget = values;
+    this.quickStopRequested = true;
+    this.activeTween?.timeScale(QUICK_STOP_TWEEN_SPEED);
   }
 
   async land(values: ReelColumnSymbols, signal: AbortSignal): Promise<void> {
@@ -78,27 +91,39 @@ export class ReelColumn extends Container {
     );
   }
 
-  private async runSpin(signal: AbortSignal): Promise<void> {
-    const anticipation = Math.min(ANTICIPATION_PIXELS, this.rowHeight * 0.1);
-    await this.animateOffset(0, -anticipation, ANTICIPATION_SECONDS, 'power2.out', signal);
+  private async runSpin(signal: AbortSignal, turbo: boolean): Promise<void> {
+    const anticipation = turbo ? 0 : Math.min(ANTICIPATION_PIXELS, this.rowHeight * 0.1);
+    if (!turbo) {
+      await this.animateOffset(0, -anticipation, ANTICIPATION_SECONDS, 'power2.out', signal);
+    }
 
     let steps = 0;
-    while (!this.stopTarget || steps < MINIMUM_SPIN_STEPS) {
+    while (!this.stopTarget || (!this.quickStopRequested && steps < MINIMUM_SPIN_STEPS)) {
       if (this.cancelled) throw new Error('Reel spin cancelled');
+      const firstStep = steps === 0 && !turbo;
       await this.advance(
         SYMBOLS[Math.floor(Math.random() * SYMBOLS.length)],
         signal,
-        steps === 0 ? -anticipation : 0,
-        steps === 0 ? FIRST_STEP_SECONDS : STEP_SECONDS,
-        steps === 0 ? 'power2.in' : 'none',
-        steps === 0 ? ANTICIPATION_HOLD_SECONDS : 0,
+        firstStep ? -anticipation : 0,
+        this.quickStopRequested
+          ? QUICK_STOP_STEP_SECONDS
+          : firstStep
+            ? FIRST_STEP_SECONDS
+            : STEP_SECONDS,
+        firstStep ? 'power2.in' : 'none',
+        firstStep && !this.quickStopRequested ? ANTICIPATION_HOLD_SECONDS : 0,
       );
       steps += 1;
     }
     const target = this.stopTarget;
     for (let row = VISIBLE_ROWS - 1; row >= 0; row -= 1) {
       if (this.cancelled) throw new Error('Reel spin cancelled');
-      await this.advance(target[row], signal);
+      await this.advance(
+        target[row],
+        signal,
+        0,
+        this.quickStopRequested ? QUICK_STOP_STEP_SECONDS : STEP_SECONDS,
+      );
     }
     if (this.cancelled) throw new Error('Reel spin cancelled');
     this.applySymbols(target);
@@ -140,6 +165,7 @@ export class ReelColumn extends Container {
       const cleanup = () => {
         signal.removeEventListener('abort', onAbort);
         this.cancelStep = null;
+        if (this.activeTween === tween) this.activeTween = null;
       };
       const cancel = (reason: unknown) => {
         if (settled) return;
@@ -167,6 +193,7 @@ export class ReelColumn extends Container {
           resolve();
         },
       });
+      this.activeTween = tween;
       if (signal.aborted) onAbort();
     });
   }

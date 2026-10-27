@@ -7,20 +7,40 @@ export interface ReelsCommand {
 }
 
 export class StartReelsCommand implements ReelsCommand {
+  private readonly turbo: boolean;
+
+  constructor(turbo = false) {
+    this.turbo = turbo;
+  }
+
   execute(machine: ReelsMachine, signal: AbortSignal): void {
-    machine.spin(signal);
+    machine.spin(signal, this.turbo);
   }
 }
 
 export class LandReelsCommand implements ReelsCommand {
+  private readonly reels: ReelsMatrix;
+  private readonly quickStop: boolean;
+
+  constructor(reels: ReelsMatrix, quickStop = false) {
+    this.reels = reels;
+    this.quickStop = quickStop;
+  }
+
+  execute(machine: ReelsMachine, signal: AbortSignal): Promise<void> {
+    return machine.land(this.reels, signal, this.quickStop);
+  }
+}
+
+export class QuickStopReelsCommand implements ReelsCommand {
   private readonly reels: ReelsMatrix;
 
   constructor(reels: ReelsMatrix) {
     this.reels = reels;
   }
 
-  execute(machine: ReelsMachine, signal: AbortSignal): Promise<void> {
-    return machine.land(this.reels, signal);
+  execute(machine: ReelsMachine, signal: AbortSignal): void {
+    machine.requestQuickStop(this.reels, signal);
   }
 }
 

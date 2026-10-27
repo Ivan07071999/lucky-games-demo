@@ -19,7 +19,27 @@ const state: SlotState = {
   freeSpins: { remaining: 1, totalWinCoins: 0, stickyReels: [] },
   lastBet: { bet: 15, level: 1, coinValueCents: 2, totalCoins: 15 },
   nextAction: 'FREE_SPIN',
-  config: { bets: [15], levels: [1], coinValuesCents: [2], paylines: [] },
+  config: {
+    bets: [15],
+    levels: [1],
+    coinValuesCents: [2],
+    paylines: [],
+    payouts: {
+      defaultA: [1, 3, 5],
+      defaultJ: [1, 3, 5],
+      defaultK: [1, 3, 5],
+      defaultQ: [1, 3, 5],
+      highAnkh: [4, 8, 12],
+      highEye: [3, 7, 11],
+      highNecklace: [3, 6, 10],
+      highScarab: [0, 0, 0],
+      wild: [0, 0, 0],
+    },
+    wildMultiplier: 3,
+    scatterSymbol: 'highScarab',
+    scatterTriggerCount: 3,
+    freeSpinsAwarded: 8,
+  },
 };
 
 const result: RoundResult = {

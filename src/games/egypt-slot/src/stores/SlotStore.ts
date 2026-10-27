@@ -4,17 +4,20 @@ import { PanelStore } from './PanelStore';
 import { AutoPlayStore } from './AutoPlayStore';
 import { ReelsStore } from './ReelsStore';
 import { RoundStore } from './RoundStore';
+import { SpinSettingsStore } from './SpinSettingsStore';
 
 export class SlotStore {
   readonly round = new RoundStore();
   readonly autoPlay = new AutoPlayStore();
   readonly panel = new PanelStore(this.round, this.autoPlay);
   readonly reels = new ReelsStore();
+  readonly spinSettings = new SpinSettingsStore();
+  gameConfig: SlotState['config'] | null = null;
 
   constructor() {
     makeAutoObservable(
       this,
-      { round: false, autoPlay: false, panel: false, reels: false },
+      { round: false, autoPlay: false, panel: false, reels: false, spinSettings: false },
       { autoBind: true },
     );
   }
@@ -24,6 +27,15 @@ export class SlotStore {
     if (this.round.isFreeSpin) return true;
     if (this.autoPlay.isBetLocked || this.autoPlay.state === 'configuring') return false;
     return this.panel.canPlaceBet;
+  }
+
+  get canToggleTurbo(): boolean {
+    return (
+      this.round.ready &&
+      this.round.stage === 'idle' &&
+      !this.round.isFreeSpin &&
+      !this.autoPlay.isBetLocked
+    );
   }
 
   get canRequestMaxBet(): boolean {
@@ -73,10 +85,15 @@ export class SlotStore {
   }
 
   applyInitialState(state: SlotState): void {
+    this.reconcileState(state);
+    this.reels.reset();
+  }
+
+  reconcileState(state: SlotState): void {
     this.autoPlay.reset();
+    this.gameConfig = state.config;
     this.panel.applyInitialState(state);
     this.round.applyInitialState(state);
-    this.reels.reset();
   }
 
   applyRoundResult(result: RoundResult): void {

@@ -46,6 +46,7 @@ export class EgyptImageAssets {
   } as const;
 
   static readonly popups = {
+    info: egyptAssetUrl('PNG/popups/info.png'),
     scrollBackground: egyptAssetUrl('PNG/popups/scroll_bg.png'),
     freeSpinsTablet: egyptAssetUrl('PNG/popups/tablet_bg.png'),
     bigWin: egyptAssetUrl('PNG/popups/big-win/big_win.png'),

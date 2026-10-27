@@ -10,7 +10,7 @@
 | `GET /api/slot/state`                | `SlotState`    | Восстановить баланс и бонусное состояние               |
 | `GET /api/slot/rounds/:requestId`    | `RoundResult`  | Получить сохранённый результат после обрыва соединения |
 
-Для двух `GET` требуется `Authorization: Bearer <sessionId>`. `SlotState.config` содержит разрешённые `bets`, `levels`, `coinValuesCents` и линии `paylines`. `lastBet` равен `null` до первого вращения. `nextAction` равен `SPIN` или `FREE_SPIN`.
+Для двух `GET` требуется `Authorization: Bearer <sessionId>`. `SlotState.config` содержит разрешённые `bets`, `levels`, `coinValuesCents`, линии `paylines`, таблицу коэффициентов `payouts` (для 3/4/5 символов), множитель Wild и параметры Free Spins. Клиент показывает выплату в монетах как коэффициент × текущие `BET × LEVEL`; итог раунда рассчитывает сервер. `lastBet` равен `null` до первого вращения. `nextAction` равен `SPIN` или `FREE_SPIN`.
 
 ## WebSocket
 

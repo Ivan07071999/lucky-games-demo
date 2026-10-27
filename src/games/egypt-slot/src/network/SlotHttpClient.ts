@@ -1,5 +1,6 @@
 import type { RoundResult, SlotState } from '@lucky-games/contracts';
-import { isSlotErrorCode, SlotApiError, SlotContractError } from './SlotApiError';
+import { isSlotErrorCode, SlotApiError } from './SlotApiError';
+import { parseRoundResult, parseSlotState } from './slotResponseValidation';
 
 const REQUEST_TIMEOUT_MS = 10_000;
 
@@ -11,46 +12,31 @@ export class SlotHttpClient {
   }
 
   async createSession(signal?: AbortSignal): Promise<SlotState> {
-    return this.readState('/api/slot/session', { method: 'POST', body: '{}', signal });
+    const data = await this.request('/api/slot/session', {
+      method: 'POST',
+      body: '{}',
+      signal,
+    });
+    return parseSlotState(data);
   }
 
   async getState(sessionId: string, signal?: AbortSignal): Promise<SlotState> {
-    return this.readState('/api/slot/state', { signal, sessionId });
+    const data = await this.request('/api/slot/state', { signal, sessionId });
+    return parseSlotState(data, sessionId);
   }
 
-  getRound(sessionId: string, requestId: string, signal?: AbortSignal): Promise<RoundResult> {
-    return this.request(`/api/slot/rounds/${encodeURIComponent(requestId)}`, { signal, sessionId });
+  async getRound(sessionId: string, requestId: string, signal?: AbortSignal): Promise<RoundResult> {
+    const data = await this.request(`/api/slot/rounds/${encodeURIComponent(requestId)}`, {
+      signal,
+      sessionId,
+    });
+    return parseRoundResult(data, requestId);
   }
 
-  private async readState(
+  private async request(
     path: string,
     options: { method?: string; body?: string; sessionId?: string; signal?: AbortSignal },
-  ): Promise<SlotState> {
-    const state = await this.request<unknown>(path, options);
-    if (
-      !state ||
-      typeof state !== 'object' ||
-      !('config' in state) ||
-      !state.config ||
-      typeof state.config !== 'object' ||
-      !('bets' in state.config) ||
-      !Array.isArray(state.config.bets) ||
-      state.config.bets.length === 0 ||
-      !('levels' in state.config) ||
-      !Array.isArray(state.config.levels) ||
-      state.config.levels.length === 0 ||
-      !('coinValuesCents' in state.config) ||
-      !Array.isArray(state.config.coinValuesCents)
-    ) {
-      throw new SlotContractError();
-    }
-    return state as SlotState;
-  }
-
-  private async request<Result>(
-    path: string,
-    options: { method?: string; body?: string; sessionId?: string; signal?: AbortSignal },
-  ): Promise<Result> {
+  ): Promise<unknown> {
     const headers: Record<string, string> = { Accept: 'application/json' };
     if (options.body) headers['Content-Type'] = 'application/json';
     if (options.sessionId) headers.Authorization = `Bearer ${options.sessionId}`;
@@ -76,8 +62,7 @@ export class SlotHttpClient {
           isSlotErrorCode(error?.code) ? error.code : null,
         );
       }
-      if (!data || typeof data !== 'object') throw new SlotApiError('Invalid server response');
-      return data as Result;
+      return data;
     } catch (error) {
       if (controller.signal.aborted && !options.signal?.aborted) {
         throw new SlotApiError('HTTP request timed out');

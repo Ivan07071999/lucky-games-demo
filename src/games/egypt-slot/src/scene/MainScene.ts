@@ -4,6 +4,9 @@ import { BetPanel } from '../components/bet-panel';
 import { BetSelectionModal } from '../components/ui/bet-selection-modal';
 import { AutoPlayModal } from '../components/ui/auto-play-modal';
 import { AudioPanel } from '../components/ui/audio-panel';
+import { GameInfoModal } from '../components/ui/game-info-modal';
+import { InfoButton } from '../components/ui/info-button';
+import { TurboSpinButton } from '../components/ui/turbo-spin-button';
 import { FreeSpinsStatus } from '../components/ui/free-spins-status';
 import { WinPopup } from '../components/win-popup/WinPopup';
 import {
@@ -30,6 +33,9 @@ export class MainScene extends Container {
   private betSelectionModal: BetSelectionModal | null = null;
   private autoPlayModal: AutoPlayModal | null = null;
   private audioPanel: AudioPanel | null = null;
+  private infoButton: InfoButton | null = null;
+  private turboButton: TurboSpinButton | null = null;
+  private infoModal: GameInfoModal | null = null;
   private freeSpinsStatus: FreeSpinsStatus | null = null;
   private winPopup: WinPopup | null = null;
   private freeSpinsTransition: FreeSpinsTransition | null = null;
@@ -69,6 +75,15 @@ export class MainScene extends Container {
       this.context.autoPlayController.start(),
     );
     const audioPanel = new AudioPanel(this.context.audio);
+    const infoModal = new GameInfoModal(this.context.slotStore);
+    const infoButton = new InfoButton(() => {
+      infoModal.open();
+      this.context.audio.playMenuOpen();
+    });
+    const turboButton = new TurboSpinButton(this.context.slotStore);
+    infoButton.on('pointerover', () => this.context.audio.playHover());
+    turboButton.on('pointerover', () => this.context.audio.playHover());
+    turboButton.on('pointertap', () => this.context.audio.playClick());
     betPanel.on('pointerover', () => this.context.audio.playHover());
     betPanel.on('pointertap', () => this.context.audio.playClick());
     const freeSpinsStatus = new FreeSpinsStatus(this.context.slotStore.round);
@@ -82,6 +97,9 @@ export class MainScene extends Container {
     this.betSelectionModal = betSelectionModal;
     this.autoPlayModal = autoPlayModal;
     this.audioPanel = audioPanel;
+    this.infoButton = infoButton;
+    this.turboButton = turboButton;
+    this.infoModal = infoModal;
     this.freeSpinsStatus = freeSpinsStatus;
     this.winPopup = winPopup;
     this.freeSpinsTransition = freeSpinsTransition;
@@ -92,8 +110,11 @@ export class MainScene extends Container {
       betPanel,
       freeSpinsStatus,
       audioPanel,
+      infoButton,
+      turboButton,
       betSelectionModal,
       autoPlayModal,
+      infoModal,
       winPopup,
       freeSpinsTransition,
     );
@@ -114,6 +135,13 @@ export class MainScene extends Container {
     this.autoPlayModal?.resize(width, height);
     this.freeSpinsStatus?.resize(width, height);
     this.audioPanel?.resize(width, height);
+    const cornerMargin = Math.max(12, Math.min(24, Math.min(width, height) * 0.025));
+    this.infoButton?.position.set(cornerMargin + 36, cornerMargin + 36);
+    this.turboButton?.position.set(
+      width < 330 ? cornerMargin : cornerMargin + 84,
+      width < 330 ? cornerMargin + 78 : cornerMargin + 17,
+    );
+    this.infoModal?.resize(width, height);
     this.winPopup?.resize(width, height);
     this.freeSpinsTransition?.resize(width, height);
 

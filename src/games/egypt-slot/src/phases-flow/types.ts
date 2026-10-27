@@ -3,6 +3,7 @@ export const PhaseName = {
   loading: 'loading',
   idle: 'idle',
   spinning: 'spinning',
+  recovering: 'recovering',
   freeSpins: 'freeSpins',
   freeSpinsIntro: 'freeSpinsIntro',
   freeSpinsOutro: 'freeSpinsOutro',
@@ -13,10 +14,11 @@ export type PhaseName = (typeof PhaseName)[keyof typeof PhaseName];
 
 export const phaseTransitions = {
   [PhaseName.init]: [PhaseName.loading],
-  [PhaseName.loading]: [PhaseName.idle, PhaseName.freeSpins],
+  [PhaseName.loading]: [PhaseName.idle, PhaseName.freeSpins, PhaseName.recovering],
   [PhaseName.idle]: [PhaseName.spinning, PhaseName.freeSpins],
-  [PhaseName.spinning]: [PhaseName.result, PhaseName.idle],
-  [PhaseName.freeSpins]: [PhaseName.result, PhaseName.idle],
+  [PhaseName.spinning]: [PhaseName.result, PhaseName.idle, PhaseName.recovering],
+  [PhaseName.recovering]: [PhaseName.result, PhaseName.idle, PhaseName.freeSpins],
+  [PhaseName.freeSpins]: [PhaseName.result, PhaseName.idle, PhaseName.recovering],
   [PhaseName.freeSpinsIntro]: [PhaseName.freeSpins],
   [PhaseName.freeSpinsOutro]: [PhaseName.idle],
   [PhaseName.result]: [

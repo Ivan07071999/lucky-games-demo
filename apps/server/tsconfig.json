@@ -13,5 +13,5 @@
     "verbatimModuleSyntax": true,
     "allowImportingTsExtensions": true
   },
-  "include": ["src", "test", "../../packages/contracts/src"]
+  "include": ["src", "scripts", "test", "../../packages/contracts/src"]
 }

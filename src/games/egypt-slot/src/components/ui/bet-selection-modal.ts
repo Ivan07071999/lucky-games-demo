@@ -3,8 +3,10 @@ import { BitmapText, Container, Graphics, Rectangle } from 'pixi.js';
 import { ScrollModalBackground } from './scroll-modal-background';
 import { ScrollModalCloseButton } from './scroll-modal-close-button';
 import { SCROLL_MODAL_COLORS } from './scroll-modal-theme';
+import { fitModalToViewport } from './modal-viewport-layout';
 
 const MAX_MODAL_WIDTH = 520;
+const MIN_MODAL_WIDTH = 300;
 const MODAL_MARGIN = 16;
 const MODAL_PADDING_X = 44;
 const MODAL_PADDING_TOP = 48;
@@ -162,8 +164,11 @@ export class BetSelectionModal extends Container {
       .fill({ color: 0x09030f, alpha: 0.72 });
     this.backdrop.hitArea = new Rectangle(0, 0, this.viewportWidth, this.viewportHeight);
 
-    const modalWidth = Math.min(MAX_MODAL_WIDTH, this.viewportWidth - MODAL_MARGIN * 2);
-    const columns = modalWidth >= 480 ? 5 : modalWidth >= 360 ? 4 : modalWidth >= 260 ? 3 : 2;
+    const modalWidth = Math.max(
+      MIN_MODAL_WIDTH,
+      Math.min(MAX_MODAL_WIDTH, this.viewportWidth - MODAL_MARGIN * 2),
+    );
+    const columns = modalWidth >= 480 ? 5 : modalWidth >= 360 ? 4 : 3;
     const buttonWidth = (modalWidth - MODAL_PADDING_X * 2 - BUTTON_GAP * (columns - 1)) / columns;
     const rows = Math.ceil(this.optionButtons.length / columns);
     const titleAreaHeight = 58;
@@ -173,12 +178,15 @@ export class BetSelectionModal extends Container {
       rows * BUTTON_HEIGHT +
       (rows - 1) * BUTTON_GAP +
       MODAL_PADDING_BOTTOM;
-    const scale = Math.min(1, (this.viewportHeight - MODAL_MARGIN * 2) / modalHeight);
-    this.content.scale.set(scale);
-    this.content.position.set(
-      (this.viewportWidth - modalWidth * scale) / 2,
-      (this.viewportHeight - modalHeight * scale) / 2,
+    const placement = fitModalToViewport(
+      this.viewportWidth,
+      this.viewportHeight,
+      modalWidth,
+      modalHeight,
+      MODAL_MARGIN,
     );
+    this.content.scale.set(placement.scale);
+    this.content.position.set(placement.x, placement.y);
 
     this.card.resize(modalWidth, modalHeight);
     this.title.position.set(modalWidth / 2, MODAL_PADDING_TOP + 7);

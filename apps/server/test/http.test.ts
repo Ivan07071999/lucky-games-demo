@@ -14,6 +14,21 @@ const state: SlotState = {
     levels: [1],
     coinValuesCents: [2],
     paylines: [[0, 0, 0, 0, 0]],
+    payouts: {
+      defaultA: [1, 3, 5],
+      defaultJ: [1, 3, 5],
+      defaultK: [1, 3, 5],
+      defaultQ: [1, 3, 5],
+      highAnkh: [4, 8, 12],
+      highEye: [3, 7, 11],
+      highNecklace: [3, 6, 10],
+      highScarab: [0, 0, 0],
+      wild: [0, 0, 0],
+    },
+    wildMultiplier: 3,
+    scatterSymbol: 'highScarab',
+    scatterTriggerCount: 3,
+    freeSpinsAwarded: 8,
   },
 };
 

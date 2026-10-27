@@ -1,7 +1,7 @@
 import type { NextAction, RoundResult, SlotState } from '@lucky-games/contracts';
 import { makeAutoObservable, observableRef } from 'mobx';
 
-export type RoundStage = 'idle' | 'waitingResult' | 'landing' | 'showingWin';
+export type RoundStage = 'idle' | 'waitingResult' | 'landing' | 'showingWin' | 'recovering';
 
 export class RoundStore {
   sessionId: string | null = null;
@@ -105,6 +105,13 @@ export class RoundStore {
 
   startShowingWin(): void {
     this.stage = 'showingWin';
+  }
+
+  startRecovery(isBonusRound = this.isBonusRound): void {
+    this.stage = 'recovering';
+    this.isBonusRound = isBonusRound;
+    this.quickStopRequested = false;
+    this.skipWinRequested = false;
   }
 
   requestQuickStop(): boolean {

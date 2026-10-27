@@ -6,6 +6,7 @@ import { AutoPlayButton } from './ui/auto-play';
 import { LeftBackground } from './ui/left-background';
 import { MaxBetButton } from './ui/max-bet';
 import { RightBackground } from './ui/right-background';
+import { RoundAmounts } from './ui/round-amounts';
 import { SpinButton } from './ui/spin-button';
 
 const SPIN_DIAMETER = 104;
@@ -18,6 +19,7 @@ export class BetPanel extends Container {
   readonly rightBackground: RightBackground;
   readonly autoPlayButton: AutoPlayButton;
   readonly maxBetButton: MaxBetButton;
+  readonly roundAmounts: RoundAmounts;
   private readonly stopObserving: IReactionDisposer;
 
   constructor(
@@ -55,6 +57,10 @@ export class BetPanel extends Container {
     );
     this.autoPlayButton = new AutoPlayButton(width, height, onAutoPlayRequested);
     this.maxBetButton = new MaxBetButton(width, height, onMaxBetRequested);
+    this.roundAmounts = new RoundAmounts(
+      store,
+      Math.min(320, this.leftBackground.background.width),
+    );
 
     this.addChild(
       this.leftBackground,
@@ -62,6 +68,7 @@ export class BetPanel extends Container {
       this.spinButton,
       this.maxBetButton,
       this.rightBackground,
+      this.roundAmounts,
     );
     this.setLayout('wide');
 
@@ -127,6 +134,10 @@ export class BetPanel extends Container {
       this.autoPlayButton.position.set(-sideButtonOffset, actionY + 7);
       this.spinButton.position.set(0, actionY);
       this.maxBetButton.position.set(sideButtonOffset, actionY + 7);
+      this.roundAmounts.position.set(
+        0,
+        actionY + SPIN_DIAMETER / 2 + this.roundAmounts.height / 2 + 50,
+      );
       return;
     }
 
@@ -137,5 +148,9 @@ export class BetPanel extends Container {
     this.autoPlayButton.position.set(-sideButtonOffset, 0);
     this.maxBetButton.position.set(sideButtonOffset, 0);
     this.spinButton.position.set(0, -20);
+    this.roundAmounts.position.set(
+      0,
+      this.spinButton.y + SPIN_DIAMETER / 2 + this.roundAmounts.height / 2 + 50,
+    );
   }
 }

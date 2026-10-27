@@ -15,6 +15,10 @@ export class ReelsBoard extends Container {
   private readonly onReelStopped?: (index: number) => void;
   private readonly scheduledStarts = new Set<gsap.core.Tween>();
   private startSignal: AbortSignal | null = null;
+  private landingSignal: AbortSignal | null = null;
+  private stoppedColumns = 0;
+  private quickStopRequested = false;
+  private turboSpin = false;
 
   constructor(
     width: number,
@@ -51,32 +55,58 @@ export class ReelsBoard extends Container {
     this.columns.forEach((column, index) => column.setSymbols(reels[index]));
   }
 
-  spin(signal: AbortSignal): void {
+  spin(signal: AbortSignal, turbo = false): void {
     signal.throwIfAborted();
     this.cancelScheduledStarts();
+    this.landingSignal = null;
+    this.stoppedColumns = 0;
+    this.quickStopRequested = false;
+    this.turboSpin = turbo;
     this.startSignal = signal;
     signal.addEventListener('abort', this.cancelScheduledStarts, { once: true });
 
-    this.columns[0].spin(signal);
+    this.columns[0].spin(signal, turbo);
     for (let index = 1; index < this.columns.length; index += 1) {
       const start = gsap.delayedCall(index * START_INTERVAL_SECONDS, () => {
         this.scheduledStarts.delete(start);
-        if (!signal.aborted) this.columns[index].spin(signal);
+        if (!signal.aborted) this.columns[index].spin(signal, turbo);
         if (this.scheduledStarts.size === 0) this.detachStartSignal();
       });
       this.scheduledStarts.add(start);
     }
   }
 
-  async land(reels: ReelsMatrix, signal: AbortSignal): Promise<void> {
+  async land(reels: ReelsMatrix, signal: AbortSignal, quickStop = false): Promise<void> {
     if (reels.length !== REEL_COUNT || reels.some((reel) => reel.length !== VISIBLE_ROWS)) {
       throw new Error(`Expected ${REEL_COUNT} reels with ${VISIBLE_ROWS} symbols each`);
     }
-    for (let index = 0; index < this.columns.length; index += 1) {
-      signal.throwIfAborted();
-      await this.columns[index].land(reels[index], signal);
-      this.onReelStopped?.(index);
+    this.landingSignal = signal;
+    if (quickStop) this.requestQuickStop(reels, signal);
+    try {
+      if (quickStop) {
+        await Promise.all(this.columns.map((column, index) => column.land(reels[index], signal)));
+        this.onReelStopped?.(0);
+        return;
+      }
+      for (let index = 0; index < this.columns.length; index += 1) {
+        signal.throwIfAborted();
+        await this.columns[index].land(reels[index], signal);
+        this.stoppedColumns = index + 1;
+        if (!this.quickStopRequested) this.onReelStopped?.(index);
+      }
+      if (this.quickStopRequested) this.onReelStopped?.(0);
+    } finally {
+      this.landingSignal = null;
     }
+  }
+
+  requestQuickStop(reels: ReelsMatrix, signal: AbortSignal): void {
+    if (this.landingSignal !== signal || this.quickStopRequested || signal.aborted) return;
+    this.quickStopRequested = true;
+    this.cancelScheduledStarts();
+    this.columns.forEach((column, index) => {
+      if (index >= this.stoppedColumns) column.quickLand(reels[index], signal, this.turboSpin);
+    });
   }
 
   async showWins(wins: readonly Win[], signal: AbortSignal): Promise<void> {

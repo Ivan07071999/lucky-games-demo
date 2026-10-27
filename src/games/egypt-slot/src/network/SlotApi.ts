@@ -23,6 +23,14 @@ export class SlotApi {
     this.socket = new SlotSocketClient(baseUrl);
   }
 
+  get hasPendingRound(): boolean {
+    return this.pendingCommand !== null;
+  }
+
+  get pendingAction(): SlotCommand['type'] | null {
+    return this.pendingCommand?.type ?? null;
+  }
+
   async initialize(
     signal?: AbortSignal,
   ): Promise<{ state: SlotState; recoveredRound: RoundResult | null }> {
@@ -84,17 +92,42 @@ export class SlotApi {
     );
   }
 
+  getState(signal?: AbortSignal): Promise<SlotState> {
+    return this.http.getState(this.requireSession(), signal);
+  }
+
+  async recoverPendingRound(signal?: AbortSignal): Promise<RoundResult> {
+    const command = this.pendingCommand;
+    if (!command) throw new SlotApiError('There is no round to recover');
+    if (this.inFlight) throw new SlotApiError('A round is already in progress', 'SPIN_IN_PROGRESS');
+
+    try {
+      const result = await this.http.getRound(command.sessionId, command.requestId, signal);
+      this.clearPending();
+      return result;
+    } catch (error) {
+      if (signal?.aborted) throw error;
+      if (error instanceof SlotApiError && error.code && error.code !== 'ROUND_NOT_FOUND') {
+        throw error;
+      }
+    }
+
+    return this.play(command, signal);
+  }
+
   private async play(command: SlotCommand, signal?: AbortSignal): Promise<RoundResult> {
     if (this.inFlight) throw new SlotApiError('A round is already in progress', 'SPIN_IN_PROGRESS');
+    if (this.pendingCommand && this.pendingCommand.requestId !== command.requestId) {
+      throw new SlotApiError('The previous round must be recovered first');
+    }
     this.inFlight = true;
-    const actualCommand = this.pendingCommand ?? command;
     if (!this.pendingCommand) {
-      this.pendingCommand = actualCommand;
-      this.writeStorage(PENDING_KEY, JSON.stringify(actualCommand));
+      this.pendingCommand = command;
+      this.writeStorage(PENDING_KEY, JSON.stringify(command));
     }
 
     try {
-      const result = await this.socket.send(actualCommand, signal);
+      const result = await this.socket.send(command, signal);
       this.clearPending();
       return result;
     } catch (error) {
@@ -109,11 +142,7 @@ export class SlotApi {
         throw error;
       }
       try {
-        const result = await this.http.getRound(
-          actualCommand.sessionId,
-          actualCommand.requestId,
-          signal,
-        );
+        const result = await this.http.getRound(command.sessionId, command.requestId, signal);
         this.clearPending();
         return result;
       } catch (recoveryError) {

@@ -6,11 +6,18 @@ import type { SlotStore } from '../../stores/SlotStore';
 import { ScrollModalBackground } from './scroll-modal-background';
 import { ScrollModalCloseButton } from './scroll-modal-close-button';
 import { SCROLL_MODAL_COLORS } from './scroll-modal-theme';
+import { fitModalToViewport } from './modal-viewport-layout';
 
 const CARD_HEIGHT = 570;
 const CARD_MAX_WIDTH = 520;
+const CARD_MIN_WIDTH = 320;
+const LANDSCAPE_MIN_WIDTH = 640;
+const LANDSCAPE_MAX_WIDTH = 760;
+const COMPACT_CARD_HEIGHT = 618;
+const COMPACT_BREAKPOINT = 390;
 const SIDE_MARGIN = 12;
 const CONTENT_PADDING_X = 44;
+const COMPACT_PADDING_X = 28;
 
 class ModalButton extends Container {
   private readonly background = new Graphics();
@@ -173,6 +180,8 @@ export class AutoPlayModal extends Container {
   private viewportWidth = 0;
   private viewportHeight = 0;
   private landscapeLayout = false;
+  private compactLayout = false;
+  private contentPaddingX = CONTENT_PADDING_X;
 
   constructor(store: SlotStore, onStart: () => AutoPlayStartResult) {
     super();
@@ -310,19 +319,31 @@ export class AutoPlayModal extends Container {
 
     this.landscapeLayout =
       this.viewportHeight < 460 && this.viewportWidth > this.viewportHeight * 1.2;
-    const cardHeight = this.landscapeLayout ? 315 : CARD_HEIGHT;
-    const width = Math.min(
-      this.landscapeLayout ? 760 : CARD_MAX_WIDTH,
-      this.viewportWidth - SIDE_MARGIN * 2,
+    const width = Math.max(
+      this.landscapeLayout ? LANDSCAPE_MIN_WIDTH : CARD_MIN_WIDTH,
+      Math.min(
+        this.landscapeLayout ? LANDSCAPE_MAX_WIDTH : CARD_MAX_WIDTH,
+        this.viewportWidth - SIDE_MARGIN * 2,
+      ),
     );
-    const scale = Math.min(1, (this.viewportHeight - SIDE_MARGIN * 2) / cardHeight);
-    this.content.scale.set(scale);
-    this.content.position.set(
-      (this.viewportWidth - width * scale) / 2,
-      (this.viewportHeight - cardHeight * scale) / 2,
+    this.compactLayout = !this.landscapeLayout && width < COMPACT_BREAKPOINT;
+    this.contentPaddingX = this.compactLayout ? COMPACT_PADDING_X : CONTENT_PADDING_X;
+    const cardHeight = this.landscapeLayout
+      ? 315
+      : this.compactLayout
+        ? COMPACT_CARD_HEIGHT
+        : CARD_HEIGHT;
+    const placement = fitModalToViewport(
+      this.viewportWidth,
+      this.viewportHeight,
+      width,
+      cardHeight,
+      SIDE_MARGIN,
     );
+    this.content.scale.set(placement.scale);
+    this.content.position.set(placement.x, placement.y);
     this.card.resize(width, cardHeight);
-    this.closeButton.position.set(width - CONTENT_PADDING_X, this.landscapeLayout ? 35 : 40);
+    this.closeButton.position.set(width - this.contentPaddingX, this.landscapeLayout ? 35 : 40);
     this.updateSummary(
       this.store.panel.bet,
       this.store.panel.level,
@@ -333,30 +354,36 @@ export class AutoPlayModal extends Container {
       return;
     }
 
-    this.title.position.set(CONTENT_PADDING_X, 40);
-    this.subtitle.position.set(CONTENT_PADDING_X, 66);
-    this.spinHeading.position.set(CONTENT_PADDING_X, 95);
-    const choiceWidth = (width - CONTENT_PADDING_X * 2 - 24) / 4;
+    const padding = this.contentPaddingX;
+    const choiceColumns = this.compactLayout ? 2 : 4;
+    const lowerOffset = this.compactLayout ? 48 : 0;
+    this.title.position.set(padding, 40);
+    this.subtitle.position.set(padding, 66);
+    this.spinHeading.position.set(padding, 95);
+    const choiceWidth = (width - padding * 2 - 8 * (choiceColumns - 1)) / choiceColumns;
     this.counts.forEach((button, index) => {
       button.resize(choiceWidth, 40);
-      button.position.set(CONTENT_PADDING_X + choiceWidth / 2 + index * (choiceWidth + 8), 132);
+      button.position.set(
+        padding + choiceWidth / 2 + (index % choiceColumns) * (choiceWidth + 8),
+        132 + Math.floor(index / choiceColumns) * 48,
+      );
     });
-    this.conditionsHeading.position.set(CONTENT_PADDING_X, 188);
+    this.conditionsHeading.position.set(padding, 188 + lowerOffset);
     for (const [toggle, y] of [
       [this.bonusToggle, 222],
       [this.winToggle, 257],
       [this.lossToggle, 292],
       [this.winLimitToggle, 369],
     ] as const) {
-      toggle.position.set(CONTENT_PADDING_X, y);
-      toggle.resize(width - CONTENT_PADDING_X * 2);
+      toggle.position.set(padding, y + lowerOffset);
+      toggle.resize(width - padding * 2);
     }
     this.layoutLimit(
       this.lossLabel,
       this.lossDecrease,
       this.lossLimitText,
       this.lossIncrease,
-      329,
+      329 + lowerOffset,
       width,
     );
     this.layoutLimit(
@@ -364,15 +391,15 @@ export class AutoPlayModal extends Container {
       this.winDecrease,
       this.winLimitText,
       this.winIncrease,
-      406,
+      406 + lowerOffset,
       width,
     );
-    this.summary.position.set(CONTENT_PADDING_X, 448);
-    this.cost.position.set(CONTENT_PADDING_X, 469);
-    this.startButton.resize(width - CONTENT_PADDING_X * 2, 43);
-    this.startButton.position.set(width / 2, 506);
+    this.summary.position.set(padding, 448 + lowerOffset);
+    this.cost.position.set(padding, 469 + lowerOffset);
+    this.startButton.resize(width - padding * 2, 43);
+    this.startButton.position.set(width / 2, 506 + lowerOffset);
     this.error.anchor.set(0.5, 0);
-    this.error.position.set(width / 2, 535);
+    this.error.position.set(width / 2, 535 + lowerOffset);
   }
 
   private layoutLandscape(width: number): void {
@@ -434,15 +461,15 @@ export class AutoPlayModal extends Container {
     increase: ModalButton,
     y: number,
     width: number,
-    left = CONTENT_PADDING_X,
+    left = this.contentPaddingX,
   ): void {
     label.position.set(left, y);
     decrease.resize(29, 26);
     increase.resize(29, 26);
-    decrease.position.set(width - CONTENT_PADDING_X - 103, y + 2);
+    decrease.position.set(width - this.contentPaddingX - 103, y + 2);
     value.anchor.set(0.5, 0);
-    value.position.set(width - CONTENT_PADDING_X - 59, y - 8);
-    increase.position.set(width - CONTENT_PADDING_X - 15, y + 2);
+    value.position.set(width - this.contentPaddingX - 59, y - 8);
+    increase.position.set(width - this.contentPaddingX - 15, y + 2);
   }
 
   private updateSummary(bet: number, level: number, coinValueCents: number): void {

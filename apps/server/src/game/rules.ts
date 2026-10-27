@@ -7,50 +7,82 @@ import type {
   Win,
 } from '@lucky-games/contracts';
 import { SYMBOLS } from '@lucky-games/contracts';
+import { SLOT_MATH, type SlotMathConfig } from './mathConfig.js';
 
-export const PAYLINES = [
-  [0, 0, 0, 0, 0],
-  [1, 1, 1, 1, 1],
-  [2, 2, 2, 2, 2],
-  [0, 1, 2, 1, 0],
-  [2, 1, 0, 1, 2],
-] as const;
-export const BETS = Array.from({ length: 20 }, (_, i) => i + 1);
-export const LEVELS = Array.from({ length: 10 }, (_, i) => i + 1);
-export const COIN_VALUES_CENTS = [1, 2, 5, 10, 20, 50, 100];
-export const INITIAL_BALANCE = 250_000;
-export const FREE_SPINS_AWARDED = 8;
+export const PAYLINES = SLOT_MATH.paylines;
+export const BETS = SLOT_MATH.bets;
+export const LEVELS = SLOT_MATH.levels;
+export const COIN_VALUES_CENTS = SLOT_MATH.coinValuesCents;
+export const INITIAL_BALANCE = SLOT_MATH.initialBalance;
+export const FREE_SPINS_AWARDED = SLOT_MATH.freeSpinsAwarded;
 
 type RandomInt = (maxExclusive: number) => number;
-type PayoutTable = Record<SymbolKey, readonly [number, number, number]>;
-const PAYOUTS: PayoutTable = {
-  defaultA: [1, 3, 5],
-  defaultJ: [1, 3, 5],
-  defaultK: [1, 3, 5],
-  defaultQ: [1, 3, 5],
-  highAnkh: [4, 8, 12],
-  highEye: [3, 7, 11],
-  highNecklace: [3, 6, 10],
-  highScarab: [0, 0, 0],
-  wild: [0, 0, 0],
-};
-const STOP_SYMBOLS = SYMBOLS.filter((symbol) => symbol !== 'wild');
+type WeightedStop = { symbol: SymbolKey; cumulativeWeight: number };
+type WeightedTable = { stops: WeightedStop[]; totalWeight: number };
+const weightTables = new WeakMap<SlotMathConfig, Record<RoundResult['mode'], WeightedTable>>();
 
-export function validateBet(bet: number, level: number, coinValueCents: number): Bet | null {
-  if (!BETS.includes(bet) || !LEVELS.includes(level) || !COIN_VALUES_CENTS.includes(coinValueCents))
+function makeWeightedTable(weights: SlotMathConfig['symbolWeights']['BASE_GAME']): WeightedTable {
+  const stops: WeightedStop[] = [];
+  let totalWeight = 0;
+  for (const symbol of SYMBOLS) {
+    const weight = weights[symbol];
+    if (!Number.isSafeInteger(weight) || weight < 0) {
+      throw new Error(`Invalid weight for ${symbol}`);
+    }
+    if (weight === 0) continue;
+    totalWeight += weight;
+    stops.push({ symbol, cumulativeWeight: totalWeight });
+  }
+  if (!Number.isSafeInteger(totalWeight) || totalWeight === 0) {
+    throw new Error('Reel symbol weights must have a positive safe total');
+  }
+  return { stops, totalWeight };
+}
+
+function getWeightedTable(config: SlotMathConfig, mode: RoundResult['mode']): WeightedTable {
+  let tables = weightTables.get(config);
+  if (!tables) {
+    tables = {
+      BASE_GAME: makeWeightedTable(config.symbolWeights.BASE_GAME),
+      FREE_SPINS: makeWeightedTable(config.symbolWeights.FREE_SPINS),
+    };
+    weightTables.set(config, tables);
+  }
+  return tables[mode];
+}
+
+export function validateBet(
+  bet: number,
+  level: number,
+  coinValueCents: number,
+  config: SlotMathConfig = SLOT_MATH,
+): Bet | null {
+  if (
+    !config.bets.includes(bet) ||
+    !config.levels.includes(level) ||
+    !config.coinValuesCents.includes(coinValueCents)
+  )
     return null;
   return { bet, level, coinValueCents, totalCoins: bet * level };
 }
 
-export function generateReels(randomInt: RandomInt): ReelGrid {
-  const reels = Array.from({ length: 5 }, () =>
-    Array.from({ length: 3 }, () => {
-      // Wild встречается реже других символов; Scarab запускает бонус.
-      const stop = randomInt(STOP_SYMBOLS.length * 10 + 2);
-      return stop < 2 ? 'wild' : STOP_SYMBOLS[Math.floor((stop - 2) / 10)];
-    }),
-  );
-  return reels as ReelGrid;
+export function generateReels(
+  randomInt: RandomInt,
+  mode: RoundResult['mode'] = 'BASE_GAME',
+  config: SlotMathConfig = SLOT_MATH,
+): ReelGrid {
+  const table = getWeightedTable(config, mode);
+  const drawSymbol = (): SymbolKey => {
+    const stop = randomInt(table.totalWeight);
+    if (!Number.isInteger(stop) || stop < 0 || stop >= table.totalWeight) {
+      throw new Error('Random source returned a value outside the symbol weights');
+    }
+    const entry = table.stops.find(({ cumulativeWeight }) => stop < cumulativeWeight);
+    if (!entry) throw new Error('Reel symbol weight table is inconsistent');
+    return entry.symbol;
+  };
+  const drawReel = (): ReelGrid[number] => [drawSymbol(), drawSymbol(), drawSymbol()];
+  return [drawReel(), drawReel(), drawReel(), drawReel(), drawReel()];
 }
 
 export function evaluateRound(
@@ -58,6 +90,7 @@ export function evaluateRound(
   bet: Bet,
   mode: RoundResult['mode'],
   stickyReels: number[],
+  config: SlotMathConfig = SLOT_MATH,
 ): Pick<RoundResult, 'reels' | 'wins' | 'totalWinCoins' | 'features' | 'animations'> {
   const expandedReels: number[] = [];
   const activeSticky = mode === 'FREE_SPINS' ? [...stickyReels] : [];
@@ -70,19 +103,19 @@ export function evaluateRound(
   }
 
   const wins: Win[] = [];
-  for (const [lineIndex, rows] of PAYLINES.entries()) {
+  for (const [lineIndex, rows] of config.paylines.entries()) {
     const line = rows.map((row, reel) => reels[reel][row]);
     const symbol = line.find((entry) => entry !== 'wild');
-    if (!symbol || symbol === 'highScarab') continue;
+    if (!symbol || symbol === config.scatterSymbol) continue;
     let count = 0;
     for (const entry of line) {
       if (entry !== symbol && entry !== 'wild') break;
       count += 1;
     }
     if (count < 3) continue;
-    const basePayoutCoins = PAYOUTS[symbol][count - 3] * bet.totalCoins;
+    const basePayoutCoins = config.payouts[symbol][count - 3] * bet.totalCoins;
     if (!basePayoutCoins) continue;
-    const multiplier = expandedReels.some((reel) => reel < count) ? 3 : 1;
+    const multiplier = expandedReels.some((reel) => reel < count) ? config.wildMultiplier : 1;
     wins.push({
       lineId: lineIndex + 1,
       symbol,
@@ -94,9 +127,11 @@ export function evaluateRound(
     });
   }
 
-  const scatterCount = reels.flat().filter((symbol) => symbol === 'highScarab').length;
-  const triggered = mode === 'BASE_GAME' && scatterCount >= 3;
-  const multipliers = Object.fromEntries(expandedReels.map((reel) => [reel, 3]));
+  const scatterCount = reels.flat().filter((symbol) => symbol === config.scatterSymbol).length;
+  const triggered = mode === 'BASE_GAME' && scatterCount >= config.scatterTriggerCount;
+  const multipliers = Object.fromEntries(
+    expandedReels.map((reel) => [reel, config.wildMultiplier]),
+  );
   const animations: SlotAnimation[] = ['REELS_STOP'];
   if (expandedReels.length) animations.push('WILD_EXPAND', 'MULTIPLIER_SHOW');
   if (wins.length) animations.push('WIN_LINES', 'WIN_COUNTER');
@@ -116,7 +151,7 @@ export function evaluateRound(
       },
       freeSpins: {
         triggered,
-        awarded: triggered ? FREE_SPINS_AWARDED : 0,
+        awarded: triggered ? config.freeSpinsAwarded : 0,
         remaining: 0,
         totalWinCoins: 0,
       },

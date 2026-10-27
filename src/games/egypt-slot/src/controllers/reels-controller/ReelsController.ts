@@ -6,6 +6,7 @@ import type { ReelsStore } from '../../stores/ReelsStore';
 import type { RoundStore } from '../../stores/RoundStore';
 import {
   LandReelsCommand,
+  QuickStopReelsCommand,
   SetReelsCommand,
   ShowFreeSpinsTriggerCommand,
   ShowWildCommand,
@@ -19,6 +20,7 @@ export class ReelsController {
   private readonly emitter: GameEmitter<GameEvents>;
   private readonly store: ReelsStore;
   private readonly round: RoundStore;
+  private readonly isTurboEnabled: () => boolean;
   private readonly unsubscribeQuickStop: () => void;
   private activeResult: RoundResult | null = null;
   private activeSignal: AbortSignal | null = null;
@@ -28,11 +30,13 @@ export class ReelsController {
     emitter: GameEmitter<GameEvents>,
     store: ReelsStore,
     round: RoundStore,
+    isTurboEnabled: () => boolean = () => false,
   ) {
     this.scene = scene;
     this.emitter = emitter;
     this.store = store;
     this.round = round;
+    this.isTurboEnabled = isTurboEnabled;
     this.unsubscribeQuickStop = emitter.on('ui:quickStopRequested', this.requestQuickStop);
   }
 
@@ -49,9 +53,10 @@ export class ReelsController {
     this.store.setSpinning(true);
     this.activeResult = null;
     this.activeSignal = signal;
+    const turboThisRound = this.isTurboEnabled();
     let result: RoundResult | null = null;
     try {
-      this.scene.executeReels(new StartReelsCommand(), signal);
+      this.scene.executeReels(new StartReelsCommand(turboThisRound), signal);
       this.emitter.emit('spin:started');
 
       result = await request(signal);
@@ -59,12 +64,10 @@ export class ReelsController {
       this.activeResult = result;
       onResultReceived(result);
       this.round.startLanding();
-      if (this.round.quickStopRequested) {
-        this.scene.executeReels(new SetReelsCommand(result.reels), signal);
-        this.emitter.emit('reel:stopped', 0);
-      } else {
-        await this.scene.executeReels(new LandReelsCommand(result.reels), signal);
-      }
+      await this.scene.executeReels(
+        new LandReelsCommand(result.reels, turboThisRound || this.round.quickStopRequested),
+        signal,
+      );
       this.emitter.emit('spin:landed', result);
       return result;
     } catch (error) {
@@ -93,7 +96,7 @@ export class ReelsController {
   private readonly requestQuickStop = (): void => {
     if (!this.round.requestQuickStop()) return;
     if (!this.activeResult || !this.activeSignal || this.activeSignal.aborted) return;
-    this.scene.executeReels(new SetReelsCommand(this.activeResult.reels), this.activeSignal);
+    this.scene.executeReels(new QuickStopReelsCommand(this.activeResult.reels), this.activeSignal);
   };
 
   async presentResult(result: RoundResult, signal: AbortSignal): Promise<void> {

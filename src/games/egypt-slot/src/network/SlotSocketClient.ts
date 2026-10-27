@@ -1,5 +1,6 @@
 import type { RoundResult, SlotCommand } from '@lucky-games/contracts';
-import { isSlotErrorCode, SlotApiError } from './SlotApiError';
+import { SlotApiError, SlotContractError } from './SlotApiError';
+import { parseSlotMessage } from './slotResponseValidation';
 
 const CONNECTION_TIMEOUT_MS = 10_000;
 const ROUND_TIMEOUT_MS = 15_000;
@@ -117,48 +118,24 @@ export class SlotSocketClient {
   private readonly onMessage = (event: MessageEvent<string>): void => {
     const pending = this.pending;
     if (!pending) return;
-    let message: unknown;
+    let message: ReturnType<typeof parseSlotMessage>;
     try {
-      message = JSON.parse(event.data);
-    } catch {
-      this.rejectPending(new SlotApiError('Invalid WebSocket response'));
-      return;
-    }
-    if (!message || typeof message !== 'object' || !('type' in message)) {
-      this.rejectPending(new SlotApiError('Invalid WebSocket response'));
-      return;
-    }
-    if (message.type === 'ERROR') {
-      if (
-        !('requestId' in message) ||
-        !('code' in message) ||
-        !('message' in message) ||
-        typeof message.message !== 'string'
-      ) {
-        this.rejectPending(new SlotApiError('Invalid WebSocket error response'));
-        return;
-      }
-      if (message.requestId && message.requestId !== pending.requestId) return;
+      message = parseSlotMessage(JSON.parse(event.data), pending.requestId);
+    } catch (error) {
       this.rejectPending(
-        new SlotApiError(message.message, isSlotErrorCode(message.code) ? message.code : null),
+        error instanceof SlotContractError
+          ? error
+          : new SlotContractError('WebSocket message', error),
       );
       return;
     }
-    if (message.type === 'ROUND_RESULT' && 'requestId' in message) {
-      if (message.requestId !== pending.requestId) return;
-    }
-    if (
-      message.type !== 'ROUND_RESULT' ||
-      !('requestId' in message) ||
-      !('result' in message) ||
-      !message.result ||
-      typeof message.result !== 'object'
-    ) {
-      this.rejectPending(new SlotApiError('Unexpected WebSocket response'));
+    if (!message) return;
+    if (message.type === 'ERROR') {
+      this.rejectPending(new SlotApiError(message.message, message.code));
       return;
     }
     this.pending = null;
-    pending.resolve(message.result as RoundResult);
+    pending.resolve(message.result);
   };
 
   private readonly onClose = (): void => {

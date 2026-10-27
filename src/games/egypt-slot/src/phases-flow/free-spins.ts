@@ -53,6 +53,10 @@ export class FreeSpinsPhase implements Phase<
     } catch (error) {
       this.balance.rollbackPendingBet();
       if (signal.aborted) throw error;
+      if (this.api.hasPendingRound) {
+        this.store.round.startRecovery();
+        return PhaseName.recovering;
+      }
       const message = error instanceof Error ? error.message : 'Free spin failed';
       this.store.round.failRound(message);
       this.store.round.finishRound();

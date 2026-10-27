@@ -13,7 +13,9 @@ import { ReelsController } from './ReelsController';
 
 const result = { reels: INITIAL_REELS } as RoundResult;
 
-function createController(machine: Pick<ReelsMachine, 'spin' | 'land' | 'setSymbols'>) {
+function createController(
+  machine: Pick<ReelsMachine, 'spin' | 'land' | 'setSymbols' | 'requestQuickStop'>,
+) {
   const emitter = new GameEmitter<GameEvents>();
   const round = new RoundStore();
   const store = new ReelsStore();
@@ -27,8 +29,13 @@ function createController(machine: Pick<ReelsMachine, 'spin' | 'land' | 'setSymb
 }
 
 describe('ReelsController Quick Stop', () => {
-  it('waits for the server result before setting final symbols', async () => {
-    const machine = { spin: vi.fn(), land: vi.fn(), setSymbols: vi.fn() };
+  it('waits for the server result before landing all reels together', async () => {
+    const machine = {
+      spin: vi.fn(),
+      land: vi.fn(),
+      setSymbols: vi.fn(),
+      requestQuickStop: vi.fn(),
+    };
     const { controller, emitter, round, store } = createController(machine);
     let resolveRequest: (value: RoundResult) => void = () => undefined;
     const request = vi.fn(() => new Promise<RoundResult>((resolve) => (resolveRequest = resolve)));
@@ -43,23 +50,25 @@ describe('ReelsController Quick Stop', () => {
 
     expect(round.quickStopRequested).toBe(true);
     expect(machine.setSymbols).not.toHaveBeenCalled();
+    expect(machine.land).not.toHaveBeenCalled();
     expect(machine.spin).toHaveBeenCalledOnce();
 
     resolveRequest(result);
     await expect(playing).resolves.toBe(result);
     expect(request).toHaveBeenCalledOnce();
-    expect(machine.land).not.toHaveBeenCalled();
-    expect(machine.setSymbols).toHaveBeenCalledWith(result.reels);
+    expect(machine.land).toHaveBeenCalledWith(result.reels, expect.any(AbortSignal), true);
+    expect(machine.setSymbols).not.toHaveBeenCalled();
     expect(store.isSpinning).toBe(false);
     controller.destroy();
   });
 
-  it('interrupts landing and keeps the server result', async () => {
-    let rejectLanding: (reason: Error) => void = () => undefined;
+  it('starts a common landing when the server result is already available', async () => {
+    let resolveLanding: () => void = () => undefined;
     const machine = {
       spin: vi.fn(),
-      land: vi.fn(() => new Promise<void>((_resolve, reject) => (rejectLanding = reject))),
-      setSymbols: vi.fn(() => rejectLanding(new Error('Landing interrupted'))),
+      land: vi.fn(() => new Promise<void>((resolve) => (resolveLanding = resolve))),
+      setSymbols: vi.fn(),
+      requestQuickStop: vi.fn(() => resolveLanding()),
     };
     const { controller, emitter, round } = createController(machine);
     const request = vi.fn().mockResolvedValue(result);
@@ -77,7 +86,8 @@ describe('ReelsController Quick Stop', () => {
 
     await expect(playing).resolves.toBe(result);
     expect(request).toHaveBeenCalledOnce();
-    expect(machine.setSymbols).toHaveBeenCalledWith(result.reels);
+    expect(machine.requestQuickStop).toHaveBeenCalledWith(result.reels, expect.any(AbortSignal));
+    expect(machine.setSymbols).not.toHaveBeenCalled();
     controller.destroy();
   });
 
