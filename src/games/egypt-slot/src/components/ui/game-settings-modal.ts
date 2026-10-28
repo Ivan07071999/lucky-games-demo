@@ -7,10 +7,11 @@ import { ScrollModalCloseButton } from './scroll-modal-close-button';
 import { SCROLL_MODAL_COLORS } from './scroll-modal-theme';
 import { SettingsCheckbox } from './settings-checkbox';
 
-const MODAL_WIDTH = 440;
-const MODAL_HEIGHT = 300;
+const MODAL_WIDTH = 460;
+const MODAL_HEIGHT = 350;
 const MODAL_MARGIN = 16;
-const CONTENT_PADDING_X = 44;
+const CONTENT_PADDING_X = 56;
+const CONTENT_PADDING_TOP = 64;
 
 export class GameSettingsModal extends Container {
   readonly turboCheckbox: SettingsCheckbox;
@@ -79,23 +80,23 @@ export class GameSettingsModal extends Container {
     this.backdrop.on('pointertap', () => this.close());
     this.card.resize(MODAL_WIDTH, MODAL_HEIGHT);
     this.heading.anchor.set(0, 0.5);
-    this.heading.position.set(CONTENT_PADDING_X, 52);
+    this.heading.position.set(CONTENT_PADDING_X, CONTENT_PADDING_TOP);
     this.subtitle.anchor.set(0, 0.5);
-    this.subtitle.position.set(CONTENT_PADDING_X, 80);
+    this.subtitle.position.set(CONTENT_PADDING_X, CONTENT_PADDING_TOP + 27);
     this.spinHeading.anchor.set(0, 0.5);
-    this.spinHeading.position.set(CONTENT_PADDING_X, 116);
-    this.description.position.set(CONTENT_PADDING_X + 28, 171);
-    this.anticipationDescription.position.set(CONTENT_PADDING_X + 28, 241);
-    this.closeButton.position.set(MODAL_WIDTH - CONTENT_PADDING_X, 52);
+    this.spinHeading.position.set(CONTENT_PADDING_X, CONTENT_PADDING_TOP + 70);
+    this.description.position.set(CONTENT_PADDING_X + 28, CONTENT_PADDING_TOP + 130);
+    this.anticipationDescription.position.set(CONTENT_PADDING_X + 28, CONTENT_PADDING_TOP + 205);
+    this.closeButton.position.set(MODAL_WIDTH - CONTENT_PADDING_X, CONTENT_PADDING_TOP);
     this.turboCheckbox = new SettingsCheckbox('TURBO SPIN', () => {
       if (store.canToggleSpinSettings) store.spinSettings.toggleTurbo();
     });
-    this.turboCheckbox.position.set(CONTENT_PADDING_X, 151);
+    this.turboCheckbox.position.set(CONTENT_PADDING_X, CONTENT_PADDING_TOP + 110);
     this.turboCheckbox.resize(MODAL_WIDTH - CONTENT_PADDING_X * 2);
     this.anticipationCheckbox = new SettingsCheckbox('ANTICIPATION DEMO', () => {
       if (store.canToggleSpinSettings) store.spinSettings.toggleAnticipationDemo();
     });
-    this.anticipationCheckbox.position.set(CONTENT_PADDING_X, 221);
+    this.anticipationCheckbox.position.set(CONTENT_PADDING_X, CONTENT_PADDING_TOP + 184);
     this.anticipationCheckbox.resize(MODAL_WIDTH - CONTENT_PADDING_X * 2);
 
     this.surface.pivot.set(MODAL_WIDTH / 2, MODAL_HEIGHT / 2);
