@@ -14,6 +14,14 @@
 
 ## WebSocket
 
+`SPIN` accepts an optional `anticipationDemo: true` flag. This is a demo setting: the server
+generates two visible `highScarab` symbols before reel 3, 4 or 5, then calculates the round
+normally. The target reel and all later reels remain random, so Free Spins are not guaranteed.
+This setting changes the symbol distribution and therefore the demo RTP. Omit the flag or send
+`false` for the normal game math; it does not apply to `FREE_SPIN`.
+
+В новых `RoundResult` сервер возвращает `presentation.anticipation`: `null` или подсказку `{ "reelIndex": 2 | 3 | 4, "extraSpinMs": 2400 }`. Индекс барабана начинается с нуля. Подсказка появляется, когда на уже остановившихся барабанах видны два `highScarab`, и не зависит от символов на ещё вращающихся барабанах. Она управляет только временем клиентской анимации; Quick Stop и Turbo пропускают задержку. Поле `presentation` необязательно для совместимости со старыми сохранёнными раундами.
+
 В `ROUND_RESULT.result` сервер возвращает `winType` и `winMultiplier` для текущего раунда. Категория определяется по `totalWinCoins / bet.totalCoins`: `NO_WIN` при нулевом выигрыше, `NORMAL_WIN` при выигрыше меньше ×15, `BIG_WIN` от ×15, `MEGA_WIN` от ×50 и `SUPER_MEGA_WIN` от ×100. Для сравнения порогов сервер использует целые суммы монет без округления множителя. Эти поля необязательны в типе контракта, поскольку сохранённые до обновления раунды могут их не содержать.
 
 В бесплатном вращении знаменателем служит ставка, сохранённая при запуске бонуса. На последнем Free Spin в `features.freeSpins.completion` дополнительно передаются `baseBetCoins`, суммарный `totalWinCoins`, `winMultiplier` и `winType` всего бонуса. Это часть обычного `ROUND_RESULT`; отдельное событие завершения бонуса не отправляется.

@@ -1,4 +1,4 @@
-import type { Win } from '@lucky-games/contracts';
+import type { ReelAnticipationHint, Win } from '@lucky-games/contracts';
 import type { ReelsMatrix } from '../reels/reelsConfig';
 import type { ReelsMachine } from './ReelsMachine';
 
@@ -21,14 +21,20 @@ export class StartReelsCommand implements ReelsCommand {
 export class LandReelsCommand implements ReelsCommand {
   private readonly reels: ReelsMatrix;
   private readonly quickStop: boolean;
+  private readonly anticipation: ReelAnticipationHint | null;
 
-  constructor(reels: ReelsMatrix, quickStop = false) {
+  constructor(
+    reels: ReelsMatrix,
+    quickStop = false,
+    anticipation: ReelAnticipationHint | null = null,
+  ) {
     this.reels = reels;
     this.quickStop = quickStop;
+    this.anticipation = anticipation;
   }
 
   execute(machine: ReelsMachine, signal: AbortSignal): Promise<void> {
-    return machine.land(this.reels, signal, this.quickStop);
+    return machine.land(this.reels, signal, this.quickStop, this.anticipation);
   }
 }
 

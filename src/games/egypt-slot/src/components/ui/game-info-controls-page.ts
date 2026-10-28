@@ -47,6 +47,10 @@ const SECTIONS = [
     items: [
       { label: 'SOUND', description: 'The top-right sound icon opens volume and mute controls.' },
       { label: 'INFO', description: 'The top-left information icon opens these game rules.' },
+      {
+        label: 'SETTINGS',
+        description: 'The gear icon opens Turbo Spin settings. Change Turbo between rounds.',
+      },
     ],
   },
 ] as const;

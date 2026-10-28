@@ -19,6 +19,7 @@ const commandSchema = z.discriminatedUnion('type', [
     bet: z.number().int(),
     level: z.number().int(),
     coinValueCents: z.number().int(),
+    anticipationDemo: z.boolean().optional(),
   }),
   z.strictObject({ type: z.literal('FREE_SPIN'), sessionId, requestId }),
 ]);

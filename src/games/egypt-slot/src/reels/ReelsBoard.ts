@@ -1,6 +1,6 @@
 import { Container, Graphics } from 'pixi.js';
 import { gsap } from 'gsap';
-import type { Win } from '@lucky-games/contracts';
+import type { ReelAnticipationHint, Win } from '@lucky-games/contracts';
 import { ReelColumn } from './ReelColumn';
 import { FreeSpinsTriggerOverlay } from './FreeSpinsTriggerOverlay';
 import { REEL_COUNT, VISIBLE_ROWS, type ReelsMatrix } from './reelsConfig';
@@ -19,6 +19,8 @@ export class ReelsBoard extends Container {
   private stoppedColumns = 0;
   private quickStopRequested = false;
   private turboSpin = false;
+  private skipAnticipationWait: (() => void) | null = null;
+  private cancelAnticipationWait: (() => void) | null = null;
 
   constructor(
     width: number,
@@ -51,6 +53,7 @@ export class ReelsBoard extends Container {
       throw new Error(`Expected ${REEL_COUNT} reels with ${VISIBLE_ROWS} symbols each`);
     }
 
+    this.cancelAnticipationWait?.();
     this.cancelScheduledStarts();
     this.columns.forEach((column, index) => column.setSymbols(reels[index]));
   }
@@ -76,7 +79,12 @@ export class ReelsBoard extends Container {
     }
   }
 
-  async land(reels: ReelsMatrix, signal: AbortSignal, quickStop = false): Promise<void> {
+  async land(
+    reels: ReelsMatrix,
+    signal: AbortSignal,
+    quickStop = false,
+    anticipation: ReelAnticipationHint | null = null,
+  ): Promise<void> {
     if (reels.length !== REEL_COUNT || reels.some((reel) => reel.length !== VISIBLE_ROWS)) {
       throw new Error(`Expected ${REEL_COUNT} reels with ${VISIBLE_ROWS} symbols each`);
     }
@@ -90,6 +98,9 @@ export class ReelsBoard extends Container {
       }
       for (let index = 0; index < this.columns.length; index += 1) {
         signal.throwIfAborted();
+        if (anticipation?.reelIndex === index && !this.quickStopRequested) {
+          await this.waitForAnticipation(anticipation.extraSpinMs, signal);
+        }
         await this.columns[index].land(reels[index], signal);
         this.stoppedColumns = index + 1;
         if (!this.quickStopRequested) this.onReelStopped?.(index);
@@ -104,6 +115,7 @@ export class ReelsBoard extends Container {
     if (this.landingSignal !== signal || this.quickStopRequested || signal.aborted) return;
     this.quickStopRequested = true;
     this.cancelScheduledStarts();
+    this.skipAnticipationWait?.();
     this.columns.forEach((column, index) => {
       if (index >= this.stoppedColumns) column.quickLand(reels[index], signal, this.turboSpin);
     });
@@ -138,7 +150,42 @@ export class ReelsBoard extends Container {
 
   override destroy(options?: Parameters<Container['destroy']>[0]): void {
     this.cancelScheduledStarts();
+    this.cancelAnticipationWait?.();
     super.destroy(options);
+  }
+
+  private waitForAnticipation(extraSpinMs: number, signal: AbortSignal): Promise<void> {
+    signal.throwIfAborted();
+    return new Promise<void>((resolve, reject) => {
+      let settled = false;
+      let delay: gsap.core.Tween | null = null;
+      const cleanup = (): void => {
+        signal.removeEventListener('abort', onAbort);
+        this.skipAnticipationWait = null;
+        this.cancelAnticipationWait = null;
+      };
+      const finish = (): void => {
+        if (settled) return;
+        settled = true;
+        cleanup();
+        resolve();
+      };
+      const onAbort = (): void => {
+        if (settled) return;
+        settled = true;
+        delay?.kill();
+        cleanup();
+        reject(signal.reason ?? new Error('Reel anticipation cancelled'));
+      };
+      this.skipAnticipationWait = () => {
+        delay?.kill();
+        finish();
+      };
+      this.cancelAnticipationWait = onAbort;
+      signal.addEventListener('abort', onAbort, { once: true });
+      delay = gsap.delayedCall(extraSpinMs / 1000, finish);
+      if (signal.aborted) onAbort();
+    });
   }
 
   private readonly cancelScheduledStarts = (): void => {

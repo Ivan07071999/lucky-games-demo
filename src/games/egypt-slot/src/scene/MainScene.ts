@@ -5,8 +5,9 @@ import { BetSelectionModal } from '../components/ui/bet-selection-modal';
 import { AutoPlayModal } from '../components/ui/auto-play-modal';
 import { AudioPanel } from '../components/ui/audio-panel';
 import { GameInfoModal } from '../components/ui/game-info-modal';
+import { GameSettingsModal } from '../components/ui/game-settings-modal';
 import { InfoButton } from '../components/ui/info-button';
-import { TurboSpinButton } from '../components/ui/turbo-spin-button';
+import { SettingsButton } from '../components/ui/settings-button';
 import { FreeSpinsStatus } from '../components/ui/free-spins-status';
 import { WinPopup } from '../components/win-popup/WinPopup';
 import {
@@ -34,8 +35,9 @@ export class MainScene extends Container {
   private autoPlayModal: AutoPlayModal | null = null;
   private audioPanel: AudioPanel | null = null;
   private infoButton: InfoButton | null = null;
-  private turboButton: TurboSpinButton | null = null;
+  private settingsButton: SettingsButton | null = null;
   private infoModal: GameInfoModal | null = null;
+  private settingsModal: GameSettingsModal | null = null;
   private freeSpinsStatus: FreeSpinsStatus | null = null;
   private winPopup: WinPopup | null = null;
   private freeSpinsTransition: FreeSpinsTransition | null = null;
@@ -76,14 +78,21 @@ export class MainScene extends Container {
     );
     const audioPanel = new AudioPanel(this.context.audio);
     const infoModal = new GameInfoModal(this.context.slotStore);
+    const settingsModal = new GameSettingsModal(this.context.slotStore);
     const infoButton = new InfoButton(() => {
       infoModal.open();
       this.context.audio.playMenuOpen();
     });
-    const turboButton = new TurboSpinButton(this.context.slotStore);
+    const settingsButton = new SettingsButton(() => {
+      settingsModal.open();
+      this.context.audio.playMenuOpen();
+    });
     infoButton.on('pointerover', () => this.context.audio.playHover());
-    turboButton.on('pointerover', () => this.context.audio.playHover());
-    turboButton.on('pointertap', () => this.context.audio.playClick());
+    settingsButton.on('pointerover', () => this.context.audio.playHover());
+    settingsModal.turboCheckbox.on('pointerover', () => this.context.audio.playHover());
+    settingsModal.turboCheckbox.on('pointertap', () => this.context.audio.playClick());
+    settingsModal.anticipationCheckbox.on('pointerover', () => this.context.audio.playHover());
+    settingsModal.anticipationCheckbox.on('pointertap', () => this.context.audio.playClick());
     betPanel.on('pointerover', () => this.context.audio.playHover());
     betPanel.on('pointertap', () => this.context.audio.playClick());
     const freeSpinsStatus = new FreeSpinsStatus(this.context.slotStore.round);
@@ -98,8 +107,9 @@ export class MainScene extends Container {
     this.autoPlayModal = autoPlayModal;
     this.audioPanel = audioPanel;
     this.infoButton = infoButton;
-    this.turboButton = turboButton;
+    this.settingsButton = settingsButton;
     this.infoModal = infoModal;
+    this.settingsModal = settingsModal;
     this.freeSpinsStatus = freeSpinsStatus;
     this.winPopup = winPopup;
     this.freeSpinsTransition = freeSpinsTransition;
@@ -111,10 +121,11 @@ export class MainScene extends Container {
       freeSpinsStatus,
       audioPanel,
       infoButton,
-      turboButton,
+      settingsButton,
       betSelectionModal,
       autoPlayModal,
       infoModal,
+      settingsModal,
       winPopup,
       freeSpinsTransition,
     );
@@ -136,12 +147,10 @@ export class MainScene extends Container {
     this.freeSpinsStatus?.resize(width, height);
     this.audioPanel?.resize(width, height);
     const cornerMargin = Math.max(12, Math.min(24, Math.min(width, height) * 0.025));
-    this.infoButton?.position.set(cornerMargin + 36, cornerMargin + 36);
-    this.turboButton?.position.set(
-      width < 330 ? cornerMargin : cornerMargin + 84,
-      width < 330 ? cornerMargin + 78 : cornerMargin + 17,
-    );
+    this.infoButton?.position.set(cornerMargin + 24, cornerMargin + 36);
+    this.settingsButton?.position.set(cornerMargin + 80, cornerMargin + 36);
     this.infoModal?.resize(width, height);
+    this.settingsModal?.resize(width, height);
     this.winPopup?.resize(width, height);
     this.freeSpinsTransition?.resize(width, height);
 

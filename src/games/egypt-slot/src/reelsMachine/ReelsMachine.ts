@@ -1,5 +1,5 @@
 import { Container, Rectangle, Sprite, Texture } from 'pixi.js';
-import type { Win } from '@lucky-games/contracts';
+import type { ReelAnticipationHint, Win } from '@lucky-games/contracts';
 import { EgyptImageAssetKey } from '../assets';
 import { ReelsBoard } from '../reels/ReelsBoard';
 import type { ReelsMatrix } from '../reels/reelsConfig';
@@ -126,8 +126,13 @@ export class ReelsMachine extends Container {
     this.reelsBoard.spin(signal, turbo);
   }
 
-  land(reels: ReelsMatrix, signal: AbortSignal, quickStop = false): Promise<void> {
-    return this.reelsBoard.land(reels, signal, quickStop);
+  land(
+    reels: ReelsMatrix,
+    signal: AbortSignal,
+    quickStop = false,
+    anticipation: ReelAnticipationHint | null = null,
+  ): Promise<void> {
+    return this.reelsBoard.land(reels, signal, quickStop, anticipation);
   }
 
   requestQuickStop(reels: ReelsMatrix, signal: AbortSignal): void {

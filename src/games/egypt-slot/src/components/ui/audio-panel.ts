@@ -16,8 +16,8 @@ import type { AudioController } from '../../controllers/audio-controller/AudioCo
 import { ScrollModalBackground } from './scroll-modal-background';
 import { SCROLL_MODAL_COLORS } from './scroll-modal-theme';
 
-const ICON_WIDTH = 56;
-const ICON_HEIGHT = 56;
+const ICON_WIDTH = 36;
+const ICON_HEIGHT = 36;
 const POPUP_WIDTH = 260;
 const POPUP_HEIGHT = 118;
 const POPUP_GAP = 6;

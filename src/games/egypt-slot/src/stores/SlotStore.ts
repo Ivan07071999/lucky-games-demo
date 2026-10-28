@@ -29,7 +29,7 @@ export class SlotStore {
     return this.panel.canPlaceBet;
   }
 
-  get canToggleTurbo(): boolean {
+  get canToggleSpinSettings(): boolean {
     return (
       this.round.ready &&
       this.round.stage === 'idle' &&

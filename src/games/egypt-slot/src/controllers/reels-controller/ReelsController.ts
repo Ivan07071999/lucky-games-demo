@@ -65,7 +65,11 @@ export class ReelsController {
       onResultReceived(result);
       this.round.startLanding();
       await this.scene.executeReels(
-        new LandReelsCommand(result.reels, turboThisRound || this.round.quickStopRequested),
+        new LandReelsCommand(
+          result.reels,
+          turboThisRound || this.round.quickStopRequested,
+          result.presentation?.anticipation ?? null,
+        ),
         signal,
       );
       this.emitter.emit('spin:landed', result);

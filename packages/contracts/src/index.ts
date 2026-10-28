@@ -53,6 +53,13 @@ export interface WinClassification {
   winMultiplier: number;
 }
 
+export interface ReelAnticipationHint {
+  /** Zero-based index of the reel that keeps spinning after the preceding reels stop. */
+  reelIndex: number;
+  /** Additional visual spin time; the server result is already final. */
+  extraSpinMs: number;
+}
+
 export interface Bet {
   bet: number;
   level: number;
@@ -105,6 +112,7 @@ export interface RoundResult {
     };
   };
   animations: SlotAnimation[];
+  presentation?: { anticipation: ReelAnticipationHint | null };
   nextAction: NextAction;
 }
 
@@ -135,6 +143,8 @@ export type SlotCommand =
       bet: number;
       level: number;
       coinValueCents: number;
+      /** Demo only: server generates a round with two visible scatters before reel 3, 4 or 5. */
+      anticipationDemo?: boolean;
     }
   | { type: 'FREE_SPIN'; sessionId: string; requestId: string };
 
@@ -257,6 +267,16 @@ export const roundResultSchema: z.ZodType<RoundResult> = z.object({
     }),
   }),
   animations: z.array(z.enum(SLOT_ANIMATIONS)),
+  presentation: z
+    .object({
+      anticipation: z
+        .object({
+          reelIndex: nonNegativeInteger.min(2).max(4),
+          extraSpinMs: positiveInteger.max(5000),
+        })
+        .nullable(),
+    })
+    .optional(),
   nextAction: action,
 });
 

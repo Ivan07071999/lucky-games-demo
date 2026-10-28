@@ -19,6 +19,8 @@ import {
 } from './rules.js';
 import { classifyWin } from './winClassification.js';
 import { SLOT_MATH } from './mathConfig.js';
+import { getReelAnticipationHint } from './presentationHints.js';
+import { generateAnticipationDemoReels } from './anticipationDemo.js';
 
 export class SlotService {
   constructor(
@@ -82,7 +84,9 @@ export class SlotService {
 
     const mode = isFreeSpin ? 'FREE_SPINS' : 'BASE_GAME';
     const outcome = evaluateRound(
-      generateReels(this.random, mode),
+      command.type === 'SPIN' && command.anticipationDemo
+        ? generateAnticipationDemoReels(this.random)
+        : generateReels(this.random, mode),
       bet,
       mode,
       session.sticky_reels,
@@ -125,6 +129,14 @@ export class SlotService {
         afterWin: finalBalance,
       },
       ...outcome,
+      presentation: {
+        anticipation: getReelAnticipationHint(
+          outcome.reels,
+          mode,
+          SLOT_MATH.scatterSymbol,
+          SLOT_MATH.scatterTriggerCount,
+        ),
+      },
       nextAction: remaining ? 'FREE_SPIN' : 'SPIN',
     };
   }

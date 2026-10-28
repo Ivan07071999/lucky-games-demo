@@ -47,6 +47,7 @@ export class SpinningPhase implements Phase<
         bet: this.store.panel.bet,
         level: this.store.panel.level,
         coinValueCents: this.store.panel.coinValueCents,
+        anticipationDemo: this.store.spinSettings.anticipationDemoEnabled || undefined,
       };
       const result = await this.reels.playRound(
         (requestSignal) => this.api.spin(bet, requestSignal),

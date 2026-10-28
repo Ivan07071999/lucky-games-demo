@@ -4,7 +4,7 @@
   "version": "0.0.0",
   "type": "module",
   "scripts": {
-    "dev": "concurrently --kill-others-on-fail --names client,server --prefix-colors cyan,magenta \"pnpm dev:client\" \"pnpm server:start\"",
+    "dev": "concurrently --kill-others-on-fail --names client,server --prefix-colors cyan,magenta \"pnpm dev:client\" \"pnpm server:dev\"",
     "dev:client": "vite",
     "build": "tsc -b && vite build",
     "lint": "eslint .",

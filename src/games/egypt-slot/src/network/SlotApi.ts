@@ -8,7 +8,7 @@ const PENDING_KEY = 'egypt-slot:pending-command';
 
 export type SpinOptions = Pick<
   Extract<SlotCommand, { type: 'SPIN' }>,
-  'bet' | 'level' | 'coinValueCents'
+  'bet' | 'level' | 'coinValueCents' | 'anticipationDemo'
 >;
 
 export class SlotApi {
@@ -139,6 +139,17 @@ export class SlotApi {
         error.code !== 'SPIN_IN_PROGRESS'
       ) {
         this.clearPending();
+        if (
+          command.type === 'SPIN' &&
+          command.anticipationDemo &&
+          error.code === 'INVALID_REQUEST' &&
+          error.message === 'Invalid game command'
+        ) {
+          throw new SlotApiError(
+            'Restart the game server to enable anticipation demo.',
+            'INVALID_REQUEST',
+          );
+        }
         throw error;
       }
       try {
@@ -181,7 +192,8 @@ export class SlotApi {
             'level' in value &&
             Number.isInteger(value.level) &&
             'coinValueCents' in value &&
-            Number.isInteger(value.coinValueCents)))
+            Number.isInteger(value.coinValueCents) &&
+            (!('anticipationDemo' in value) || typeof value.anticipationDemo === 'boolean')))
       ) {
         return value as SlotCommand;
       }
