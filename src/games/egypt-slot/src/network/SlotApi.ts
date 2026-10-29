@@ -8,7 +8,7 @@ const PENDING_KEY = 'egypt-slot:pending-command';
 
 export type SpinOptions = Pick<
   Extract<SlotCommand, { type: 'SPIN' }>,
-  'bet' | 'level' | 'coinValueCents' | 'anticipationDemo'
+  'bet' | 'level' | 'coinValueCents' | 'anticipationDemo' | 'cascade'
 >;
 
 export class SlotApi {
@@ -29,6 +29,10 @@ export class SlotApi {
 
   get pendingAction(): SlotCommand['type'] | null {
     return this.pendingCommand?.type ?? null;
+  }
+
+  get pendingCascadeMode(): boolean {
+    return this.pendingCommand?.type === 'SPIN' && this.pendingCommand.cascade === true;
   }
 
   async initialize(
@@ -141,12 +145,12 @@ export class SlotApi {
         this.clearPending();
         if (
           command.type === 'SPIN' &&
-          command.anticipationDemo &&
+          (command.anticipationDemo || command.cascade) &&
           error.code === 'INVALID_REQUEST' &&
           error.message === 'Invalid game command'
         ) {
           throw new SlotApiError(
-            'Restart the game server to enable anticipation demo.',
+            'Restart the game server to enable the selected spin mode.',
             'INVALID_REQUEST',
           );
         }
@@ -193,7 +197,8 @@ export class SlotApi {
             Number.isInteger(value.level) &&
             'coinValueCents' in value &&
             Number.isInteger(value.coinValueCents) &&
-            (!('anticipationDemo' in value) || typeof value.anticipationDemo === 'boolean')))
+            (!('anticipationDemo' in value) || typeof value.anticipationDemo === 'boolean') &&
+            (!('cascade' in value) || typeof value.cascade === 'boolean')))
       ) {
         return value as SlotCommand;
       }

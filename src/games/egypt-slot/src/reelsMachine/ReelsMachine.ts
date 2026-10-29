@@ -1,5 +1,5 @@
 import { Container, Rectangle, Sprite, Texture } from 'pixi.js';
-import type { ReelAnticipationHint, Win } from '@lucky-games/contracts';
+import type { CascadeSequence, ReelAnticipationHint, Win } from '@lucky-games/contracts';
 import { EgyptImageAssetKey } from '../assets';
 import { ReelsBoard } from '../reels/ReelsBoard';
 import type { ReelsMatrix } from '../reels/reelsConfig';
@@ -124,6 +124,24 @@ export class ReelsMachine extends Container {
 
   spin(signal: AbortSignal, turbo = false): void {
     this.reelsBoard.spin(signal, turbo);
+  }
+
+  startCascade(reels: ReelsMatrix, signal: AbortSignal, turbo = false): void {
+    this.reelsBoard.startCascade(reels, signal, turbo);
+  }
+
+  playCascade(
+    sequence: CascadeSequence,
+    finalReels: ReelsMatrix,
+    signal: AbortSignal,
+    turbo = false,
+    quickStop = false,
+  ): Promise<void> {
+    return this.reelsBoard.playCascade(sequence, finalReels, signal, turbo, quickStop);
+  }
+
+  quickStopCascade(finalReels: ReelsMatrix): void {
+    this.reelsBoard.quickStopCascade(finalReels);
   }
 
   land(

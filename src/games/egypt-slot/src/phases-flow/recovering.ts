@@ -67,6 +67,7 @@ export class RecoveringPhase implements Phase<
             previousReels,
             (confirmedResult) => this.balance.showConfirmedBet(confirmedResult),
             signal,
+            this.api.pendingCascadeMode,
           );
           this.store.round.receiveRound(result);
           return PhaseName.result;

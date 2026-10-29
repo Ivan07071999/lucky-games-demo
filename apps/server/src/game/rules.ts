@@ -71,18 +71,27 @@ export function generateReels(
   mode: RoundResult['mode'] = 'BASE_GAME',
   config: SlotMathConfig = SLOT_MATH,
 ): ReelGrid {
-  const table = getWeightedTable(config, mode);
-  const drawSymbol = (): SymbolKey => {
-    const stop = randomInt(table.totalWeight);
-    if (!Number.isInteger(stop) || stop < 0 || stop >= table.totalWeight) {
-      throw new Error('Random source returned a value outside the symbol weights');
-    }
-    const entry = table.stops.find(({ cumulativeWeight }) => stop < cumulativeWeight);
-    if (!entry) throw new Error('Reel symbol weight table is inconsistent');
-    return entry.symbol;
-  };
-  const drawReel = (): ReelGrid[number] => [drawSymbol(), drawSymbol(), drawSymbol()];
+  const drawReel = (): ReelGrid[number] => [
+    drawSymbol(randomInt, mode, config),
+    drawSymbol(randomInt, mode, config),
+    drawSymbol(randomInt, mode, config),
+  ];
   return [drawReel(), drawReel(), drawReel(), drawReel(), drawReel()];
+}
+
+export function drawSymbol(
+  randomInt: RandomInt,
+  mode: RoundResult['mode'] = 'BASE_GAME',
+  config: SlotMathConfig = SLOT_MATH,
+): SymbolKey {
+  const table = getWeightedTable(config, mode);
+  const stop = randomInt(table.totalWeight);
+  if (!Number.isInteger(stop) || stop < 0 || stop >= table.totalWeight) {
+    throw new Error('Random source returned a value outside the symbol weights');
+  }
+  const entry = table.stops.find(({ cumulativeWeight }) => stop < cumulativeWeight);
+  if (!entry) throw new Error('Reel symbol weight table is inconsistent');
+  return entry.symbol;
 }
 
 export function evaluateRound(

@@ -14,6 +14,17 @@
 
 ## WebSocket
 
+`SPIN` also accepts optional `cascade: true`. In this mode the server calculates the full cascade
+from one paid spin and returns `RoundResult.cascade` with `initialReels` and up to 20 `steps`.
+Each step contains the evaluated `reels`, paid `wins`, unique `removedPositions`, `after` grid
+and `payoutCoins`. All line wins from a stage are paid before their distinct symbols disappear;
+remaining symbols fall within each reel and new symbols arrive from above. `RoundResult.reels`
+is the final settled grid, `totalWinCoins` is the sum across all cascade steps, and `balance`
+includes one bet deduction and the complete win. Free Spins trigger only when the final settled
+grid has the required Scarabs. Cascade is available for paid spins; bonus spins retain the
+classic reel rules. `cascade` and `anticipationDemo` cannot both be enabled in one request.
+The Cascade setting changes the slot's payout distribution.
+
 `SPIN` accepts an optional `anticipationDemo: true` flag. This is a demo setting: the server
 generates two visible `highScarab` symbols before reel 3, 4 or 5, then calculates the round
 normally. The target reel and all later reels remain random, so Free Spins are not guaranteed.

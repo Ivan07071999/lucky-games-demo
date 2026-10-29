@@ -93,6 +93,8 @@ export class MainScene extends Container {
     settingsModal.turboCheckbox.on('pointertap', () => this.context.audio.playClick());
     settingsModal.anticipationCheckbox.on('pointerover', () => this.context.audio.playHover());
     settingsModal.anticipationCheckbox.on('pointertap', () => this.context.audio.playClick());
+    settingsModal.cascadeCheckbox.on('pointerover', () => this.context.audio.playHover());
+    settingsModal.cascadeCheckbox.on('pointertap', () => this.context.audio.playClick());
     betPanel.on('pointerover', () => this.context.audio.playHover());
     betPanel.on('pointertap', () => this.context.audio.playClick());
     const freeSpinsStatus = new FreeSpinsStatus(this.context.slotStore.round);

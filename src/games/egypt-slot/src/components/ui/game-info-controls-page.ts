@@ -49,7 +49,7 @@ const SECTIONS = [
       { label: 'INFO', description: 'The top-left information icon opens these game rules.' },
       {
         label: 'SETTINGS',
-        description: 'The gear icon opens Turbo Spin settings. Change Turbo between rounds.',
+        description: 'The gear opens Turbo, Anticipation and Cascade settings.',
       },
     ],
   },

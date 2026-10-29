@@ -77,6 +77,21 @@ export interface Win {
   payoutCoins: number;
 }
 
+export interface CascadeStep {
+  /** Evaluated grid before winning symbols are removed. */
+  reels: ReelGrid;
+  wins: Win[];
+  removedPositions: Position[];
+  /** Evaluated grid after gravity and refill. */
+  after: ReelGrid;
+  payoutCoins: number;
+}
+
+export interface CascadeSequence {
+  initialReels: ReelGrid;
+  steps: CascadeStep[];
+}
+
 export interface RoundResult {
   requestId: string;
   roundId: string;
@@ -113,6 +128,7 @@ export interface RoundResult {
   };
   animations: SlotAnimation[];
   presentation?: { anticipation: ReelAnticipationHint | null };
+  cascade?: CascadeSequence;
   nextAction: NextAction;
 }
 
@@ -145,6 +161,7 @@ export type SlotCommand =
       coinValueCents: number;
       /** Demo only: server generates a round with two visible scatters before reel 3, 4 or 5. */
       anticipationDemo?: boolean;
+      cascade?: boolean;
     }
   | { type: 'FREE_SPIN'; sessionId: string; requestId: string };
 
@@ -192,6 +209,47 @@ const reelGridSchema: z.ZodType<ReelGrid> = z.tuple([
   reelSchema,
 ]);
 
+const cascadeStepSchema: z.ZodType<CascadeStep> = z.object({
+  reels: reelGridSchema,
+  wins: z.array(winSchema).nonempty(),
+  removedPositions: z.array(z.tuple([reelIndex, rowIndex])).nonempty(),
+  after: reelGridSchema,
+  payoutCoins: nonNegativeInteger,
+});
+
+const sameGrid = (left: ReelGrid, right: ReelGrid): boolean =>
+  left.every((column, reel) => column.every((symbol, row) => symbol === right[reel][row]));
+
+const cascadeSequenceSchema: z.ZodType<CascadeSequence> = z
+  .object({
+    initialReels: reelGridSchema,
+    steps: z.array(cascadeStepSchema).max(20),
+  })
+  .superRefine((sequence, context) => {
+    let previous = sequence.initialReels;
+    sequence.steps.forEach((step, index) => {
+      const paid = step.wins.reduce((sum, win) => sum + win.payoutCoins, 0);
+      const winningPositions = new Set(
+        step.wins.flatMap((win) => win.positions.map((position) => position.join(':'))),
+      );
+      const removedPositions = new Set(step.removedPositions.map((position) => position.join(':')));
+      if (
+        !sameGrid(step.reels, previous) ||
+        paid !== step.payoutCoins ||
+        step.removedPositions.length !== removedPositions.size ||
+        removedPositions.size !== winningPositions.size ||
+        [...removedPositions].some((position) => !winningPositions.has(position))
+      ) {
+        context.addIssue({
+          code: 'custom',
+          path: ['steps', index],
+          message: 'Cascade step is inconsistent',
+        });
+      }
+      previous = step.after;
+    });
+  });
+
 const winClassificationSchema = z.object({
   winType,
   winMultiplier: z.number().finite().nonnegative(),
@@ -230,55 +288,74 @@ export const slotStateSchema: z.ZodType<SlotState> = z.object({
   }),
 });
 
-export const roundResultSchema: z.ZodType<RoundResult> = z.object({
-  requestId: z.string().min(1),
-  roundId: z.string().min(1),
-  status: z.literal('completed'),
-  mode: z.enum(['BASE_GAME', 'FREE_SPINS']),
-  isWin: z.boolean(),
-  netCoins: z.number().int(),
-  bet: betSchema,
-  balance: z.object({
-    before: nonNegativeInteger,
-    afterBet: nonNegativeInteger,
-    afterWin: nonNegativeInteger,
-  }),
-  reels: reelGridSchema,
-  wins: z.array(winSchema),
-  totalWinCoins: nonNegativeInteger,
-  winType: winType.optional(),
-  winMultiplier: z.number().finite().nonnegative().optional(),
-  features: z.object({
-    wild: z.object({
-      triggered: z.boolean(),
-      type: z.literal('EXPANDING'),
-      expandedReels: z.array(reelIndex),
-      stickyReels: z.array(reelIndex),
-      multipliers: z.record(z.string(), positiveInteger),
+export const roundResultSchema: z.ZodType<RoundResult> = z
+  .object({
+    requestId: z.string().min(1),
+    roundId: z.string().min(1),
+    status: z.literal('completed'),
+    mode: z.enum(['BASE_GAME', 'FREE_SPINS']),
+    isWin: z.boolean(),
+    netCoins: z.number().int(),
+    bet: betSchema,
+    balance: z.object({
+      before: nonNegativeInteger,
+      afterBet: nonNegativeInteger,
+      afterWin: nonNegativeInteger,
     }),
-    freeSpins: z.object({
-      triggered: z.boolean(),
-      awarded: nonNegativeInteger,
-      remaining: nonNegativeInteger,
-      totalWinCoins: nonNegativeInteger,
-      completion: winClassificationSchema
-        .extend({ baseBetCoins: positiveInteger, totalWinCoins: nonNegativeInteger })
-        .optional(),
+    reels: reelGridSchema,
+    wins: z.array(winSchema),
+    totalWinCoins: nonNegativeInteger,
+    winType: winType.optional(),
+    winMultiplier: z.number().finite().nonnegative().optional(),
+    features: z.object({
+      wild: z.object({
+        triggered: z.boolean(),
+        type: z.literal('EXPANDING'),
+        expandedReels: z.array(reelIndex),
+        stickyReels: z.array(reelIndex),
+        multipliers: z.record(z.string(), positiveInteger),
+      }),
+      freeSpins: z.object({
+        triggered: z.boolean(),
+        awarded: nonNegativeInteger,
+        remaining: nonNegativeInteger,
+        totalWinCoins: nonNegativeInteger,
+        completion: winClassificationSchema
+          .extend({ baseBetCoins: positiveInteger, totalWinCoins: nonNegativeInteger })
+          .optional(),
+      }),
     }),
-  }),
-  animations: z.array(z.enum(SLOT_ANIMATIONS)),
-  presentation: z
-    .object({
-      anticipation: z
-        .object({
-          reelIndex: nonNegativeInteger.min(2).max(4),
-          extraSpinMs: positiveInteger.max(5000),
-        })
-        .nullable(),
-    })
-    .optional(),
-  nextAction: action,
-});
+    animations: z.array(z.enum(SLOT_ANIMATIONS)),
+    presentation: z
+      .object({
+        anticipation: z
+          .object({
+            reelIndex: nonNegativeInteger.min(2).max(4),
+            extraSpinMs: positiveInteger.max(5000),
+          })
+          .nullable(),
+      })
+      .optional(),
+    cascade: cascadeSequenceSchema.optional(),
+    nextAction: action,
+  })
+  .superRefine((result, context) => {
+    const sequence = result.cascade;
+    if (!sequence) return;
+    const finalGrid = sequence.steps.at(-1)?.after ?? sequence.initialReels;
+    const paid = sequence.steps.reduce((sum, step) => sum + step.payoutCoins, 0);
+    if (
+      result.mode !== 'BASE_GAME' ||
+      !sameGrid(result.reels, finalGrid) ||
+      result.totalWinCoins !== paid
+    ) {
+      context.addIssue({
+        code: 'custom',
+        path: ['cascade'],
+        message: 'Cascade result is inconsistent',
+      });
+    }
+  });
 
 export const slotMessageSchema: z.ZodType<SlotMessage> = z.discriminatedUnion('type', [
   z.object({

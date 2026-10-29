@@ -1,4 +1,4 @@
-import type { ReelAnticipationHint, Win } from '@lucky-games/contracts';
+import type { CascadeSequence, ReelAnticipationHint, Win } from '@lucky-games/contracts';
 import type { ReelsMatrix } from '../reels/reelsConfig';
 import type { ReelsMachine } from './ReelsMachine';
 
@@ -15,6 +15,55 @@ export class StartReelsCommand implements ReelsCommand {
 
   execute(machine: ReelsMachine, signal: AbortSignal): void {
     machine.spin(signal, this.turbo);
+  }
+}
+
+export class StartCascadeCommand implements ReelsCommand {
+  private readonly reels: ReelsMatrix;
+  private readonly turbo: boolean;
+
+  constructor(reels: ReelsMatrix, turbo = false) {
+    this.reels = reels;
+    this.turbo = turbo;
+  }
+
+  execute(machine: ReelsMachine, signal: AbortSignal): void {
+    machine.startCascade(this.reels, signal, this.turbo);
+  }
+}
+
+export class PlayCascadeCommand implements ReelsCommand {
+  private readonly sequence: CascadeSequence;
+  private readonly finalReels: ReelsMatrix;
+  private readonly turbo: boolean;
+  private readonly quickStop: boolean;
+
+  constructor(
+    sequence: CascadeSequence,
+    finalReels: ReelsMatrix,
+    turbo = false,
+    quickStop = false,
+  ) {
+    this.sequence = sequence;
+    this.finalReels = finalReels;
+    this.turbo = turbo;
+    this.quickStop = quickStop;
+  }
+
+  execute(machine: ReelsMachine, signal: AbortSignal): Promise<void> {
+    return machine.playCascade(this.sequence, this.finalReels, signal, this.turbo, this.quickStop);
+  }
+}
+
+export class QuickStopCascadeCommand implements ReelsCommand {
+  private readonly finalReels: ReelsMatrix;
+
+  constructor(finalReels: ReelsMatrix) {
+    this.finalReels = finalReels;
+  }
+
+  execute(machine: ReelsMachine): void {
+    machine.quickStopCascade(this.finalReels);
   }
 }
 
