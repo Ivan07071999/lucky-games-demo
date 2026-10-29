@@ -22,6 +22,7 @@ import { SLOT_MATH } from './mathConfig.js';
 import { getReelAnticipationHint } from './presentationHints.js';
 import { generateAnticipationDemoReels } from './anticipationDemo.js';
 import { calculateCascadeRound } from './cascadeRules.js';
+import { generateWinningDemoReels } from './winDemo.js';
 
 export class SlotService {
   constructor(
@@ -64,6 +65,17 @@ export class SlotService {
       if (command.anticipationDemo && spinMode === 'CASCADE') {
         throw new SlotError('INVALID_REQUEST', 'Cascade and anticipation demo cannot be combined');
       }
+      if (command.winDemo) {
+        if (command.anticipationDemo) {
+          throw new SlotError(
+            'INVALID_REQUEST',
+            'Win demo and anticipation demo cannot be combined',
+          );
+        }
+        if (!SLOT_MATH.payouts[command.winDemo.symbol][command.winDemo.count - 3]) {
+          throw new SlotError('INVALID_REQUEST', 'Selected win combination is not paid');
+        }
+      }
     }
     return this.database.executeRound(
       command.sessionId,
@@ -98,9 +110,13 @@ export class SlotService {
         ? (command.spinMode ?? (command.cascade ? 'CASCADE' : 'CLASSIC'))
         : 'CLASSIC';
     const demoReels =
-      command.type === 'SPIN' && command.anticipationDemo
-        ? generateAnticipationDemoReels(this.random)
-        : undefined;
+      command.type !== 'SPIN'
+        ? undefined
+        : command.winDemo
+          ? generateWinningDemoReels(this.random, command.winDemo)
+          : command.anticipationDemo
+            ? generateAnticipationDemoReels(this.random)
+            : undefined;
     const cascadeOutcome =
       spinMode !== 'CLASSIC' ? calculateCascadeRound(this.random, bet, demoReels) : null;
     const outcome =

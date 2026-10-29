@@ -1,14 +1,21 @@
-import type { RoundResult, SlotCommand, SlotState, SpinMode } from '@lucky-games/contracts';
+import {
+  SYMBOLS,
+  type RoundResult,
+  type SlotCommand,
+  type SlotState,
+  type SpinMode,
+} from '@lucky-games/contracts';
 import { SlotApiError } from './SlotApiError';
 import { SlotHttpClient } from './SlotHttpClient';
 import { SlotSocketClient } from './SlotSocketClient';
 
 const SESSION_KEY = 'egypt-slot:session-id';
 const PENDING_KEY = 'egypt-slot:pending-command';
+const KNOWN_SYMBOLS = new Set<string>(SYMBOLS);
 
 export type SpinOptions = Pick<
   Extract<SlotCommand, { type: 'SPIN' }>,
-  'bet' | 'level' | 'coinValueCents' | 'anticipationDemo' | 'spinMode'
+  'bet' | 'level' | 'coinValueCents' | 'anticipationDemo' | 'winDemo' | 'spinMode'
 >;
 
 export class SlotApi {
@@ -147,6 +154,7 @@ export class SlotApi {
         if (
           command.type === 'SPIN' &&
           (command.anticipationDemo ||
+            command.winDemo ||
             command.cascade ||
             command.spinMode === 'CASCADE' ||
             command.spinMode === 'HYBRID') &&
@@ -202,6 +210,16 @@ export class SlotApi {
             'coinValueCents' in value &&
             Number.isInteger(value.coinValueCents) &&
             (!('anticipationDemo' in value) || typeof value.anticipationDemo === 'boolean') &&
+            (!('winDemo' in value) ||
+              (value.winDemo !== null &&
+                typeof value.winDemo === 'object' &&
+                'symbol' in value.winDemo &&
+                typeof value.winDemo.symbol === 'string' &&
+                KNOWN_SYMBOLS.has(value.winDemo.symbol) &&
+                'count' in value.winDemo &&
+                (value.winDemo.count === 3 ||
+                  value.winDemo.count === 4 ||
+                  value.winDemo.count === 5))) &&
             (!('spinMode' in value) ||
               value.spinMode === 'CLASSIC' ||
               value.spinMode === 'CASCADE' ||

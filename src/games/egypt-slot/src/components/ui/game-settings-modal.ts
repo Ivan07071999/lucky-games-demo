@@ -6,9 +6,10 @@ import { ScrollModalBackground } from './scroll-modal-background';
 import { ScrollModalCloseButton } from './scroll-modal-close-button';
 import { SCROLL_MODAL_COLORS } from './scroll-modal-theme';
 import { SettingsCheckbox } from './settings-checkbox';
+import { WinDemoPicker } from './win-demo-picker';
 
 const MODAL_WIDTH = 460;
-const MODAL_HEIGHT = 600;
+const MODAL_HEIGHT = 690;
 const MODAL_MARGIN = 16;
 const CONTENT_PADDING_X = 56;
 const CONTENT_PADDING_TOP = 64;
@@ -19,6 +20,8 @@ export class GameSettingsModal extends Container {
   readonly classicCheckbox: SettingsCheckbox;
   readonly cascadeCheckbox: SettingsCheckbox;
   readonly hybridCheckbox: SettingsCheckbox;
+  readonly winDemoCheckbox: SettingsCheckbox;
+  readonly winDemoPicker: WinDemoPicker;
 
   private readonly backdrop = new Graphics();
   private readonly surface = new Container();
@@ -148,6 +151,18 @@ export class GameSettingsModal extends Container {
     });
     this.hybridCheckbox.position.set(CONTENT_PADDING_X, CONTENT_PADDING_TOP + 425);
     this.hybridCheckbox.resize(MODAL_WIDTH - CONTENT_PADDING_X * 2);
+    this.winDemoCheckbox = new SettingsCheckbox('WIN COMBINATION DEMO', () => {
+      if (store.canToggleSpinSettings) store.spinSettings.toggleWinDemo();
+    });
+    this.winDemoCheckbox.position.set(CONTENT_PADDING_X, CONTENT_PADDING_TOP + 520);
+    this.winDemoCheckbox.resize(MODAL_WIDTH - CONTENT_PADDING_X * 2);
+    this.winDemoPicker = new WinDemoPicker({
+      previousSymbol: () => store.spinSettings.cycleWinDemoSymbol(-1),
+      nextSymbol: () => store.spinSettings.cycleWinDemoSymbol(1),
+      previousCount: () => store.spinSettings.cycleWinDemoCount(-1),
+      nextCount: () => store.spinSettings.cycleWinDemoCount(1),
+    });
+    this.winDemoPicker.position.set(CONTENT_PADDING_X, CONTENT_PADDING_TOP + 545);
 
     this.surface.pivot.set(MODAL_WIDTH / 2, MODAL_HEIGHT / 2);
     this.surface.addChild(
@@ -165,6 +180,8 @@ export class GameSettingsModal extends Container {
       this.cascadeCheckbox,
       this.hybridDescription,
       this.hybridCheckbox,
+      this.winDemoCheckbox,
+      this.winDemoPicker,
       this.closeButton,
     );
     this.addChild(this.backdrop, this.surface);
@@ -177,6 +194,12 @@ export class GameSettingsModal extends Container {
       this.classicCheckbox.setState(store.spinSettings.classicEnabled, store.canToggleSpinSettings);
       this.cascadeCheckbox.setState(store.spinSettings.cascadeEnabled, store.canToggleSpinSettings);
       this.hybridCheckbox.setState(store.spinSettings.hybridEnabled, store.canToggleSpinSettings);
+      this.winDemoCheckbox.setState(store.spinSettings.winDemoEnabled, store.canToggleSpinSettings);
+      this.winDemoPicker.setState(
+        store.spinSettings.winDemoSymbol,
+        store.spinSettings.winDemoCount,
+        store.spinSettings.winDemoEnabled && store.canToggleSpinSettings,
+      );
     });
   }
 

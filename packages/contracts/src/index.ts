@@ -20,6 +20,10 @@ export type Position = [reelIndex: number, rowIndex: number];
 export type GameAction = 'SPIN' | 'FREE_SPIN';
 export type NextAction = GameAction;
 export type SpinMode = 'CLASSIC' | 'CASCADE' | 'HYBRID';
+export interface WinDemoSelection {
+  symbol: SymbolKey;
+  count: 3 | 4 | 5;
+}
 
 export const SLOT_ERROR_CODES = [
   'UNAUTHORIZED',
@@ -164,6 +168,8 @@ export type SlotCommand =
       coinValueCents: number;
       /** Demo only: server generates a round with two visible scatters before reel 3, 4 or 5. */
       anticipationDemo?: boolean;
+      /** Demo only: guarantees this paying combination on a random payline. */
+      winDemo?: WinDemoSelection;
       spinMode?: SpinMode;
       /** Legacy pending rounds; new clients send spinMode instead. */
       cascade?: boolean;

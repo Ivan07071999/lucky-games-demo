@@ -36,6 +36,17 @@ normally. The target reel and all later reels remain random, so Free Spins are n
 This setting changes the symbol distribution and therefore the demo RTP. Omit the flag or send
 `false` for the normal game math; it does not apply to `FREE_SPIN`.
 
+`SPIN` also accepts an optional demo selection such as
+`"winDemo": { "symbol": "highAnkh", "count": 3 }`. It guarantees a paying
+combination of the selected symbol and exact length on one randomly selected
+payline of the initial grid. The line is drawn anew for each paid spin and may
+repeat. Available symbols are `highAnkh`, `highEye`, `highNecklace`, `defaultA`,
+`defaultK`, `defaultQ` and `defaultJ`; lengths are 3, 4 or 5. Other paylines
+remain random and may also pay. In Cascade and Hybrid modes, the selected win
+is in the first cascade step; subsequent refills are calculated normally. The
+server calculates all winnings and balances. This option is for paid spins only,
+changes demo odds, and cannot be combined with `anticipationDemo`.
+
 В новых `RoundResult` сервер возвращает `presentation.anticipation`: `null` или подсказку `{ "reelIndex": 2 | 3 | 4, "extraSpinMs": 2400 }`. Индекс барабана начинается с нуля. Подсказка появляется, когда на уже остановившихся барабанах видны два `highScarab`, и не зависит от символов на ещё вращающихся барабанах. Она управляет только временем клиентской анимации; Quick Stop и Turbo пропускают задержку. Поле `presentation` необязательно для совместимости со старыми сохранёнными раундами.
 
 В `ROUND_RESULT.result` сервер возвращает `winType` и `winMultiplier` для текущего раунда. Категория определяется по `totalWinCoins / bet.totalCoins`: `NO_WIN` при нулевом выигрыше, `NORMAL_WIN` при выигрыше меньше ×15, `BIG_WIN` от ×15, `MEGA_WIN` от ×50 и `SUPER_MEGA_WIN` от ×100. Для сравнения порогов сервер использует целые суммы монет без округления множителя. Эти поля необязательны в типе контракта, поскольку сохранённые до обновления раунды могут их не содержать.
