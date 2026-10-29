@@ -174,57 +174,83 @@ export class ReelsBoard extends Container {
     signal: AbortSignal,
     turbo = false,
     quickStop = false,
+    hybrid = false,
   ): Promise<void> {
     signal.throwIfAborted();
+    if (hybrid && !quickStop) {
+      this.stopCascade();
+      this.cascadeActive = true;
+      this.cascadeQuickStop = false;
+      this.columns.forEach((column) => (column.visible = false));
+      this.cascadeColumns.forEach((column, index) => {
+        column.setValues(sequence.initialReels[index]);
+        column.visible = true;
+      });
+    }
     if (!this.cascadeActive || quickStop) {
       this.quickStopCascade(finalReels);
       return;
     }
     try {
-      await this.cascadeStartTask;
-      if (!this.cascadeActive) return;
-      await Promise.all(
-        this.cascadeColumns.map((column, index) =>
-          column.enter(sequence.initialReels[index], signal, turbo, cascadeReelDelay(index, turbo)),
-        ),
-      );
-      for (const step of sequence.steps) {
+      if (!hybrid) {
+        await this.cascadeStartTask;
         if (!this.cascadeActive) return;
-        for (const win of step.wins) {
-          this.winLine.show(win);
-          await this.waitForCascade(turbo ? 0.08 : 0.27, signal);
-          if (!this.cascadeActive) return;
-        }
-        this.winLine.clear();
-        const removedRows = this.cascadeColumns.map((_, reelIndex) =>
-          step.removedPositions.filter(([index]) => index === reelIndex).map(([, row]) => row),
-        );
         await Promise.all(
-          this.cascadeColumns.map((column, reelIndex) =>
-            column.removeRows(
-              removedRows[reelIndex],
+          this.cascadeColumns.map((column, index) =>
+            column.enter(
+              sequence.initialReels[index],
               signal,
               turbo,
-              cascadeReelDelay(reelIndex, turbo),
-            ),
-          ),
-        );
-        await Promise.all(
-          this.cascadeColumns.map((column, reelIndex) =>
-            column.refill(
-              removedRows[reelIndex],
-              step.after[reelIndex],
-              signal,
-              turbo,
-              cascadeReelDelay(reelIndex, turbo),
+              cascadeReelDelay(index, turbo),
             ),
           ),
         );
       }
+      await this.playCascadeSteps(sequence, signal, turbo);
     } catch (error) {
       if (!this.cascadeQuickStop || signal.aborted) throw error;
     } finally {
       if (this.cascadeActive) this.finishCascade(finalReels);
+    }
+  }
+
+  private async playCascadeSteps(
+    sequence: CascadeSequence,
+    signal: AbortSignal,
+    turbo: boolean,
+  ): Promise<void> {
+    for (const step of sequence.steps) {
+      if (!this.cascadeActive) return;
+      for (const win of step.wins) {
+        this.winLine.show(win);
+        await this.waitForCascade(turbo ? 0.08 : 0.27, signal);
+        if (!this.cascadeActive) return;
+      }
+      this.winLine.clear();
+      const removedRows = this.cascadeColumns.map((_, reelIndex) =>
+        step.removedPositions.filter(([index]) => index === reelIndex).map(([, row]) => row),
+      );
+      await Promise.all(
+        this.cascadeColumns.map((column, reelIndex) =>
+          column.removeRows(
+            removedRows[reelIndex],
+            signal,
+            turbo,
+            cascadeReelDelay(reelIndex, turbo),
+          ),
+        ),
+      );
+      await Promise.all(
+        this.cascadeColumns.map((column, reelIndex) =>
+          column.refill(
+            removedRows[reelIndex],
+            step.after[reelIndex],
+            signal,
+            turbo,
+            cascadeReelDelay(reelIndex, turbo),
+          ),
+        ),
+      );
     }
   }
 

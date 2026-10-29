@@ -56,8 +56,14 @@ export class SlotService {
     if (command.type === 'SPIN' && !bet) {
       throw new SlotError('INVALID_BET', 'Bet, level or coin value is not allowed');
     }
-    if (command.type === 'SPIN' && command.cascade && command.anticipationDemo) {
-      throw new SlotError('INVALID_REQUEST', 'Cascade and anticipation demo cannot be combined');
+    if (command.type === 'SPIN') {
+      const spinMode = command.spinMode ?? (command.cascade ? 'CASCADE' : 'CLASSIC');
+      if (command.cascade && spinMode !== 'CASCADE') {
+        throw new SlotError('INVALID_REQUEST', 'Conflicting spin modes');
+      }
+      if (command.anticipationDemo && spinMode === 'CASCADE') {
+        throw new SlotError('INVALID_REQUEST', 'Cascade and anticipation demo cannot be combined');
+      }
     }
     return this.database.executeRound(
       command.sessionId,
@@ -87,17 +93,19 @@ export class SlotService {
     }
 
     const mode = isFreeSpin ? 'FREE_SPINS' : 'BASE_GAME';
+    const spinMode =
+      command.type === 'SPIN'
+        ? (command.spinMode ?? (command.cascade ? 'CASCADE' : 'CLASSIC'))
+        : 'CLASSIC';
+    const demoReels =
+      command.type === 'SPIN' && command.anticipationDemo
+        ? generateAnticipationDemoReels(this.random)
+        : undefined;
+    const cascadeOutcome =
+      spinMode !== 'CLASSIC' ? calculateCascadeRound(this.random, bet, demoReels) : null;
     const outcome =
-      command.type === 'SPIN' && command.cascade
-        ? calculateCascadeRound(this.random, bet)
-        : evaluateRound(
-            command.type === 'SPIN' && command.anticipationDemo
-              ? generateAnticipationDemoReels(this.random)
-              : generateReels(this.random, mode),
-            bet,
-            mode,
-            session.sticky_reels,
-          );
+      cascadeOutcome ??
+      evaluateRound(demoReels ?? generateReels(this.random, mode), bet, mode, session.sticky_reels);
     const remaining = isFreeSpin
       ? session.free_spins_remaining - 1
       : outcome.features.freeSpins.triggered
@@ -126,6 +134,7 @@ export class SlotService {
       roundId: randomUUID(),
       status: 'completed',
       mode: isFreeSpin ? 'FREE_SPINS' : 'BASE_GAME',
+      spinMode,
       isWin: outcome.totalWinCoins > 0,
       netCoins: outcome.totalWinCoins - cost,
       ...classifyWin(outcome.totalWinCoins, bet.totalCoins),
@@ -138,10 +147,10 @@ export class SlotService {
       ...outcome,
       presentation: {
         anticipation:
-          command.type === 'SPIN' && command.cascade
+          spinMode === 'CASCADE'
             ? null
             : getReelAnticipationHint(
-                outcome.reels,
+                cascadeOutcome?.cascade.initialReels ?? outcome.reels,
                 mode,
                 SLOT_MATH.scatterSymbol,
                 SLOT_MATH.scatterTriggerCount,

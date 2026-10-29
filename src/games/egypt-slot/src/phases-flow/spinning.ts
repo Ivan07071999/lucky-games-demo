@@ -48,14 +48,17 @@ export class SpinningPhase implements Phase<
         level: this.store.panel.level,
         coinValueCents: this.store.panel.coinValueCents,
         anticipationDemo: this.store.spinSettings.anticipationDemoEnabled || undefined,
-        cascade: this.store.spinSettings.cascadeEnabled || undefined,
+        spinMode:
+          this.store.spinSettings.spinMode === 'CLASSIC'
+            ? undefined
+            : this.store.spinSettings.spinMode,
       };
       const result = await this.reels.playRound(
         (requestSignal) => this.api.spin(bet, requestSignal),
         previousReels,
         (confirmedResult) => this.balance.showConfirmedBet(confirmedResult),
         signal,
-        this.store.spinSettings.cascadeEnabled,
+        this.store.spinSettings.spinMode,
       );
       this.store.round.receiveRound(result);
       return PhaseName.result;

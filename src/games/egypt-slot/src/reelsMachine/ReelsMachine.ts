@@ -136,8 +136,9 @@ export class ReelsMachine extends Container {
     signal: AbortSignal,
     turbo = false,
     quickStop = false,
+    hybrid = false,
   ): Promise<void> {
-    return this.reelsBoard.playCascade(sequence, finalReels, signal, turbo, quickStop);
+    return this.reelsBoard.playCascade(sequence, finalReels, signal, turbo, quickStop, hybrid);
   }
 
   quickStopCascade(finalReels: ReelsMatrix): void {

@@ -14,16 +14,21 @@
 
 ## WebSocket
 
-`SPIN` also accepts optional `cascade: true`. In this mode the server calculates the full cascade
-from one paid spin and returns `RoundResult.cascade` with `initialReels` and up to 20 `steps`.
+`SPIN` accepts optional `spinMode: "CLASSIC" | "CASCADE" | "HYBRID"` (default: `CLASSIC`).
+`CASCADE` and `HYBRID` use the same server-side cascade calculation from one paid spin and return
+`RoundResult.cascade` with `initialReels` and up to 20 `steps`. `CASCADE` starts with falling
+symbols; `HYBRID` first spins normal reels and lands on `initialReels`, then plays the shared
+removal and refill steps. The server echoes `spinMode` in new `RoundResult` responses. The old
+`cascade: true` request remains accepted for recovery of pending rounds.
 Each step contains the evaluated `reels`, paid `wins`, unique `removedPositions`, `after` grid
 and `payoutCoins`. All line wins from a stage are paid before their distinct symbols disappear;
 remaining symbols fall within each reel and new symbols arrive from above. `RoundResult.reels`
 is the final settled grid, `totalWinCoins` is the sum across all cascade steps, and `balance`
 includes one bet deduction and the complete win. Free Spins trigger only when the final settled
 grid has the required Scarabs. Cascade is available for paid spins; bonus spins retain the
-classic reel rules. `cascade` and `anticipationDemo` cannot both be enabled in one request.
-The Cascade setting changes the slot's payout distribution.
+classic reel rules. Pure Cascade cannot be combined with `anticipationDemo`; Hybrid can use it
+while the regular reels are spinning. Its anticipation hint is calculated from `initialReels`.
+Both modes change the slot's payout distribution.
 
 `SPIN` accepts an optional `anticipationDemo: true` flag. This is a demo setting: the server
 generates two visible `highScarab` symbols before reel 3, 4 or 5, then calculates the round

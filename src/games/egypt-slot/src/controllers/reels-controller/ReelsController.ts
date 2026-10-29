@@ -1,4 +1,4 @@
-import type { RoundResult } from '@lucky-games/contracts';
+import type { RoundResult, SpinMode } from '@lucky-games/contracts';
 import type { GameEvents } from '../../events';
 import type { GameEmitter } from '../../events/GameEmitter';
 import type { ReelsMatrix } from '../../reels/reelsConfig';
@@ -27,7 +27,8 @@ export class ReelsController {
   private readonly unsubscribeQuickStop: () => void;
   private activeResult: RoundResult | null = null;
   private activeSignal: AbortSignal | null = null;
-  private cascadeThisRound = false;
+  private spinModeThisRound: SpinMode = 'CLASSIC';
+  private hybridCascadeActive = false;
 
   constructor(
     scene: MainSceneController,
@@ -53,17 +54,18 @@ export class ReelsController {
     previousReels: ReelsMatrix,
     onResultReceived: (result: RoundResult) => void,
     signal: AbortSignal,
-    cascade = false,
+    spinMode: SpinMode = 'CLASSIC',
   ): Promise<RoundResult> {
     this.store.setSpinning(true);
     this.activeResult = null;
     this.activeSignal = signal;
-    this.cascadeThisRound = cascade;
+    this.spinModeThisRound = spinMode;
+    this.hybridCascadeActive = false;
     const turboThisRound = this.isTurboEnabled();
     let result: RoundResult | null = null;
     try {
       this.scene.executeReels(
-        cascade
+        spinMode === 'CASCADE'
           ? new StartCascadeCommand(previousReels, turboThisRound)
           : new StartReelsCommand(turboThisRound),
         signal,
@@ -76,15 +78,33 @@ export class ReelsController {
       onResultReceived(result);
       this.round.startLanding();
       if (result.cascade) {
-        await this.scene.executeReels(
-          new PlayCascadeCommand(
-            result.cascade,
-            result.reels,
-            turboThisRound,
-            this.round.quickStopRequested,
-          ),
-          signal,
-        );
+        if (spinMode === 'HYBRID') {
+          await this.scene.executeReels(
+            new LandReelsCommand(
+              result.cascade.initialReels,
+              turboThisRound || this.round.quickStopRequested,
+              result.presentation?.anticipation ?? null,
+            ),
+            signal,
+          );
+        }
+        if (spinMode !== 'HYBRID' || result.cascade.steps.length > 0) {
+          this.hybridCascadeActive = spinMode === 'HYBRID';
+          try {
+            await this.scene.executeReels(
+              new PlayCascadeCommand(
+                result.cascade,
+                result.reels,
+                turboThisRound,
+                this.round.quickStopRequested,
+                spinMode === 'HYBRID',
+              ),
+              signal,
+            );
+          } finally {
+            this.hybridCascadeActive = false;
+          }
+        }
       } else {
         await this.scene.executeReels(
           new LandReelsCommand(
@@ -107,7 +127,7 @@ export class ReelsController {
         return result;
       }
 
-      if (cascade) {
+      if (spinMode === 'CASCADE') {
         this.scene.executeReels(new SetReelsCommand(previousReels), signal);
       } else {
         try {
@@ -120,7 +140,8 @@ export class ReelsController {
     } finally {
       this.activeResult = null;
       this.activeSignal = null;
-      this.cascadeThisRound = false;
+      this.spinModeThisRound = 'CLASSIC';
+      this.hybridCascadeActive = false;
       this.store.setSpinning(false);
     }
   }
@@ -129,9 +150,11 @@ export class ReelsController {
     if (!this.round.requestQuickStop()) return;
     if (!this.activeResult || !this.activeSignal || this.activeSignal.aborted) return;
     this.scene.executeReels(
-      this.cascadeThisRound
+      this.spinModeThisRound === 'CASCADE' || this.hybridCascadeActive
         ? new QuickStopCascadeCommand(this.activeResult.reels)
-        : new QuickStopReelsCommand(this.activeResult.reels),
+        : new QuickStopReelsCommand(
+            this.activeResult.cascade?.initialReels ?? this.activeResult.reels,
+          ),
       this.activeSignal,
     );
   };

@@ -1,4 +1,4 @@
-import type { RoundResult, SlotCommand, SlotState } from '@lucky-games/contracts';
+import type { RoundResult, SlotCommand, SlotState, SpinMode } from '@lucky-games/contracts';
 import { SlotApiError } from './SlotApiError';
 import { SlotHttpClient } from './SlotHttpClient';
 import { SlotSocketClient } from './SlotSocketClient';
@@ -8,7 +8,7 @@ const PENDING_KEY = 'egypt-slot:pending-command';
 
 export type SpinOptions = Pick<
   Extract<SlotCommand, { type: 'SPIN' }>,
-  'bet' | 'level' | 'coinValueCents' | 'anticipationDemo' | 'cascade'
+  'bet' | 'level' | 'coinValueCents' | 'anticipationDemo' | 'spinMode'
 >;
 
 export class SlotApi {
@@ -31,8 +31,9 @@ export class SlotApi {
     return this.pendingCommand?.type ?? null;
   }
 
-  get pendingCascadeMode(): boolean {
-    return this.pendingCommand?.type === 'SPIN' && this.pendingCommand.cascade === true;
+  get pendingSpinMode(): SpinMode {
+    if (this.pendingCommand?.type !== 'SPIN') return 'CLASSIC';
+    return this.pendingCommand.spinMode ?? (this.pendingCommand.cascade ? 'CASCADE' : 'CLASSIC');
   }
 
   async initialize(
@@ -145,7 +146,10 @@ export class SlotApi {
         this.clearPending();
         if (
           command.type === 'SPIN' &&
-          (command.anticipationDemo || command.cascade) &&
+          (command.anticipationDemo ||
+            command.cascade ||
+            command.spinMode === 'CASCADE' ||
+            command.spinMode === 'HYBRID') &&
           error.code === 'INVALID_REQUEST' &&
           error.message === 'Invalid game command'
         ) {
@@ -198,6 +202,10 @@ export class SlotApi {
             'coinValueCents' in value &&
             Number.isInteger(value.coinValueCents) &&
             (!('anticipationDemo' in value) || typeof value.anticipationDemo === 'boolean') &&
+            (!('spinMode' in value) ||
+              value.spinMode === 'CLASSIC' ||
+              value.spinMode === 'CASCADE' ||
+              value.spinMode === 'HYBRID') &&
             (!('cascade' in value) || typeof value.cascade === 'boolean')))
       ) {
         return value as SlotCommand;

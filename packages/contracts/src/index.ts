@@ -19,6 +19,7 @@ export type ReelGrid = [Reel, Reel, Reel, Reel, Reel];
 export type Position = [reelIndex: number, rowIndex: number];
 export type GameAction = 'SPIN' | 'FREE_SPIN';
 export type NextAction = GameAction;
+export type SpinMode = 'CLASSIC' | 'CASCADE' | 'HYBRID';
 
 export const SLOT_ERROR_CODES = [
   'UNAUTHORIZED',
@@ -97,6 +98,8 @@ export interface RoundResult {
   roundId: string;
   status: 'completed';
   mode: 'BASE_GAME' | 'FREE_SPINS';
+  /** How the paid spin was presented. Older stored rounds may omit this field. */
+  spinMode?: SpinMode;
   isWin: boolean;
   netCoins: number;
   bet: Bet;
@@ -161,6 +164,8 @@ export type SlotCommand =
       coinValueCents: number;
       /** Demo only: server generates a round with two visible scatters before reel 3, 4 or 5. */
       anticipationDemo?: boolean;
+      spinMode?: SpinMode;
+      /** Legacy pending rounds; new clients send spinMode instead. */
       cascade?: boolean;
     }
   | { type: 'FREE_SPIN'; sessionId: string; requestId: string };
@@ -177,6 +182,7 @@ const symbol = z.enum(SYMBOLS);
 const payoutCoefficients = z.tuple([nonNegativeInteger, nonNegativeInteger, nonNegativeInteger]);
 const winType = z.enum(['NO_WIN', 'NORMAL_WIN', 'BIG_WIN', 'MEGA_WIN', 'SUPER_MEGA_WIN']);
 const action = z.enum(['SPIN', 'FREE_SPIN']);
+const spinMode = z.enum(['CLASSIC', 'CASCADE', 'HYBRID']);
 
 const betSchema: z.ZodType<Bet> = z.object({
   bet: positiveInteger,
@@ -294,6 +300,7 @@ export const roundResultSchema: z.ZodType<RoundResult> = z
     roundId: z.string().min(1),
     status: z.literal('completed'),
     mode: z.enum(['BASE_GAME', 'FREE_SPINS']),
+    spinMode: spinMode.optional(),
     isWin: z.boolean(),
     netCoins: z.number().int(),
     bet: betSchema,
@@ -341,11 +348,21 @@ export const roundResultSchema: z.ZodType<RoundResult> = z
   })
   .superRefine((result, context) => {
     const sequence = result.cascade;
-    if (!sequence) return;
+    if (!sequence) {
+      if (result.spinMode === 'CASCADE' || result.spinMode === 'HYBRID') {
+        context.addIssue({
+          code: 'custom',
+          path: ['spinMode'],
+          message: 'Cascade sequence is missing',
+        });
+      }
+      return;
+    }
     const finalGrid = sequence.steps.at(-1)?.after ?? sequence.initialReels;
     const paid = sequence.steps.reduce((sum, step) => sum + step.payoutCoins, 0);
     if (
       result.mode !== 'BASE_GAME' ||
+      result.spinMode === 'CLASSIC' ||
       !sameGrid(result.reels, finalGrid) ||
       result.totalWinCoins !== paid
     ) {

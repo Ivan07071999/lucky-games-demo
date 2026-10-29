@@ -20,6 +20,7 @@ const commandSchema = z.discriminatedUnion('type', [
     level: z.number().int(),
     coinValueCents: z.number().int(),
     anticipationDemo: z.boolean().optional(),
+    spinMode: z.enum(['CLASSIC', 'CASCADE', 'HYBRID']).optional(),
     cascade: z.boolean().optional(),
   }),
   z.strictObject({ type: z.literal('FREE_SPIN'), sessionId, requestId }),

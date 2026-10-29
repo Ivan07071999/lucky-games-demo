@@ -8,7 +8,7 @@ import { SCROLL_MODAL_COLORS } from './scroll-modal-theme';
 import { SettingsCheckbox } from './settings-checkbox';
 
 const MODAL_WIDTH = 460;
-const MODAL_HEIGHT = 460;
+const MODAL_HEIGHT = 600;
 const MODAL_MARGIN = 16;
 const CONTENT_PADDING_X = 56;
 const CONTENT_PADDING_TOP = 64;
@@ -16,7 +16,9 @@ const CONTENT_PADDING_TOP = 64;
 export class GameSettingsModal extends Container {
   readonly turboCheckbox: SettingsCheckbox;
   readonly anticipationCheckbox: SettingsCheckbox;
+  readonly classicCheckbox: SettingsCheckbox;
   readonly cascadeCheckbox: SettingsCheckbox;
+  readonly hybridCheckbox: SettingsCheckbox;
 
   private readonly backdrop = new Graphics();
   private readonly surface = new Container();
@@ -65,8 +67,26 @@ export class GameSettingsModal extends Container {
       wordWrapWidth: MODAL_WIDTH - CONTENT_PADDING_X * 2 - 28,
     },
   });
+  private readonly modeHeading = new Text({
+    text: 'REEL MODE',
+    style: {
+      fontFamily: 'Manrope Variable, sans-serif',
+      fontSize: 15,
+      fill: SCROLL_MODAL_COLORS.heading,
+    },
+  });
   private readonly cascadeDescription = new Text({
     text: 'Winning symbols disappear and new symbols fall in. Changes payout math.',
+    style: {
+      fontFamily: 'Manrope Variable, sans-serif',
+      fontSize: 13,
+      fill: SCROLL_MODAL_COLORS.ink,
+      wordWrap: true,
+      wordWrapWidth: MODAL_WIDTH - CONTENT_PADDING_X * 2 - 28,
+    },
+  });
+  private readonly hybridDescription = new Text({
+    text: 'Reels spin normally; winning symbols then disappear and refill from above.',
     style: {
       fontFamily: 'Manrope Variable, sans-serif',
       fontSize: 13,
@@ -98,7 +118,10 @@ export class GameSettingsModal extends Container {
     this.spinHeading.position.set(CONTENT_PADDING_X, CONTENT_PADDING_TOP + 70);
     this.description.position.set(CONTENT_PADDING_X + 28, CONTENT_PADDING_TOP + 130);
     this.anticipationDescription.position.set(CONTENT_PADDING_X + 28, CONTENT_PADDING_TOP + 205);
-    this.cascadeDescription.position.set(CONTENT_PADDING_X + 28, CONTENT_PADDING_TOP + 312);
+    this.modeHeading.anchor.set(0, 0.5);
+    this.modeHeading.position.set(CONTENT_PADDING_X, CONTENT_PADDING_TOP + 264);
+    this.cascadeDescription.position.set(CONTENT_PADDING_X + 28, CONTENT_PADDING_TOP + 361);
+    this.hybridDescription.position.set(CONTENT_PADDING_X + 28, CONTENT_PADDING_TOP + 446);
     this.closeButton.position.set(MODAL_WIDTH - CONTENT_PADDING_X, CONTENT_PADDING_TOP);
     this.turboCheckbox = new SettingsCheckbox('TURBO SPIN', () => {
       if (store.canToggleSpinSettings) store.spinSettings.toggleTurbo();
@@ -110,11 +133,21 @@ export class GameSettingsModal extends Container {
     });
     this.anticipationCheckbox.position.set(CONTENT_PADDING_X, CONTENT_PADDING_TOP + 184);
     this.anticipationCheckbox.resize(MODAL_WIDTH - CONTENT_PADDING_X * 2);
+    this.classicCheckbox = new SettingsCheckbox('CLASSIC SPIN', () => {
+      if (store.canToggleSpinSettings) store.spinSettings.selectClassic();
+    });
+    this.classicCheckbox.position.set(CONTENT_PADDING_X, CONTENT_PADDING_TOP + 294);
+    this.classicCheckbox.resize(MODAL_WIDTH - CONTENT_PADDING_X * 2);
     this.cascadeCheckbox = new SettingsCheckbox('CASCADE', () => {
       if (store.canToggleSpinSettings) store.spinSettings.toggleCascade();
     });
-    this.cascadeCheckbox.position.set(CONTENT_PADDING_X, CONTENT_PADDING_TOP + 292);
+    this.cascadeCheckbox.position.set(CONTENT_PADDING_X, CONTENT_PADDING_TOP + 340);
     this.cascadeCheckbox.resize(MODAL_WIDTH - CONTENT_PADDING_X * 2);
+    this.hybridCheckbox = new SettingsCheckbox('HYBRID SPIN', () => {
+      if (store.canToggleSpinSettings) store.spinSettings.toggleHybrid();
+    });
+    this.hybridCheckbox.position.set(CONTENT_PADDING_X, CONTENT_PADDING_TOP + 425);
+    this.hybridCheckbox.resize(MODAL_WIDTH - CONTENT_PADDING_X * 2);
 
     this.surface.pivot.set(MODAL_WIDTH / 2, MODAL_HEIGHT / 2);
     this.surface.addChild(
@@ -126,8 +159,12 @@ export class GameSettingsModal extends Container {
       this.turboCheckbox,
       this.anticipationDescription,
       this.anticipationCheckbox,
+      this.modeHeading,
+      this.classicCheckbox,
       this.cascadeDescription,
       this.cascadeCheckbox,
+      this.hybridDescription,
+      this.hybridCheckbox,
       this.closeButton,
     );
     this.addChild(this.backdrop, this.surface);
@@ -137,7 +174,9 @@ export class GameSettingsModal extends Container {
         store.spinSettings.anticipationDemoEnabled,
         store.canToggleSpinSettings && !store.spinSettings.cascadeEnabled,
       );
+      this.classicCheckbox.setState(store.spinSettings.classicEnabled, store.canToggleSpinSettings);
       this.cascadeCheckbox.setState(store.spinSettings.cascadeEnabled, store.canToggleSpinSettings);
+      this.hybridCheckbox.setState(store.spinSettings.hybridEnabled, store.canToggleSpinSettings);
     });
   }
 

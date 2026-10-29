@@ -19,8 +19,9 @@ function refill(reels: ReelGrid, removedPositions: Position[], random: RandomInt
 export function calculateCascadeRound(
   random: RandomInt,
   bet: Bet,
+  startingReels: ReelGrid = generateReels(random),
 ): Evaluated & { cascade: CascadeSequence } {
-  let current = evaluateRound(generateReels(random), bet, 'BASE_GAME', []);
+  let current = evaluateRound(startingReels, bet, 'BASE_GAME', []);
   const initialReels = current.reels;
   const steps: CascadeSequence['steps'] = [];
   let totalWinCoins = 0;

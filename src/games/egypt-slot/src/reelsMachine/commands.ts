@@ -37,21 +37,31 @@ export class PlayCascadeCommand implements ReelsCommand {
   private readonly finalReels: ReelsMatrix;
   private readonly turbo: boolean;
   private readonly quickStop: boolean;
+  private readonly hybrid: boolean;
 
   constructor(
     sequence: CascadeSequence,
     finalReels: ReelsMatrix,
     turbo = false,
     quickStop = false,
+    hybrid = false,
   ) {
     this.sequence = sequence;
     this.finalReels = finalReels;
     this.turbo = turbo;
     this.quickStop = quickStop;
+    this.hybrid = hybrid;
   }
 
   execute(machine: ReelsMachine, signal: AbortSignal): Promise<void> {
-    return machine.playCascade(this.sequence, this.finalReels, signal, this.turbo, this.quickStop);
+    return machine.playCascade(
+      this.sequence,
+      this.finalReels,
+      signal,
+      this.turbo,
+      this.quickStop,
+      this.hybrid,
+    );
   }
 }
 
