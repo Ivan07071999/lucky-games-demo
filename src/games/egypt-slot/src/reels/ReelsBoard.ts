@@ -8,6 +8,12 @@ import { REEL_COUNT, VISIBLE_ROWS, type ReelsMatrix } from './reelsConfig';
 import { WinLineOverlay } from './WinLineOverlay';
 
 const START_INTERVAL_SECONDS = 0.09;
+const CASCADE_REEL_INTERVAL_SECONDS = 0.16;
+const TURBO_CASCADE_REEL_INTERVAL_SECONDS = 0.045;
+
+function cascadeReelDelay(index: number, turbo: boolean): number {
+  return index * (turbo ? TURBO_CASCADE_REEL_INTERVAL_SECONDS : CASCADE_REEL_INTERVAL_SECONDS);
+}
 
 export class ReelsBoard extends Container {
   private readonly columns: ReelColumn[];
@@ -155,7 +161,9 @@ export class ReelsBoard extends Container {
       column.visible = true;
     });
     this.cascadeStartTask = Promise.all(
-      this.cascadeColumns.map((column) => column.exit(signal, turbo)),
+      this.cascadeColumns.map((column, index) =>
+        column.exit(signal, turbo, cascadeReelDelay(index, turbo)),
+      ),
     ).then(() => undefined);
     void this.cascadeStartTask.catch(() => undefined);
   }
@@ -177,7 +185,7 @@ export class ReelsBoard extends Container {
       if (!this.cascadeActive) return;
       await Promise.all(
         this.cascadeColumns.map((column, index) =>
-          column.enter(sequence.initialReels[index], signal, turbo),
+          column.enter(sequence.initialReels[index], signal, turbo, cascadeReelDelay(index, turbo)),
         ),
       );
       for (const step of sequence.steps) {
@@ -188,13 +196,27 @@ export class ReelsBoard extends Container {
           if (!this.cascadeActive) return;
         }
         this.winLine.clear();
+        const removedRows = this.cascadeColumns.map((_, reelIndex) =>
+          step.removedPositions.filter(([index]) => index === reelIndex).map(([, row]) => row),
+        );
+        await Promise.all(
+          this.cascadeColumns.map((column, reelIndex) =>
+            column.removeRows(
+              removedRows[reelIndex],
+              signal,
+              turbo,
+              cascadeReelDelay(reelIndex, turbo),
+            ),
+          ),
+        );
         await Promise.all(
           this.cascadeColumns.map((column, reelIndex) =>
             column.refill(
-              step.removedPositions.filter(([index]) => index === reelIndex).map(([, row]) => row),
+              removedRows[reelIndex],
               step.after[reelIndex],
               signal,
               turbo,
+              cascadeReelDelay(reelIndex, turbo),
             ),
           ),
         );

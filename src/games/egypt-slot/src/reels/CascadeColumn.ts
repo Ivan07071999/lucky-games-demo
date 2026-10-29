@@ -3,6 +3,9 @@ import { Container } from 'pixi.js';
 import { ReelSymbol } from './reelSymbol';
 import type { ReelColumnSymbols } from './reelsConfig';
 
+const SYMBOL_INTERVAL_SECONDS = 0.11;
+const TURBO_SYMBOL_INTERVAL_SECONDS = 0.025;
+
 export class CascadeColumn extends Container {
   private symbols: ReelSymbol[];
   private readonly rowHeight: number;
@@ -28,7 +31,7 @@ export class CascadeColumn extends Container {
     });
   }
 
-  exit(signal: AbortSignal, turbo: boolean): Promise<void> {
+  exit(signal: AbortSignal, turbo: boolean, startDelay = 0): Promise<void> {
     return this.animate(signal, (timeline) => {
       this.symbols.forEach((symbol, row) => {
         timeline.to(
@@ -39,13 +42,18 @@ export class CascadeColumn extends Container {
             duration: turbo ? 0.12 : 0.32,
             ease: 'power2.in',
           },
-          row * (turbo ? 0.01 : 0.035),
+          startDelay + this.symbolDelay(this.symbols.length - 1 - row, turbo),
         );
       });
     });
   }
 
-  enter(values: ReelColumnSymbols, signal: AbortSignal, turbo: boolean): Promise<void> {
+  enter(
+    values: ReelColumnSymbols,
+    signal: AbortSignal,
+    turbo: boolean,
+    startDelay = 0,
+  ): Promise<void> {
     this.symbols.forEach((symbol, row) => {
       symbol.setValue(values[row]);
       symbol.y = (row - 3) * this.rowHeight;
@@ -56,7 +64,33 @@ export class CascadeColumn extends Container {
         timeline.to(
           symbol,
           { y: row * this.rowHeight, duration: turbo ? 0.14 : 0.4, ease: 'power2.out' },
-          row * (turbo ? 0.015 : 0.065),
+          startDelay + this.symbolDelay(this.symbols.length - 1 - row, turbo),
+        );
+      });
+    });
+  }
+
+  removeRows(
+    removedRows: readonly number[],
+    signal: AbortSignal,
+    turbo: boolean,
+    startDelay = 0,
+  ): Promise<void> {
+    if (removedRows.length === 0) return Promise.resolve();
+    const removed = new Set(removedRows);
+    const incoming = this.symbols.filter((_, row) => removed.has(row));
+
+    return this.animate(signal, (timeline) => {
+      incoming.forEach((symbol, index) => {
+        timeline.to(
+          symbol,
+          {
+            y: (this.symbols.length + index) * this.rowHeight,
+            alpha: 0,
+            duration: turbo ? 0.12 : 0.3,
+            ease: 'power2.in',
+          },
+          startDelay + this.symbolDelay(incoming.length - 1 - index, turbo),
         );
       });
     });
@@ -67,29 +101,24 @@ export class CascadeColumn extends Container {
     values: ReelColumnSymbols,
     signal: AbortSignal,
     turbo: boolean,
+    startDelay = 0,
   ): Promise<void> {
     if (removedRows.length === 0) return Promise.resolve();
     const removed = new Set(removedRows);
     const incoming = this.symbols.filter((_, row) => removed.has(row));
     const survivors = this.symbols.filter((_, row) => !removed.has(row));
-    const fade = turbo ? 0.06 : 0.18;
-    const fall = turbo ? 0.13 : 0.36;
+    const fall = turbo ? 0.14 : 0.4;
+
+    incoming.forEach((symbol, row) => {
+      symbol.setValue(values[row]);
+      symbol.y = (row - incoming.length) * this.rowHeight;
+      symbol.alpha = 1;
+    });
+    survivors.forEach((symbol, index) => {
+      symbol.setValue(values[incoming.length + index]);
+    });
 
     return this.animate(signal, (timeline) => {
-      for (const symbol of incoming) timeline.to(symbol, { alpha: 0, duration: fade }, 0);
-      timeline.call(
-        () => {
-          incoming.forEach((symbol, row) => {
-            symbol.setValue(values[row]);
-            symbol.y = (row - incoming.length) * this.rowHeight;
-          });
-          survivors.forEach((symbol, index) => {
-            symbol.setValue(values[incoming.length + index]);
-          });
-        },
-        [],
-        fade,
-      );
       survivors.forEach((symbol, index) => {
         timeline.to(
           symbol,
@@ -98,14 +127,14 @@ export class CascadeColumn extends Container {
             duration: fall,
             ease: 'power2.out',
           },
-          fade,
+          startDelay,
         );
       });
       incoming.forEach((symbol, row) => {
         timeline.to(
           symbol,
-          { y: row * this.rowHeight, alpha: 1, duration: fall, ease: 'power2.out' },
-          fade,
+          { y: row * this.rowHeight, duration: fall, ease: 'power2.out' },
+          startDelay + this.symbolDelay(incoming.length - 1 - row, turbo),
         );
       });
     }).then(() => {
@@ -121,6 +150,10 @@ export class CascadeColumn extends Container {
   override destroy(options?: Parameters<Container['destroy']>[0]): void {
     this.cancel();
     super.destroy(options);
+  }
+
+  private symbolDelay(order: number, turbo: boolean): number {
+    return order * (turbo ? TURBO_SYMBOL_INTERVAL_SECONDS : SYMBOL_INTERVAL_SECONDS);
   }
 
   private animate(
