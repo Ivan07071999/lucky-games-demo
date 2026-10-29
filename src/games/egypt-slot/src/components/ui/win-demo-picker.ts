@@ -26,6 +26,8 @@ const makeText = (content: string, size: number, color: number): Text =>
   });
 
 export class WinDemoPicker extends Container {
+  private readonly symbolLabel = makeText('SYMBOL', 11, SCROLL_MODAL_COLORS.ink);
+  private readonly countLabel = makeText('MATCH', 11, SCROLL_MODAL_COLORS.ink);
   private readonly symbolValue = makeText('', 14, SCROLL_MODAL_COLORS.heading);
   private readonly countValue = makeText('', 14, SCROLL_MODAL_COLORS.heading);
   private readonly controls: Container[] = [];
@@ -34,18 +36,12 @@ export class WinDemoPicker extends Container {
     super();
     this.label = 'win-demo-picker';
 
-    const symbolLabel = makeText('SYMBOL', 11, SCROLL_MODAL_COLORS.ink);
-    const countLabel = makeText('MATCH', 11, SCROLL_MODAL_COLORS.ink);
-    symbolLabel.position.set(0, 0);
-    countLabel.position.set(190, 0);
     this.symbolValue.anchor.set(0.5, 0.5);
-    this.symbolValue.position.set(108, 35);
     this.countValue.anchor.set(0.5, 0.5);
-    this.countValue.position.set(276, 35);
 
     this.addChild(
-      symbolLabel,
-      countLabel,
+      this.symbolLabel,
+      this.countLabel,
       this.symbolValue,
       this.countValue,
       this.arrow(0, 19, '‹', actions.previousSymbol),
@@ -53,6 +49,23 @@ export class WinDemoPicker extends Container {
       this.arrow(190, 19, '‹', actions.previousCount),
       this.arrow(325, 19, '›', actions.nextCount),
     );
+    this.resize(348);
+  }
+
+  resize(width: number): void {
+    const gap = 12;
+    const groupWidth = (width - gap) / 2;
+    const countX = groupWidth + gap;
+    this.symbolLabel.x = 0;
+    this.countLabel.x = countX;
+    this.symbolValue.position.set(groupWidth / 2, 35);
+    this.countValue.position.set(countX + groupWidth / 2, 35);
+    this.symbolValue.style.fontSize = width < 300 ? 12 : 14;
+    this.countValue.style.fontSize = width < 300 ? 12 : 14;
+    this.controls[0].x = 0;
+    this.controls[1].x = groupWidth - 25;
+    this.controls[2].x = countX;
+    this.controls[3].x = width - 25;
   }
 
   setState(symbol: SymbolKey, count: 3 | 4 | 5, enabled: boolean): void {

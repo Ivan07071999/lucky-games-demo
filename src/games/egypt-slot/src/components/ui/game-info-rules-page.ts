@@ -28,12 +28,12 @@ class PaylineDiagram extends Container {
   }
 
   layout(rows: readonly number[], lineIndex: number, width: number, compact: boolean): number {
-    const cellSize = Math.min(compact ? 16 : 24, (width - 28) / 6);
-    const gap = compact ? 3 : 5;
+    const cellSize = Math.min(compact ? 15 : 18, (width - 24) / 6);
+    const gap = compact ? 2 : 3;
     const gridWidth = cellSize * 5 + gap * 4;
     const gridX = (width - gridWidth) / 2;
-    const gridY = compact ? 27 : 34;
-    const height = gridY + cellSize * 3 + gap * 2 + (compact ? 10 : 14);
+    const gridY = compact ? 22 : 25;
+    const height = gridY + cellSize * 3 + gap * 2 + 8;
 
     this.background
       .clear()
@@ -41,8 +41,8 @@ class PaylineDiagram extends Container {
       .fill({ color: SCROLL_MODAL_COLORS.buttonBorder, alpha: 0.08 })
       .stroke({ color: SCROLL_MODAL_COLORS.buttonBorder, width: 1, alpha: 0.55 });
     this.title.text = `LINE ${lineIndex + 1}`;
-    this.title.style.fontSize = compact ? 12 : 15;
-    this.title.position.set(width / 2, compact ? 5 : 7);
+    this.title.style.fontSize = compact ? 11 : 13;
+    this.title.position.set(width / 2, 4);
 
     this.path.clear();
     this.cells.clear();
@@ -86,13 +86,13 @@ export class GameInfoRulesPage extends Container {
     makeText('', 18),
   ];
   private readonly linesTitle = makeText('WINNING LINES', 22, true);
-  private readonly lineHint = makeText(
-    'Gold squares show the active row on each reel. Every winning line pays separately.',
-    16,
-  );
-  private readonly footer = makeText(
-    'Quick Stop only speeds up the animation; the server determines the result and balance.',
+  private readonly lineModes = makeText(
+    '5 lines: 1-5 (three horizontal, two V paths). 7 lines: add 6-7 (top/middle and bottom/middle zigzags). 9 lines: add 8-9 (middle/top and middle/bottom zigzags).',
     15,
+  );
+  private readonly lineHint = makeText(
+    'Gold squares trace each path. Only the lines selected in Settings can pay.',
+    16,
   );
   private readonly diagrams: PaylineDiagram[] = [];
   private paylines: number[][] = [];
@@ -100,18 +100,18 @@ export class GameInfoRulesPage extends Container {
   constructor() {
     super();
     this.label = 'game-info-rules-page';
-    this.addChild(...this.rules, this.linesTitle, this.lineHint, this.footer);
+    this.addChild(...this.rules, this.linesTitle, this.lineModes, this.lineHint);
   }
 
   setData(config: SlotState['config']): void {
     this.rules[2].text =
-      `All wins on the ${config.paylines.length} active lines are added to the round win. ` +
+      'Wins on the selected lines are added to the round win. ' +
       `An expanded Wild multiplies affected lines ×${config.wildMultiplier}.`;
     this.rules[3].text =
       `${config.scatterTriggerCount}+ Scarabs anywhere on a paid spin award ${config.freeSpinsAwarded} Free Spins. ` +
       'They use the triggering bet and cost no coins.';
-    this.linesTitle.text = `WINNING LINES (${config.paylines.length})`;
-    this.paylines = config.paylines;
+    this.linesTitle.text = `ALL ${config.paylines.length} WINNING LINES`;
+    this.paylines = config.paylines.slice();
 
     while (this.diagrams.length < this.paylines.length) {
       const diagram = new PaylineDiagram();
@@ -126,23 +126,28 @@ export class GameInfoRulesPage extends Container {
   layout(width: number): number {
     const compact = width < 600;
     const textWidth = Math.max(1, width - (compact ? 4 : 40));
-    const ruleGap = compact ? 8 : 12;
+    const ruleGap = compact ? 4 : 7;
     let y = 0;
 
     for (const rule of this.rules) {
-      rule.style.fontSize = compact ? 14 : 18;
+      rule.style.fontSize = compact ? 13 : 16;
       rule.style.wordWrapWidth = textWidth;
       rule.position.set(width / 2, y);
       y += rule.height + ruleGap;
     }
 
-    y += compact ? 7 : 14;
+    y += compact ? 4 : 8;
     this.linesTitle.style.fontSize = compact ? 18 : 22;
     this.linesTitle.position.set(width / 2, y);
-    y += this.linesTitle.height + (compact ? 12 : 18);
+    y += this.linesTitle.height + (compact ? 4 : 7);
 
-    const columns = width >= 620 ? 3 : width >= 260 ? 2 : 1;
-    const gap = compact ? 8 : 16;
+    this.lineModes.style.fontSize = compact ? 12 : 15;
+    this.lineModes.style.wordWrapWidth = textWidth;
+    this.lineModes.position.set(width / 2, y);
+    y += this.lineModes.height + (compact ? 7 : 11);
+
+    const columns = width >= 400 ? 3 : width >= 260 ? 2 : 1;
+    const gap = compact ? 7 : 12;
     const cardWidth = (width - gap * (columns - 1)) / columns;
     for (let start = 0; start < this.paylines.length; start += columns) {
       const count = Math.min(columns, this.paylines.length - start);
@@ -161,14 +166,10 @@ export class GameInfoRulesPage extends Container {
       y += rowHeight + gap;
     }
 
-    y += compact ? 2 : 8;
+    y += compact ? 1 : 4;
     this.lineHint.style.fontSize = compact ? 12 : 15;
     this.lineHint.style.wordWrapWidth = textWidth;
     this.lineHint.position.set(width / 2, y);
-    y += this.lineHint.height + (compact ? 14 : 24);
-    this.footer.style.fontSize = compact ? 12 : 15;
-    this.footer.style.wordWrapWidth = textWidth;
-    this.footer.position.set(width / 2, y);
-    return y + this.footer.height + 12;
+    return y + this.lineHint.height + 8;
   }
 }

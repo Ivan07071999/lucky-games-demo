@@ -1,5 +1,6 @@
 import {
   SYMBOLS,
+  WIN_DEMO_TYPES,
   type RoundResult,
   type SlotCommand,
   type SlotState,
@@ -12,10 +13,18 @@ import { SlotSocketClient } from './SlotSocketClient';
 const SESSION_KEY = 'egypt-slot:session-id';
 const PENDING_KEY = 'egypt-slot:pending-command';
 const KNOWN_SYMBOLS = new Set<string>(SYMBOLS);
+const KNOWN_WIN_DEMO_TYPES = new Set<string>(WIN_DEMO_TYPES);
 
 export type SpinOptions = Pick<
   Extract<SlotCommand, { type: 'SPIN' }>,
-  'bet' | 'level' | 'coinValueCents' | 'anticipationDemo' | 'winDemo' | 'spinMode'
+  | 'bet'
+  | 'level'
+  | 'coinValueCents'
+  | 'paylineCount'
+  | 'anticipationDemo'
+  | 'winDemo'
+  | 'winTypeDemo'
+  | 'spinMode'
 >;
 
 export class SlotApi {
@@ -153,8 +162,10 @@ export class SlotApi {
         this.clearPending();
         if (
           command.type === 'SPIN' &&
-          (command.anticipationDemo ||
+          (command.paylineCount ||
+            command.anticipationDemo ||
             command.winDemo ||
+            command.winTypeDemo ||
             command.cascade ||
             command.spinMode === 'CASCADE' ||
             command.spinMode === 'HYBRID') &&
@@ -162,7 +173,7 @@ export class SlotApi {
           error.message === 'Invalid game command'
         ) {
           throw new SlotApiError(
-            'Restart the game server to enable the selected spin mode.',
+            'Restart the game server to enable the selected game setting.',
             'INVALID_REQUEST',
           );
         }
@@ -209,6 +220,10 @@ export class SlotApi {
             Number.isInteger(value.level) &&
             'coinValueCents' in value &&
             Number.isInteger(value.coinValueCents) &&
+            (!('paylineCount' in value) ||
+              value.paylineCount === 5 ||
+              value.paylineCount === 7 ||
+              value.paylineCount === 9) &&
             (!('anticipationDemo' in value) || typeof value.anticipationDemo === 'boolean') &&
             (!('winDemo' in value) ||
               (value.winDemo !== null &&
@@ -220,6 +235,9 @@ export class SlotApi {
                 (value.winDemo.count === 3 ||
                   value.winDemo.count === 4 ||
                   value.winDemo.count === 5))) &&
+            (!('winTypeDemo' in value) ||
+              (typeof value.winTypeDemo === 'string' &&
+                KNOWN_WIN_DEMO_TYPES.has(value.winTypeDemo))) &&
             (!('spinMode' in value) ||
               value.spinMode === 'CLASSIC' ||
               value.spinMode === 'CASCADE' ||

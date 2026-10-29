@@ -1,7 +1,12 @@
 import Fastify from 'fastify';
 import websocket from '@fastify/websocket';
 import { z } from 'zod';
-import { SYMBOLS, type SlotCommand, type SlotMessage } from '@lucky-games/contracts';
+import {
+  SYMBOLS,
+  WIN_DEMO_TYPES,
+  type SlotCommand,
+  type SlotMessage,
+} from '@lucky-games/contracts';
 import { SlotService } from '../game/SlotService.js';
 import { SlotError } from '../storage/Database.js';
 
@@ -19,6 +24,7 @@ const commandSchema = z.discriminatedUnion('type', [
     bet: z.number().int(),
     level: z.number().int(),
     coinValueCents: z.number().int(),
+    paylineCount: z.union([z.literal(5), z.literal(7), z.literal(9)]).optional(),
     anticipationDemo: z.boolean().optional(),
     winDemo: z
       .strictObject({
@@ -26,6 +32,7 @@ const commandSchema = z.discriminatedUnion('type', [
         count: z.union([z.literal(3), z.literal(4), z.literal(5)]),
       })
       .optional(),
+    winTypeDemo: z.enum(WIN_DEMO_TYPES).optional(),
     spinMode: z.enum(['CLASSIC', 'CASCADE', 'HYBRID']).optional(),
     cascade: z.boolean().optional(),
   }),

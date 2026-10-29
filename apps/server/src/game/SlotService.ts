@@ -1,6 +1,9 @@
 import { randomInt, randomUUID } from 'node:crypto';
 import {
+  DEFAULT_PAYLINE_COUNT,
+  PAYLINE_COUNTS,
   SYMBOLS,
+  WIN_DEMO_TYPES,
   type Bet,
   type RoundResult,
   type SlotCommand,
@@ -23,6 +26,7 @@ import { getReelAnticipationHint } from './presentationHints.js';
 import { generateAnticipationDemoReels } from './anticipationDemo.js';
 import { calculateCascadeRound } from './cascadeRules.js';
 import { generateWinningDemoReels } from './winDemo.js';
+import { generateWinTypeDemoReels, winTypeDemoRefillSymbol } from './winTypeDemo.js';
 
 export class SlotService {
   constructor(
@@ -50,14 +54,17 @@ export class SlotService {
     if (!/^[a-zA-Z0-9_-]{1,100}$/.test(command.requestId)) {
       throw new SlotError('INVALID_REQUEST', 'Invalid requestId');
     }
-    const bet =
+    const validatedBet =
       command.type === 'SPIN'
         ? validateBet(command.bet, command.level, command.coinValueCents)
         : null;
-    if (command.type === 'SPIN' && !bet) {
+    if (command.type === 'SPIN' && !validatedBet) {
       throw new SlotError('INVALID_BET', 'Bet, level or coin value is not allowed');
     }
     if (command.type === 'SPIN') {
+      if (command.paylineCount !== undefined && !PAYLINE_COUNTS.includes(command.paylineCount)) {
+        throw new SlotError('INVALID_REQUEST', 'Payline count is not allowed');
+      }
       const spinMode = command.spinMode ?? (command.cascade ? 'CASCADE' : 'CLASSIC');
       if (command.cascade && spinMode !== 'CASCADE') {
         throw new SlotError('INVALID_REQUEST', 'Conflicting spin modes');
@@ -66,17 +73,32 @@ export class SlotService {
         throw new SlotError('INVALID_REQUEST', 'Cascade and anticipation demo cannot be combined');
       }
       if (command.winDemo) {
-        if (command.anticipationDemo) {
+        if (command.anticipationDemo || command.winTypeDemo) {
           throw new SlotError(
             'INVALID_REQUEST',
-            'Win demo and anticipation demo cannot be combined',
+            'Win combination demo cannot be combined with another demo',
           );
         }
         if (!SLOT_MATH.payouts[command.winDemo.symbol][command.winDemo.count - 3]) {
           throw new SlotError('INVALID_REQUEST', 'Selected win combination is not paid');
         }
       }
+      if (command.winTypeDemo) {
+        if (!WIN_DEMO_TYPES.includes(command.winTypeDemo)) {
+          throw new SlotError('INVALID_REQUEST', 'Win type demo is not allowed');
+        }
+        if (command.anticipationDemo) {
+          throw new SlotError(
+            'INVALID_REQUEST',
+            'Win type and anticipation demos cannot be combined',
+          );
+        }
+      }
     }
+    const bet =
+      command.type === 'SPIN' && validatedBet
+        ? { ...validatedBet, paylineCount: command.paylineCount ?? DEFAULT_PAYLINE_COUNT }
+        : null;
     return this.database.executeRound(
       command.sessionId,
       command.requestId,
@@ -99,6 +121,7 @@ export class SlotService {
     }
     const bet = isFreeSpin ? session.last_bet : selectedBet;
     if (!bet) throw new SlotError('INVALID_BET', 'Bet is missing');
+    const paylineCount = bet.paylineCount ?? DEFAULT_PAYLINE_COUNT;
     const cost = isFreeSpin ? 0 : bet.totalCoins;
     if (session.balance_coins < cost) {
       throw new SlotError('INSUFFICIENT_BALANCE', 'Insufficient balance');
@@ -112,16 +135,41 @@ export class SlotService {
     const demoReels =
       command.type !== 'SPIN'
         ? undefined
-        : command.winDemo
-          ? generateWinningDemoReels(this.random, command.winDemo)
-          : command.anticipationDemo
-            ? generateAnticipationDemoReels(this.random)
-            : undefined;
+        : command.winTypeDemo
+          ? generateWinTypeDemoReels(command.winTypeDemo, paylineCount)
+          : command.winDemo
+            ? generateWinningDemoReels(this.random, command.winDemo, paylineCount)
+            : command.anticipationDemo
+              ? generateAnticipationDemoReels(this.random)
+              : undefined;
     const cascadeOutcome =
-      spinMode !== 'CLASSIC' ? calculateCascadeRound(this.random, bet, demoReels) : null;
+      spinMode !== 'CLASSIC'
+        ? calculateCascadeRound(
+            this.random,
+            bet,
+            demoReels,
+            paylineCount,
+            command.type === 'SPIN' && command.winTypeDemo ? winTypeDemoRefillSymbol : undefined,
+          )
+        : null;
     const outcome =
       cascadeOutcome ??
-      evaluateRound(demoReels ?? generateReels(this.random, mode), bet, mode, session.sticky_reels);
+      evaluateRound(
+        demoReels ?? generateReels(this.random, mode),
+        bet,
+        mode,
+        session.sticky_reels,
+        SLOT_MATH,
+        paylineCount,
+      );
+    const winClassification = classifyWin(outcome.totalWinCoins, bet.totalCoins);
+    if (
+      command.type === 'SPIN' &&
+      command.winTypeDemo &&
+      winClassification.winType !== command.winTypeDemo
+    ) {
+      throw new Error('Win type demo did not produce the requested category');
+    }
     const remaining = isFreeSpin
       ? session.free_spins_remaining - 1
       : outcome.features.freeSpins.triggered
@@ -153,7 +201,7 @@ export class SlotService {
       spinMode,
       isWin: outcome.totalWinCoins > 0,
       netCoins: outcome.totalWinCoins - cost,
-      ...classifyWin(outcome.totalWinCoins, bet.totalCoins),
+      ...winClassification,
       bet,
       balance: {
         before: session.balance_coins,

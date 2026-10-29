@@ -6,7 +6,7 @@ import type {
   SymbolKey,
   Win,
 } from '@lucky-games/contracts';
-import { SYMBOLS } from '@lucky-games/contracts';
+import { DEFAULT_PAYLINE_COUNT, SYMBOLS, type PaylineCount } from '@lucky-games/contracts';
 import { SLOT_MATH, type SlotMathConfig } from './mathConfig.js';
 
 export const PAYLINES = SLOT_MATH.paylines;
@@ -100,6 +100,7 @@ export function evaluateRound(
   mode: RoundResult['mode'],
   stickyReels: number[],
   config: SlotMathConfig = SLOT_MATH,
+  paylineCount: PaylineCount = DEFAULT_PAYLINE_COUNT,
 ): Pick<RoundResult, 'reels' | 'wins' | 'totalWinCoins' | 'features' | 'animations'> {
   const expandedReels: number[] = [];
   const activeSticky = mode === 'FREE_SPINS' ? [...stickyReels] : [];
@@ -112,7 +113,7 @@ export function evaluateRound(
   }
 
   const wins: Win[] = [];
-  for (const [lineIndex, rows] of config.paylines.entries()) {
+  for (const [lineIndex, rows] of config.paylines.slice(0, paylineCount).entries()) {
     const line = rows.map((row, reel) => reels[reel][row]);
     const symbol = line.find((entry) => entry !== 'wild');
     if (!symbol || symbol === config.scatterSymbol) continue;

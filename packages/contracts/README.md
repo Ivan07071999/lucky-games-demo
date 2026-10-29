@@ -14,6 +14,14 @@
 
 ## WebSocket
 
+`SPIN` accepts `paylineCount: 5 | 7 | 9` (default: `5`). The server keeps nine
+payline definitions in `SlotState.config.paylines` and evaluates only the first
+selected number for every stage of the paid round. The chosen count is echoed in
+`RoundResult.bet.paylineCount` and stored with the bet, so any triggered Free
+Spins use the same lines. Older saved bets without this field use five lines.
+Changing the count does not change the `BET × LEVEL` cost, but it changes the
+number of possible wins and therefore the payout distribution.
+
 `SPIN` accepts optional `spinMode: "CLASSIC" | "CASCADE" | "HYBRID"` (default: `CLASSIC`).
 `CASCADE` and `HYBRID` use the same server-side cascade calculation from one paid spin and return
 `RoundResult.cascade` with `initialReels` and up to 20 `steps`. `CASCADE` starts with falling
@@ -39,13 +47,21 @@ This setting changes the symbol distribution and therefore the demo RTP. Omit th
 `SPIN` also accepts an optional demo selection such as
 `"winDemo": { "symbol": "highAnkh", "count": 3 }`. It guarantees a paying
 combination of the selected symbol and exact length on one randomly selected
-payline of the initial grid. The line is drawn anew for each paid spin and may
+active payline of the initial grid. The line is drawn anew for each paid spin and may
 repeat. Available symbols are `highAnkh`, `highEye`, `highNecklace`, `defaultA`,
 `defaultK`, `defaultQ` and `defaultJ`; lengths are 3, 4 or 5. Other paylines
 remain random and may also pay. In Cascade and Hybrid modes, the selected win
 is in the first cascade step; subsequent refills are calculated normally. The
 server calculates all winnings and balances. This option is for paid spins only,
 changes demo odds, and cannot be combined with `anticipationDemo`.
+
+For a server-calculated win category demo, `SPIN` may instead include
+`"winTypeDemo": "NORMAL_WIN" | "BIG_WIN" | "MEGA_WIN" | "SUPER_MEGA_WIN"`.
+The server generates a matching paid round and verifies its classification from
+the actual payout and bet. In Cascade and Hybrid modes, demo refills use a
+non-winning symbol pattern so the requested category stays stable. This option
+cannot be combined with `winDemo` or `anticipationDemo`; it does not apply to
+`FREE_SPIN`.
 
 В новых `RoundResult` сервер возвращает `presentation.anticipation`: `null` или подсказку `{ "reelIndex": 2 | 3 | 4, "extraSpinMs": 2400 }`. Индекс барабана начинается с нуля. Подсказка появляется, когда на уже остановившихся барабанах видны два `highScarab`, и не зависит от символов на ещё вращающихся барабанах. Она управляет только временем клиентской анимации; Quick Stop и Turbo пропускают задержку. Поле `presentation` необязательно для совместимости со старыми сохранёнными раундами.
 
@@ -62,7 +78,8 @@ changes demo odds, and cannot be combined with `anticipationDemo`.
   "requestId": "spin_001",
   "bet": 15,
   "level": 1,
-  "coinValueCents": 2
+  "coinValueCents": 2,
+  "paylineCount": 7
 }
 ```
 

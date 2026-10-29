@@ -92,6 +92,7 @@ export class SlotStore {
   reconcileState(state: SlotState): void {
     this.autoPlay.reset();
     this.gameConfig = state.config;
+    this.spinSettings.restorePaylineCount(state.lastBet?.paylineCount);
     this.panel.applyInitialState(state);
     this.round.applyInitialState(state);
   }
@@ -102,6 +103,7 @@ export class SlotStore {
   }
 
   applyRoundOutcome(result: RoundResult): void {
+    this.spinSettings.restorePaylineCount(result.bet.paylineCount);
     this.round.applyRoundResult(result);
     this.reels.applyRoundResult(result);
   }

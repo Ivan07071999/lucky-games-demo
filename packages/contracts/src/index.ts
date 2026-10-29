@@ -20,6 +20,9 @@ export type Position = [reelIndex: number, rowIndex: number];
 export type GameAction = 'SPIN' | 'FREE_SPIN';
 export type NextAction = GameAction;
 export type SpinMode = 'CLASSIC' | 'CASCADE' | 'HYBRID';
+export const PAYLINE_COUNTS = [5, 7, 9] as const;
+export type PaylineCount = (typeof PAYLINE_COUNTS)[number];
+export const DEFAULT_PAYLINE_COUNT: PaylineCount = 5;
 export interface WinDemoSelection {
   symbol: SymbolKey;
   count: 3 | 4 | 5;
@@ -52,6 +55,8 @@ export const SLOT_ANIMATIONS = [
 export type SlotAnimation = (typeof SLOT_ANIMATIONS)[number];
 
 export type WinType = 'NO_WIN' | 'NORMAL_WIN' | 'BIG_WIN' | 'MEGA_WIN' | 'SUPER_MEGA_WIN';
+export const WIN_DEMO_TYPES = ['NORMAL_WIN', 'BIG_WIN', 'MEGA_WIN', 'SUPER_MEGA_WIN'] as const;
+export type WinDemoType = (typeof WIN_DEMO_TYPES)[number];
 
 export interface WinClassification {
   winType: WinType;
@@ -70,6 +75,8 @@ export interface Bet {
   level: number;
   coinValueCents: number;
   totalCoins: number;
+  /** Active paylines for this round. Older stored bets omit this and use five. */
+  paylineCount?: PaylineCount;
 }
 
 export interface Win {
@@ -166,10 +173,14 @@ export type SlotCommand =
       bet: number;
       level: number;
       coinValueCents: number;
+      /** Number of active paylines; defaults to five for older clients. */
+      paylineCount?: PaylineCount;
       /** Demo only: server generates a round with two visible scatters before reel 3, 4 or 5. */
       anticipationDemo?: boolean;
       /** Demo only: guarantees this paying combination on a random payline. */
       winDemo?: WinDemoSelection;
+      /** Demo only: server generates a paid round in this win category. */
+      winTypeDemo?: WinDemoType;
       spinMode?: SpinMode;
       /** Legacy pending rounds; new clients send spinMode instead. */
       cascade?: boolean;
@@ -189,12 +200,14 @@ const payoutCoefficients = z.tuple([nonNegativeInteger, nonNegativeInteger, nonN
 const winType = z.enum(['NO_WIN', 'NORMAL_WIN', 'BIG_WIN', 'MEGA_WIN', 'SUPER_MEGA_WIN']);
 const action = z.enum(['SPIN', 'FREE_SPIN']);
 const spinMode = z.enum(['CLASSIC', 'CASCADE', 'HYBRID']);
+const paylineCount = z.union([z.literal(5), z.literal(7), z.literal(9)]);
 
 const betSchema: z.ZodType<Bet> = z.object({
   bet: positiveInteger,
   level: positiveInteger,
   coinValueCents: positiveInteger,
   totalCoins: positiveInteger,
+  paylineCount: paylineCount.optional(),
 });
 
 const winSchema: z.ZodType<Win> = z
@@ -354,6 +367,17 @@ export const roundResultSchema: z.ZodType<RoundResult> = z
   })
   .superRefine((result, context) => {
     const sequence = result.cascade;
+    const activePaylines = result.bet.paylineCount ?? DEFAULT_PAYLINE_COUNT;
+    const hasInactiveLine =
+      result.wins.some((win) => win.lineId > activePaylines) ||
+      sequence?.steps.some((step) => step.wins.some((win) => win.lineId > activePaylines));
+    if (hasInactiveLine) {
+      context.addIssue({
+        code: 'custom',
+        path: ['wins'],
+        message: 'A win refers to an inactive payline',
+      });
+    }
     if (!sequence) {
       if (result.spinMode === 'CASCADE' || result.spinMode === 'HYBRID') {
         context.addIssue({

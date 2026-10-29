@@ -27,12 +27,17 @@ export interface SlotMathConfig {
 }
 
 export const SLOT_MATH = {
+  // The first five lines keep their IDs; seven and nine line modes extend this prefix.
   paylines: [
     [0, 0, 0, 0, 0],
     [1, 1, 1, 1, 1],
     [2, 2, 2, 2, 2],
     [0, 1, 2, 1, 0],
     [2, 1, 0, 1, 2],
+    [0, 1, 0, 1, 0],
+    [2, 1, 2, 1, 2],
+    [1, 0, 1, 0, 1],
+    [1, 2, 1, 2, 1],
   ],
   bets: Array.from({ length: 20 }, (_, index) => index + 1),
   levels: Array.from({ length: 10 }, (_, index) => index + 1),

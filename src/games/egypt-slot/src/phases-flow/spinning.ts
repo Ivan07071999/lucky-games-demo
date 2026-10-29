@@ -47,8 +47,13 @@ export class SpinningPhase implements Phase<
         bet: this.store.panel.bet,
         level: this.store.panel.level,
         coinValueCents: this.store.panel.coinValueCents,
+        paylineCount:
+          this.store.spinSettings.paylineCount === 5
+            ? undefined
+            : this.store.spinSettings.paylineCount,
         anticipationDemo: this.store.spinSettings.anticipationDemoEnabled || undefined,
         winDemo: this.store.spinSettings.winDemoSelection,
+        winTypeDemo: this.store.spinSettings.winTypeDemo ?? undefined,
         spinMode:
           this.store.spinSettings.spinMode === 'CLASSIC'
             ? undefined

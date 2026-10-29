@@ -1,5 +1,12 @@
 import { makeAutoObservable } from 'mobx';
-import type { SpinMode, SymbolKey, WinDemoSelection } from '@lucky-games/contracts';
+import {
+  DEFAULT_PAYLINE_COUNT,
+  type PaylineCount,
+  type SpinMode,
+  type SymbolKey,
+  type WinDemoSelection,
+  type WinDemoType,
+} from '@lucky-games/contracts';
 
 export const WIN_DEMO_SYMBOLS: readonly SymbolKey[] = [
   'highAnkh',
@@ -17,6 +24,8 @@ export class SpinSettingsStore {
   winDemoEnabled = false;
   winDemoSymbol: SymbolKey = 'highAnkh';
   winDemoCount: 3 | 4 | 5 = 3;
+  winTypeDemo: WinDemoType | null = null;
+  paylineCount: PaylineCount = DEFAULT_PAYLINE_COUNT;
   spinMode: SpinMode = 'CLASSIC';
 
   constructor() {
@@ -27,10 +36,21 @@ export class SpinSettingsStore {
     this.turboEnabled = !this.turboEnabled;
   }
 
+  setPaylineCount(count: PaylineCount): void {
+    this.paylineCount = count;
+  }
+
+  restorePaylineCount(count: PaylineCount | undefined): void {
+    this.paylineCount = count ?? DEFAULT_PAYLINE_COUNT;
+  }
+
   toggleAnticipationDemo(): void {
     if (this.cascadeEnabled) return;
     this.anticipationDemoEnabled = !this.anticipationDemoEnabled;
-    if (this.anticipationDemoEnabled) this.winDemoEnabled = false;
+    if (this.anticipationDemoEnabled) {
+      this.winDemoEnabled = false;
+      this.winTypeDemo = null;
+    }
   }
 
   get winDemoSelection(): WinDemoSelection | undefined {
@@ -41,7 +61,18 @@ export class SpinSettingsStore {
 
   toggleWinDemo(): void {
     this.winDemoEnabled = !this.winDemoEnabled;
-    if (this.winDemoEnabled) this.anticipationDemoEnabled = false;
+    if (this.winDemoEnabled) {
+      this.anticipationDemoEnabled = false;
+      this.winTypeDemo = null;
+    }
+  }
+
+  selectWinTypeDemo(winType: WinDemoType): void {
+    this.winTypeDemo = this.winTypeDemo === winType ? null : winType;
+    if (this.winTypeDemo) {
+      this.anticipationDemoEnabled = false;
+      this.winDemoEnabled = false;
+    }
   }
 
   cycleWinDemoSymbol(direction: -1 | 1): void {

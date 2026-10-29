@@ -18,7 +18,7 @@ import { SCROLL_MODAL_COLORS } from './scroll-modal-theme';
 
 const PAGE_SUBTITLES = [
   'Symbols pay left to right on adjacent reels, starting from the leftmost reel.',
-  'Game rules and the active winning lines.',
+  'Game rules and all winning lines, including those added in Settings.',
   'BET, SPIN, AUTO PLAY and sound controls.',
 ] as const;
 
@@ -261,8 +261,14 @@ export class GameInfoModal extends Container {
       Math.max(0, (this.visiblePageHeight - paytableHeight * paytableScale) / 2),
     );
     this.pageHeights[0] = paytableHeight * paytableScale;
-    this.pageHeights[1] = this.rulesPage.layout(contentWidth);
-    this.rulesPage.position.y = Math.max(0, (this.visiblePageHeight - this.pageHeights[1]) / 2);
+    const rulesHeight = this.rulesPage.layout(contentWidth);
+    const rulesScale = Math.min(1, this.visiblePageHeight / Math.max(1, rulesHeight));
+    this.rulesPage.scale.set(rulesScale);
+    this.rulesPage.position.set(
+      (contentWidth * (1 - rulesScale)) / 2,
+      Math.max(0, (this.visiblePageHeight - rulesHeight * rulesScale) / 2),
+    );
+    this.pageHeights[1] = rulesHeight * rulesScale;
     const controlsHeight = this.controlsPage.layout(contentWidth);
     const controlsScale = Math.min(1, this.visiblePageHeight / Math.max(1, controlsHeight));
     this.controlsPage.scale.set(controlsScale);

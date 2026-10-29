@@ -1,4 +1,10 @@
-import type { ReelGrid, SymbolKey, WinDemoSelection } from '@lucky-games/contracts';
+import {
+  DEFAULT_PAYLINE_COUNT,
+  type PaylineCount,
+  type ReelGrid,
+  type SymbolKey,
+  type WinDemoSelection,
+} from '@lucky-games/contracts';
 import { SLOT_MATH } from './mathConfig.js';
 import { generateReels } from './rules.js';
 
@@ -8,9 +14,10 @@ type RandomInt = (maxExclusive: number) => number;
 export function generateWinningDemoReels(
   random: RandomInt,
   { symbol, count }: WinDemoSelection,
+  paylineCount: PaylineCount = DEFAULT_PAYLINE_COUNT,
 ): ReelGrid {
   const reels = generateReels(random);
-  const payline = SLOT_MATH.paylines[random(SLOT_MATH.paylines.length)];
+  const payline = SLOT_MATH.paylines[random(paylineCount)];
   const blocker: SymbolKey = symbol === 'defaultA' ? 'defaultJ' : 'defaultA';
   const touchedReels = count < reels.length ? count + 1 : count;
 

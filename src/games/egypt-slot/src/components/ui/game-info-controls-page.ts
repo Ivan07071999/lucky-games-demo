@@ -49,7 +49,21 @@ const SECTIONS = [
       { label: 'INFO', description: 'The top-left information icon opens these game rules.' },
       {
         label: 'SETTINGS',
-        description: 'The gear opens Turbo, Anticipation and Cascade settings.',
+        description: 'The gear opens Turbo, Anticipation, Cascade and winning-line settings.',
+      },
+    ],
+  },
+  {
+    title: 'WINNING LINES',
+    items: [
+      {
+        label: '5 LINES',
+        description: 'Three horizontal rows and two mirrored V paths. Only selected lines pay.',
+      },
+      {
+        label: '7 / 9 LINES',
+        description:
+          'Seven adds top/middle and bottom/middle zigzags. Nine also adds middle/top and middle/bottom zigzags.',
       },
     ],
   },
@@ -138,7 +152,15 @@ export class GameInfoControlsPage extends Container {
     if (width >= 500) {
       const columnGap = compact ? 16 : 28;
       const columnWidth = (width - columnGap) / 2;
-      const leftBottom = this.layoutSection(this.sections[0], 0, y, columnWidth, compact, rowGap);
+      let leftBottom = this.layoutSection(this.sections[0], 0, y, columnWidth, compact, rowGap);
+      leftBottom = this.layoutSection(
+        this.sections[3],
+        0,
+        leftBottom + (compact ? 6 : 10),
+        columnWidth,
+        compact,
+        rowGap,
+      );
       let rightBottom = this.layoutSection(
         this.sections[1],
         columnWidth + columnGap,
@@ -157,7 +179,12 @@ export class GameInfoControlsPage extends Container {
       );
       y = Math.max(leftBottom, rightBottom) + (compact ? 10 : 16);
     } else {
-      for (const section of this.sections) {
+      for (const section of [
+        this.sections[0],
+        this.sections[3],
+        this.sections[1],
+        this.sections[2],
+      ]) {
         y = this.layoutSection(section, 0, y, width, compact, rowGap) + (compact ? 10 : 16);
       }
     }
