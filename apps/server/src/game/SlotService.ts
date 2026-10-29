@@ -26,7 +26,7 @@ import { getReelAnticipationHint } from './presentationHints.js';
 import { generateAnticipationDemoReels } from './anticipationDemo.js';
 import { calculateCascadeRound } from './cascadeRules.js';
 import { generateWinningDemoReels } from './winDemo.js';
-import { generateWinTypeDemoReels, winTypeDemoRefillSymbol } from './winTypeDemo.js';
+import { createWinTypeDemoRefillSymbol, generateWinTypeDemoReels } from './winTypeDemo.js';
 
 export class SlotService {
   constructor(
@@ -136,7 +136,7 @@ export class SlotService {
       command.type !== 'SPIN'
         ? undefined
         : command.winTypeDemo
-          ? generateWinTypeDemoReels(command.winTypeDemo, paylineCount)
+          ? generateWinTypeDemoReels(this.random, command.winTypeDemo, paylineCount)
           : command.winDemo
             ? generateWinningDemoReels(this.random, command.winDemo, paylineCount)
             : command.anticipationDemo
@@ -149,7 +149,9 @@ export class SlotService {
             bet,
             demoReels,
             paylineCount,
-            command.type === 'SPIN' && command.winTypeDemo ? winTypeDemoRefillSymbol : undefined,
+            command.type === 'SPIN' && command.winTypeDemo
+              ? createWinTypeDemoRefillSymbol(this.random)
+              : undefined,
           )
         : null;
     const outcome =
