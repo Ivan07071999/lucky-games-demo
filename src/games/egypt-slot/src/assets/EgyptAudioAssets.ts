@@ -12,6 +12,7 @@ export const EgyptAudioAssets = {
   uiHover: egyptAssetUrl('audio/ui-sound/ui_hover.m4a'),
   uiBetChange: egyptAssetUrl('audio/ui-sound/ui_bet_change.m4a'),
   uiClick: egyptAssetUrl('audio/ui-sound/ui_click.m4a'),
+  uiMenuOpen: egyptAssetUrl('audio/ui-sound/ui_menu_open.m4a'),
   win: egyptAssetUrl('audio/win/win.m4a'),
   winLine: egyptAssetUrl('audio/win/win_line.m4a'),
   bigWin: egyptAssetUrl('audio/win/big_win.m4a'),

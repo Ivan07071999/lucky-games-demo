@@ -119,6 +119,10 @@ export class AudioController {
     this.playEffect(EgyptAudioAssetKey.uiClick);
   }
 
+  playMenuOpen(): void {
+    this.playEffect(EgyptAudioAssetKey.uiMenuOpen);
+  }
+
   playFreeSpinsIntro(): void {
     this.playEffect(EgyptAudioAssetKey.freeSpinsIntro);
   }

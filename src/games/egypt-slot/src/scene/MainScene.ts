@@ -81,9 +81,11 @@ export class MainScene extends Container {
     const settingsModal = new GameSettingsModal(this.context.slotStore);
     const infoButton = new InfoButton(() => {
       infoModal.open();
+      this.context.audio.playMenuOpen();
     });
     const settingsButton = new SettingsButton(() => {
       settingsModal.open();
+      this.context.audio.playMenuOpen();
     });
     betPanel.attachUtilityButtons(settingsButton, audioToggle, infoButton);
     const freeSpinsStatus = new FreeSpinsStatus(this.context.slotStore.round);
@@ -229,6 +231,7 @@ export class MainScene extends Container {
     if (!store.panel.canEditBet) return;
 
     this.betSelectionModal?.open(store.panel.availableBets, store.panel.bet);
+    this.context.audio.playMenuOpen();
   };
 
   private readonly handleSpinButtonPress = (): void => {
@@ -264,6 +267,7 @@ export class MainScene extends Container {
       !slotStore.round.errorMessage
     ) {
       this.autoPlayModal?.open();
+      this.context.audio.playMenuOpen();
     }
   };
 

@@ -10,6 +10,7 @@ export const EgyptAudioAssetKey = {
   uiHover: 'egypt.audio.uiHover',
   uiBetChange: 'egypt.audio.uiBetChange',
   uiClick: 'egypt.audio.uiClick',
+  uiMenuOpen: 'egypt.audio.uiMenuOpen',
   win: 'egypt.audio.win',
   winLine: 'egypt.audio.winLine',
   bigWin: 'egypt.audio.bigWin',
