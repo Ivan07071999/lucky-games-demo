@@ -2,7 +2,7 @@ import { Container, Graphics, Rectangle, Sprite, Texture } from 'pixi.js';
 import { gsap } from 'gsap';
 import { EgyptImageAssetKey } from '../../assets';
 
-const ICON_SIZE = 36;
+const ICON_SIZE = 28;
 const HIT_SIZE = 44;
 
 export class InfoButton extends Container {

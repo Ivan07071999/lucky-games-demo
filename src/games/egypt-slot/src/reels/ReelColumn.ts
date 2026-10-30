@@ -12,6 +12,9 @@ const ANTICIPATION_PIXELS = 12;
 const MINIMUM_SPIN_STEPS = 5;
 const QUICK_STOP_STEP_SECONDS = 0.055;
 const QUICK_STOP_TWEEN_SPEED = 4;
+const SETTLE_DOWN_SECONDS = 0.07;
+const SETTLE_RETURN_SECONDS = 0.11;
+const SETTLE_PIXELS = 6;
 
 export class ReelColumn extends Container {
   private readonly symbols: ReelSymbol[];
@@ -22,6 +25,7 @@ export class ReelColumn extends Container {
   private cancelled = false;
   private quickStopRequested = false;
   private activeTween: gsap.core.Tween | null = null;
+  private cancelSettle: ((reason: unknown) => void) | null = null;
 
   constructor(width: number, rowHeight: number, values: ReelColumnSymbols) {
     super();
@@ -79,6 +83,40 @@ export class ReelColumn extends Container {
     }
     this.stopTarget = values;
     await this.spinTask;
+  }
+
+  settle(signal: AbortSignal): Promise<void> {
+    signal.throwIfAborted();
+    return new Promise<void>((resolve, reject) => {
+      let settled = false;
+      const offset = Math.min(SETTLE_PIXELS, this.rowHeight * 0.06);
+      const cleanup = (): void => {
+        signal.removeEventListener('abort', onAbort);
+        this.cancelSettle = null;
+        this.position.y = 0;
+      };
+      const cancel = (reason: unknown): void => {
+        if (settled) return;
+        settled = true;
+        timeline.kill();
+        cleanup();
+        reject(reason);
+      };
+      const onAbort = (): void => cancel(signal.reason ?? new Error('Reel settle cancelled'));
+      const timeline = gsap
+        .timeline({
+          onComplete: () => {
+            settled = true;
+            cleanup();
+            resolve();
+          },
+        })
+        .to(this.position, { y: offset, duration: SETTLE_DOWN_SECONDS, ease: 'power2.out' })
+        .to(this.position, { y: 0, duration: SETTLE_RETURN_SECONDS, ease: 'power2.inOut' });
+      this.cancelSettle = cancel;
+      signal.addEventListener('abort', onAbort, { once: true });
+      if (signal.aborted) onAbort();
+    });
   }
 
   async showWinRows(rows: readonly number[], signal: AbortSignal): Promise<void> {
@@ -204,6 +242,7 @@ export class ReelColumn extends Container {
   }
 
   private cancelSpin(): void {
+    this.cancelSettle?.(new Error('Reel settle cancelled'));
     if (!this.spinTask) return;
     this.cancelled = true;
     this.cancelStep?.(new Error('Reel spin cancelled'));

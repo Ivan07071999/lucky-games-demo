@@ -4,7 +4,7 @@ import { WIN_POPUP_LAYOUT } from './winPopupConfig';
 export class WinPopupBackdrop extends Graphics {
   constructor() {
     super();
-    this.eventMode = 'static';
+    this.eventMode = 'none';
   }
 
   setViewport(width: number, height: number): void {

@@ -2,13 +2,13 @@ import { Container, Graphics, Rectangle, Sprite, Texture } from 'pixi.js';
 import { gsap } from 'gsap';
 import { EgyptImageAssetKey } from '../../assets';
 
-const ICON_SIZE = 36;
+const ICON_SIZE = 28;
 const HIT_SIZE = 44;
 
 export class SettingsButton extends Container {
   private readonly icon = new Sprite(Texture.from(EgyptImageAssetKey.buttons.settings));
   private readonly highlight = new Graphics()
-    .circle(0, 0, 19)
+    .circle(0, 0, 16)
     .fill({ color: 0xffd58c, alpha: 0.18 });
 
   constructor(onPress: () => void) {

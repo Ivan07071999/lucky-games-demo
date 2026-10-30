@@ -70,8 +70,6 @@ export class ReelsController {
           : new StartReelsCommand(turboThisRound),
         signal,
       );
-      this.emitter.emit('spin:started');
-
       result = await request(signal);
       signal.throwIfAborted();
       this.activeResult = result;

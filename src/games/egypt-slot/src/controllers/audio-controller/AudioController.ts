@@ -3,18 +3,25 @@ import type { WinType } from '@lucky-games/contracts';
 import { reaction, type IReactionDisposer } from 'mobx';
 import { EgyptAudioAssetKey, type EgyptAudioAssetKeyType } from '../../assets';
 import type { GameEvents } from '../../events';
+import type { ReelsAnimationCue } from '../../events/GameEvents';
 import type { GameEmitter } from '../../events/GameEmitter';
 import type { AudioStore } from '../../stores/AudioStore';
 import type { PanelStore } from '../../stores/PanelStore';
 import type { AssetsController } from '../assets-controller/AssetsController';
 
 const LOOP_GAIN: Partial<Record<EgyptAudioAssetKeyType, number>> = {
-  [EgyptAudioAssetKey.background]: 0.35,
+  [EgyptAudioAssetKey.background]: 0.2,
   [EgyptAudioAssetKey.templeAmbientLoop]: 0.18,
 };
+const ANTICIPATION_GAIN = 2.2;
+const ANTICIPATION_MUSIC_DUCK = 0.45;
+const CASCADE_CUE_INTERVAL_MS = 90;
 const EFFECT_GAIN: Partial<Record<EgyptAudioAssetKeyType, number>> = {
-  [EgyptAudioAssetKey.hover]: 0.35,
+  [EgyptAudioAssetKey.uiHover]: 1.2,
   [EgyptAudioAssetKey.reelStop]: 0.7,
+  [EgyptAudioAssetKey.winLine]: 0.55,
+  [EgyptAudioAssetKey.cascadeFall]: 0.32,
+  [EgyptAudioAssetKey.cascadeLand]: 0.5,
   [EgyptAudioAssetKey.uiClick]: 0.6,
   [EgyptAudioAssetKey.uiBetChange]: 0.7,
 };
@@ -31,6 +38,9 @@ export class AudioController {
   private audio: typeof import('@pixi/sound') | null = null;
   private activation: Promise<void> | null = null;
   private lastHoverAt = 0;
+  private lastCascadeFallAt = 0;
+  private lastCascadeLandAt = 0;
+  private anticipationActive = false;
   private loading = false;
   private disposed = false;
 
@@ -43,8 +53,8 @@ export class AudioController {
     this.assets = assets;
     this.store = store;
     this.unsubscribe = [
-      emitter.on('spin:started', () => this.playEffect(EgyptAudioAssetKey.spinStart)),
       emitter.on('reel:stopped', () => this.playEffect(EgyptAudioAssetKey.reelStop)),
+      emitter.on('reels:cue', (cue) => this.playReelsCue(cue)),
     ];
     this.stopBetReaction = reaction(
       () => [panel.bet, panel.level],
@@ -66,6 +76,9 @@ export class AudioController {
           if (this.disposed) return;
           this.ready.add(key);
           if (key in LOOP_GAIN && !this.store.muted) this.playLoop(key);
+          if (key === EgyptAudioAssetKey.anticipationLoop && this.anticipationActive) {
+            this.playLoop(key);
+          }
         },
         (error: unknown) => {
           if (!this.disposed) console.warn(`Failed to load Egypt slot audio ${key}`, error);
@@ -82,6 +95,7 @@ export class AudioController {
     if (!muted) {
       this.activate();
       for (const key of Object.keys(LOOP_GAIN) as EgyptAudioAssetKeyType[]) this.playLoop(key);
+      if (this.anticipationActive) this.playLoop(EgyptAudioAssetKey.anticipationLoop);
     }
   }
 
@@ -89,7 +103,7 @@ export class AudioController {
     if (this.disposed) return;
     this.store.setVolume(volume);
     for (const [key, instance] of this.loops) {
-      instance.volume = this.store.volume * (LOOP_GAIN[key] ?? 1);
+      instance.volume = this.store.volume * this.loopGain(key);
     }
     for (const [instance, gain] of this.effects) instance.volume = this.store.volume * gain;
   }
@@ -98,15 +112,11 @@ export class AudioController {
     const now = Date.now();
     if (now - this.lastHoverAt < 100) return;
     this.lastHoverAt = now;
-    this.playEffect(EgyptAudioAssetKey.hover);
+    this.playEffect(EgyptAudioAssetKey.uiHover);
   }
 
   playClick(): void {
     this.playEffect(EgyptAudioAssetKey.uiClick);
-  }
-
-  playMenuOpen(): void {
-    this.playEffect(EgyptAudioAssetKey.uiMenuOpen);
   }
 
   playFreeSpinsIntro(): void {
@@ -131,6 +141,7 @@ export class AudioController {
   destroy(): void {
     if (this.disposed) return;
     this.disposed = true;
+    this.anticipationActive = false;
     this.unsubscribe.forEach((unsubscribe) => unsubscribe());
     this.stopBetReaction();
     for (const instance of this.loops.values()) instance.stop();
@@ -149,10 +160,63 @@ export class AudioController {
     )
       return;
     this.pendingLoops.add(key);
-    void this.start(key, LOOP_GAIN[key] ?? 1, true).then((instance) => {
+    const gain = this.loopGain(key);
+    void this.start(key, gain, true).then((instance) => {
       this.pendingLoops.delete(key);
-      if (instance) this.loops.set(key, instance);
+      if (!instance) return;
+      if (key === EgyptAudioAssetKey.anticipationLoop && !this.anticipationActive) {
+        instance.stop();
+        return;
+      }
+      this.loops.set(key, instance);
     });
+  }
+
+  private playReelsCue(cue: ReelsAnimationCue): void {
+    switch (cue) {
+      case 'winLine':
+        this.playEffect(EgyptAudioAssetKey.winLine);
+        break;
+      case 'anticipationStart':
+        this.anticipationActive = true;
+        this.updateMusicVolume();
+        this.playLoop(EgyptAudioAssetKey.anticipationLoop);
+        break;
+      case 'anticipationEnd':
+        this.anticipationActive = false;
+        this.loops.get(EgyptAudioAssetKey.anticipationLoop)?.stop();
+        this.loops.delete(EgyptAudioAssetKey.anticipationLoop);
+        this.updateMusicVolume();
+        break;
+      case 'cascadeFall':
+        this.playCascadeCue(EgyptAudioAssetKey.cascadeFall, 'fall');
+        break;
+      case 'cascadeLand':
+        this.playCascadeCue(EgyptAudioAssetKey.cascadeLand, 'land');
+        break;
+    }
+  }
+
+  private playCascadeCue(key: EgyptAudioAssetKeyType, kind: 'fall' | 'land'): void {
+    const now = Date.now();
+    const lastAt = kind === 'fall' ? this.lastCascadeFallAt : this.lastCascadeLandAt;
+    if (now - lastAt < CASCADE_CUE_INTERVAL_MS) return;
+    if (kind === 'fall') this.lastCascadeFallAt = now;
+    else this.lastCascadeLandAt = now;
+    this.playEffect(key);
+  }
+
+  private loopGain(key: EgyptAudioAssetKeyType): number {
+    if (key === EgyptAudioAssetKey.anticipationLoop) return ANTICIPATION_GAIN;
+    const gain = LOOP_GAIN[key] ?? 1;
+    return key === EgyptAudioAssetKey.background && this.anticipationActive
+      ? gain * ANTICIPATION_MUSIC_DUCK
+      : gain;
+  }
+
+  private updateMusicVolume(): void {
+    const music = this.loops.get(EgyptAudioAssetKey.background);
+    if (music) music.volume = this.store.volume * this.loopGain(EgyptAudioAssetKey.background);
   }
 
   private playEffect(key: EgyptAudioAssetKeyType): void {

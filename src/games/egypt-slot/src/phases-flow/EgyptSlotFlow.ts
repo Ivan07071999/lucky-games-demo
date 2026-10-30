@@ -77,6 +77,7 @@ export class EgyptSlotFlow extends PhaseManager<PhaseName, typeof phaseTransitio
         reelsController,
         balanceController,
         audio,
+        sceneController,
       ),
     } satisfies PhaseRegistry<PhaseName, typeof phaseTransitions>;
 

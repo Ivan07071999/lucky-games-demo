@@ -3,19 +3,21 @@ import type { GameEmitter } from '../events/GameEmitter';
 import type { ReelsController } from '../controllers/reels-controller/ReelsController';
 import type { BalanceController } from '../controllers/balance-controller/BalanceController';
 import type { AudioController } from '../controllers/audio-controller/AudioController';
+import type { MainSceneController } from '../controllers/main-scene-controller/MainSceneController';
 import type { SlotStore } from '../stores/SlotStore';
 import type { Phase } from './PhaseManager';
 import { PhaseName, type NextPhase } from './types';
 
 const WIN_REVEAL_PAUSE_MS = 300;
+const POPUP_WIN_HOLD_MS = 1200;
 
-function waitForWinReveal(signal: AbortSignal): Promise<void> {
+function waitForWinReveal(signal: AbortSignal, durationMs: number): Promise<void> {
   signal.throwIfAborted();
   return new Promise((resolve, reject) => {
     const timeout = setTimeout(() => {
       signal.removeEventListener('abort', onAbort);
       resolve();
-    }, WIN_REVEAL_PAUSE_MS);
+    }, durationMs);
     const onAbort = (): void => {
       clearTimeout(timeout);
       signal.removeEventListener('abort', onAbort);
@@ -36,6 +38,7 @@ export class ResultPhase implements Phase<
   private readonly reels: ReelsController;
   private readonly balance: BalanceController;
   private readonly audio?: AudioController;
+  private readonly scene?: MainSceneController;
 
   constructor(
     store: SlotStore,
@@ -43,12 +46,14 @@ export class ResultPhase implements Phase<
     reels: ReelsController,
     balance: BalanceController,
     audio?: AudioController,
+    scene?: MainSceneController,
   ) {
     this.store = store;
     this.emitter = emitter;
     this.reels = reels;
     this.balance = balance;
     this.audio = audio;
+    this.scene = scene;
   }
 
   async enter(signal: AbortSignal): Promise<NextPhase<typeof PhaseName.result>> {
@@ -68,8 +73,15 @@ export class ResultPhase implements Phase<
       this.store.round.startShowingWin();
       await this.reels.presentResult(result, presentation.signal);
       this.store.round.revealWin();
-      this.audio?.playWin((result.features.freeSpins.completion ?? result).winType ?? 'NO_WIN');
-      if (result.totalWinCoins > 0) await waitForWinReveal(presentation.signal);
+      const presentedWin = result.features.freeSpins.completion ?? result;
+      this.audio?.playWin(presentedWin.winType ?? 'NO_WIN');
+      const popupShown = this.scene?.showWinPopup(presentedWin.winType, presentedWin.totalWinCoins);
+      if (result.totalWinCoins > 0 || popupShown) {
+        await waitForWinReveal(
+          presentation.signal,
+          popupShown ? POPUP_WIN_HOLD_MS : WIN_REVEAL_PAUSE_MS,
+        );
+      }
       await this.balance.showWin(result, presentation.signal);
     } catch (error) {
       if (signal.aborted) throw error;
@@ -77,6 +89,7 @@ export class ResultPhase implements Phase<
         console.error('Egypt slot result presentation failed', error);
       }
     } finally {
+      this.scene?.hideWinPopup();
       presentation.abort();
       unsubscribeSkipWin();
       signal.removeEventListener('abort', abortPresentation);

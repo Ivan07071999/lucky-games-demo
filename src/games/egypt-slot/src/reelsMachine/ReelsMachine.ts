@@ -1,6 +1,7 @@
 import { Container, Rectangle, Sprite, Texture } from 'pixi.js';
 import type { CascadeSequence, ReelAnticipationHint, Win } from '@lucky-games/contracts';
 import { EgyptImageAssetKey } from '../assets';
+import type { ReelsAnimationCue } from '../events/GameEvents';
 import { ReelsBoard } from '../reels/ReelsBoard';
 import type { ReelsMatrix } from '../reels/reelsConfig';
 import type { ReelsCommand } from './commands';
@@ -26,7 +27,11 @@ export class ReelsMachine extends Container {
   private readonly layoutBounds: Rectangle;
   private theme: SceneTheme = 'base';
 
-  constructor(initialReels: ReelsMatrix, onReelStopped?: (index: number) => void) {
+  constructor(
+    initialReels: ReelsMatrix,
+    onReelStopped?: (index: number) => void,
+    onAnimationCue?: (cue: ReelsAnimationCue) => void,
+  ) {
     super();
 
     const frameTexture = Texture.from(EgyptImageAssetKey.scene.reelFrameFilled);
@@ -64,6 +69,7 @@ export class ReelsMachine extends Container {
       frameTexture.height * FRAME_SCALE * 0.57,
       initialReels,
       onReelStopped,
+      onAnimationCue,
     );
     this.reelsBoard.position.set(
       windowCenterX - boardWidth / 2,

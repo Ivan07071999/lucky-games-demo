@@ -92,6 +92,7 @@ export class GameInfoModal extends Container {
     this.eventMode = 'none';
 
     this.backdrop.eventMode = 'static';
+    this.backdrop.cursor = 'pointer';
     this.backdrop.on('pointertap', () => this.close());
     this.heading.anchor.set(0.5);
     this.subtitle.anchor.set(0.5, 0);

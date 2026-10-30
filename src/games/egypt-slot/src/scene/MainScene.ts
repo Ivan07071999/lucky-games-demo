@@ -3,12 +3,14 @@ import { EgyptImageAssetKey } from '../assets';
 import { BetPanel } from '../components/bet-panel';
 import { BetSelectionModal } from '../components/ui/bet-selection-modal';
 import { AutoPlayModal } from '../components/ui/auto-play-modal';
-import { AudioPanel } from '../components/ui/audio-panel';
+import { AudioToggle } from '../components/ui/audio-toggle';
 import { GameInfoModal } from '../components/ui/game-info-modal';
 import { GameSettingsModal } from '../components/ui/game-settings-modal';
 import { InfoButton } from '../components/ui/info-button';
 import { SettingsButton } from '../components/ui/settings-button';
 import { FreeSpinsStatus } from '../components/ui/free-spins-status';
+import { WinPopup } from '../components/win-popup/WinPopup';
+import type { WinType } from '@lucky-games/contracts';
 import {
   FreeSpinsTransition,
   type FreeSpinsTransitionKind,
@@ -31,19 +33,18 @@ export class MainScene extends Container {
   private betPanel: BetPanel | null = null;
   private betSelectionModal: BetSelectionModal | null = null;
   private autoPlayModal: AutoPlayModal | null = null;
-  private audioPanel: AudioPanel | null = null;
-  private infoButton: InfoButton | null = null;
-  private settingsButton: SettingsButton | null = null;
   private infoModal: GameInfoModal | null = null;
   private settingsModal: GameSettingsModal | null = null;
   private freeSpinsStatus: FreeSpinsStatus | null = null;
   private freeSpinsTransition: FreeSpinsTransition | null = null;
+  private winPopup: WinPopup | null = null;
   private theme: SceneTheme = 'base';
   private viewportWidth = 0;
   private viewportHeight = 0;
 
   constructor(canvas: HTMLCanvasElement, messages: GameMessages) {
     super();
+    this.eventMode = 'static';
     this.context = new GameContext(canvas, messages);
   }
 
@@ -53,9 +54,11 @@ export class MainScene extends Container {
     const background = new Sprite(Texture.from(EgyptImageAssetKey.scene.background));
     background.anchor.set(0.5);
 
-    const reelsMachine = new ReelsMachine(this.context.slotStore.reels.reels, (index) => {
-      this.context.emitter.emit('reel:stopped', index);
-    });
+    const reelsMachine = new ReelsMachine(
+      this.context.slotStore.reels.reels,
+      (index) => this.context.emitter.emit('reel:stopped', index),
+      (cue) => this.context.emitter.emit('reels:cue', cue),
+    );
     const reelsBounds = reelsMachine.getLayoutBounds();
     const betPanel = new BetPanel(
       reelsBounds.width,
@@ -73,57 +76,63 @@ export class MainScene extends Container {
     const autoPlayModal = new AutoPlayModal(this.context.slotStore, () =>
       this.context.autoPlayController.start(),
     );
-    const audioPanel = new AudioPanel(this.context.audio);
+    const audioToggle = new AudioToggle(this.context.audio);
     const infoModal = new GameInfoModal(this.context.slotStore);
     const settingsModal = new GameSettingsModal(this.context.slotStore);
     const infoButton = new InfoButton(() => {
       infoModal.open();
-      this.context.audio.playMenuOpen();
     });
     const settingsButton = new SettingsButton(() => {
       settingsModal.open();
-      this.context.audio.playMenuOpen();
     });
-    infoButton.on('pointerover', () => this.context.audio.playHover());
-    settingsButton.on('pointerover', () => this.context.audio.playHover());
-    settingsModal.turboCheckbox.on('pointerover', () => this.context.audio.playHover());
-    settingsModal.turboCheckbox.on('pointertap', () => this.context.audio.playClick());
-    settingsModal.anticipationCheckbox.on('pointerover', () => this.context.audio.playHover());
-    settingsModal.anticipationCheckbox.on('pointertap', () => this.context.audio.playClick());
-    settingsModal.cascadeCheckbox.on('pointerover', () => this.context.audio.playHover());
-    settingsModal.cascadeCheckbox.on('pointertap', () => this.context.audio.playClick());
-    betPanel.on('pointerover', () => this.context.audio.playHover());
-    betPanel.on('pointertap', () => this.context.audio.playClick());
+    betPanel.attachUtilityButtons(settingsButton, audioToggle, infoButton);
     const freeSpinsStatus = new FreeSpinsStatus(this.context.slotStore.round);
     const freeSpinsTransition = new FreeSpinsTransition();
+    const winPopup = new WinPopup();
 
     this.background = background;
     this.reelsMachine = reelsMachine;
     this.betPanel = betPanel;
     this.betSelectionModal = betSelectionModal;
     this.autoPlayModal = autoPlayModal;
-    this.audioPanel = audioPanel;
-    this.infoButton = infoButton;
-    this.settingsButton = settingsButton;
     this.infoModal = infoModal;
     this.settingsModal = settingsModal;
     this.freeSpinsStatus = freeSpinsStatus;
     this.freeSpinsTransition = freeSpinsTransition;
+    this.winPopup = winPopup;
 
     this.addChild(
       background,
       reelsMachine,
       betPanel,
       freeSpinsStatus,
-      audioPanel,
-      infoButton,
-      settingsButton,
       betSelectionModal,
       autoPlayModal,
       infoModal,
       settingsModal,
+      winPopup,
       freeSpinsTransition,
     );
+    this.on('pointerover', (event) => {
+      let target: Container | null = event.target as Container;
+      while (target && target !== this) {
+        if (target.cursor === 'pointer') {
+          this.context.audio.playHover();
+          break;
+        }
+        target = target.parent;
+      }
+    });
+    this.on('pointertapcapture', (event) => {
+      let target: Container | null = event.target as Container;
+      while (target && target !== this) {
+        if (target.cursor === 'pointer') {
+          this.context.audio.playClick();
+          break;
+        }
+        target = target.parent;
+      }
+    });
     if (this.context.slotStore.round.isFreeSpin) this.setTheme('freeSpins');
   }
 
@@ -140,13 +149,10 @@ export class MainScene extends Container {
     this.betSelectionModal?.resize(width, height);
     this.autoPlayModal?.resize(width, height);
     this.freeSpinsStatus?.resize(width, height);
-    this.audioPanel?.resize(width, height);
-    const cornerMargin = Math.max(12, Math.min(24, Math.min(width, height) * 0.025));
-    this.infoButton?.position.set(cornerMargin + 24, cornerMargin + 36);
-    this.settingsButton?.position.set(cornerMargin + 80, cornerMargin + 36);
     this.infoModal?.resize(width, height);
     this.settingsModal?.resize(width, height);
     this.freeSpinsTransition?.resize(width, height);
+    this.winPopup?.resize(width, height);
 
     const panel = this.betPanel;
     const reelsMachine = this.reelsMachine;
@@ -200,6 +206,16 @@ export class MainScene extends Container {
     this.freeSpinsTransition?.hide();
   }
 
+  showWinPopup(winType: WinType | undefined, totalWinCoins: number): boolean {
+    if (!this.winPopup || !winType) return false;
+    this.winPopup.show(winType, totalWinCoins);
+    return this.winPopup.visible;
+  }
+
+  hideWinPopup(): void {
+    this.winPopup?.hide();
+  }
+
   private place(container: Container, bounds: LayoutBounds, placement: LayoutPlacement): void {
     container.scale.set(placement.scale);
     container.position.set(
@@ -213,7 +229,6 @@ export class MainScene extends Container {
     if (!store.panel.canEditBet) return;
 
     this.betSelectionModal?.open(store.panel.availableBets, store.panel.bet);
-    this.context.audio.playMenuOpen();
   };
 
   private readonly handleSpinButtonPress = (): void => {
@@ -249,7 +264,6 @@ export class MainScene extends Container {
       !slotStore.round.errorMessage
     ) {
       this.autoPlayModal?.open();
-      this.context.audio.playMenuOpen();
     }
   };
 

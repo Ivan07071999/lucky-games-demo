@@ -3,17 +3,20 @@ import { EgyptImageAssetKey } from '../../assets';
 import type { SceneTheme } from '../../scene/sceneTheme';
 import { Bet } from './bet';
 import { LevelSwitcher } from './level-switcher';
+import { PanelAmount } from './panel-amount';
 import type { ValueSwitcherActions } from './value-switcher';
 
 export class LeftBackground extends Container {
   readonly background: Sprite;
   readonly bet: Bet;
   readonly levelSwitcher: LevelSwitcher;
+  readonly totalBet: PanelAmount;
 
   constructor(
     height: number,
     bet: number,
     level: number,
+    totalBetCoins: number,
     levelActions: ValueSwitcherActions,
     onBetRequested: () => void,
   ) {
@@ -27,16 +30,25 @@ export class LeftBackground extends Container {
     this.background.width =
       this.background.height * (this.background.texture.width / this.background.texture.height);
 
-    this.bet = new Bet(this.background.width, this.background.height, bet, onBetRequested);
-    this.bet.position.set(-this.background.width * 0.25, -10);
+    const columnWidth = this.background.width / 3;
+    const controlWidth = columnWidth * 2;
+    this.bet = new Bet(controlWidth, this.background.height, bet, onBetRequested);
+    this.bet.position.set(-columnWidth, -10);
     this.levelSwitcher = new LevelSwitcher(
-      this.background.width,
+      controlWidth,
       this.background.height,
       level,
       levelActions,
     );
-    this.levelSwitcher.position.set(this.background.width * 0.25, -10);
-    this.addChild(this.background, this.bet, this.levelSwitcher);
+    this.levelSwitcher.position.set(0, -10);
+    this.totalBet = new PanelAmount(
+      'TOTAL BET',
+      columnWidth,
+      this.background.height,
+      totalBetCoins,
+    );
+    this.totalBet.position.set(columnWidth, -10);
+    this.addChild(this.background, this.bet, this.levelSwitcher, this.totalBet);
   }
 
   setTheme(theme: SceneTheme): void {

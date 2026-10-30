@@ -10,7 +10,7 @@ body {
 
 .pixi-stats-overlay {
   position: fixed;
-  top: 104px;
+  top: 12px;
   left: 12px;
   z-index: 1000;
   cursor: pointer;

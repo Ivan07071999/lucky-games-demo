@@ -37,7 +37,7 @@ export class WinPopup extends Container {
     this.amount.setAmount(totalWinCoins);
 
     this.visible = true;
-    this.eventMode = 'static';
+    this.eventMode = 'none';
     this.backdrop.alpha = 0;
     this.artwork.alpha = 0;
     this.artwork.position.y = 12;

@@ -105,7 +105,7 @@ export class BetSelectionModal extends Container {
 
     this.backdrop.label = 'bet-selection-backdrop';
     this.backdrop.eventMode = 'static';
-    this.backdrop.cursor = 'default';
+    this.backdrop.cursor = 'pointer';
     this.backdrop.on('pointertap', onClose);
 
     this.card.label = 'bet-selection-card';

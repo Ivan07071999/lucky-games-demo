@@ -1,7 +1,7 @@
 import { makeAutoObservable } from 'mobx';
 
 const STORAGE_KEY = 'egypt-slot.audio';
-const DEFAULT_VOLUME = 0.35;
+export const DEFAULT_AUDIO_VOLUME = 0.35;
 
 function readVolume(): number {
   try {
@@ -16,9 +16,9 @@ function readVolume(): number {
       }
     }
   } catch {
-    return DEFAULT_VOLUME;
+    return DEFAULT_AUDIO_VOLUME;
   }
-  return DEFAULT_VOLUME;
+  return DEFAULT_AUDIO_VOLUME;
 }
 
 export class AudioStore {

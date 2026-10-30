@@ -5,15 +5,30 @@ import type { ReelColumnSymbols } from './reelsConfig';
 
 const SYMBOL_INTERVAL_SECONDS = 0.11;
 const TURBO_SYMBOL_INTERVAL_SECONDS = 0.025;
+const LANDING_PIXELS = 6;
+const LANDING_DOWN_SECONDS = 0.07;
+const LANDING_RETURN_SECONDS = 0.11;
+const TURBO_LANDING_DOWN_SECONDS = 0.035;
+const TURBO_LANDING_RETURN_SECONDS = 0.06;
 
 export class CascadeColumn extends Container {
   private symbols: ReelSymbol[];
   private readonly rowHeight: number;
+  private readonly onFall?: () => void;
+  private readonly onLand?: () => void;
   private cancelAnimation: (() => void) | null = null;
 
-  constructor(width: number, rowHeight: number, values: ReelColumnSymbols) {
+  constructor(
+    width: number,
+    rowHeight: number,
+    values: ReelColumnSymbols,
+    onFall?: () => void,
+    onLand?: () => void,
+  ) {
     super();
     this.rowHeight = rowHeight;
+    this.onFall = onFall;
+    this.onLand = onLand;
     this.symbols = values.map((value, row) => {
       const symbol = new ReelSymbol(width, rowHeight, value);
       symbol.y = row * rowHeight;
@@ -31,6 +46,10 @@ export class CascadeColumn extends Container {
     });
   }
 
+  async showWinRows(rows: readonly number[], signal: AbortSignal): Promise<void> {
+    await Promise.all(rows.map((row) => this.symbols[row]?.pulse(signal)));
+  }
+
   exit(signal: AbortSignal, turbo: boolean, startDelay = 0): Promise<void> {
     return this.animate(signal, (timeline) => {
       this.symbols.forEach((symbol, row) => {
@@ -41,6 +60,7 @@ export class CascadeColumn extends Container {
             alpha: 0,
             duration: turbo ? 0.12 : 0.32,
             ease: 'power2.in',
+            onStart: () => this.onFall?.(),
           },
           startDelay + this.symbolDelay(this.symbols.length - 1 - row, turbo),
         );
@@ -61,10 +81,14 @@ export class CascadeColumn extends Container {
     });
     return this.animate(signal, (timeline) => {
       this.symbols.forEach((symbol, row) => {
-        timeline.to(
+        this.landSymbol(
+          timeline,
           symbol,
-          { y: row * this.rowHeight, duration: turbo ? 0.14 : 0.4, ease: 'power2.out' },
+          row * this.rowHeight,
+          turbo ? 0.14 : 0.4,
           startDelay + this.symbolDelay(this.symbols.length - 1 - row, turbo),
+          turbo,
+          true,
         );
       });
     });
@@ -89,6 +113,7 @@ export class CascadeColumn extends Container {
             alpha: 0,
             duration: turbo ? 0.12 : 0.3,
             ease: 'power2.in',
+            onStart: () => this.onFall?.(),
           },
           startDelay + this.symbolDelay(incoming.length - 1 - index, turbo),
         );
@@ -120,21 +145,25 @@ export class CascadeColumn extends Container {
 
     return this.animate(signal, (timeline) => {
       survivors.forEach((symbol, index) => {
-        timeline.to(
+        this.landSymbol(
+          timeline,
           symbol,
-          {
-            y: (incoming.length + index) * this.rowHeight,
-            duration: fall,
-            ease: 'power2.out',
-          },
+          (incoming.length + index) * this.rowHeight,
+          fall,
           startDelay,
+          turbo,
+          false,
         );
       });
       incoming.forEach((symbol, row) => {
-        timeline.to(
+        this.landSymbol(
+          timeline,
           symbol,
-          { y: row * this.rowHeight, duration: fall, ease: 'power2.out' },
+          row * this.rowHeight,
+          fall,
           startDelay + this.symbolDelay(incoming.length - 1 - row, turbo),
+          turbo,
+          true,
         );
       });
     }).then(() => {
@@ -154,6 +183,40 @@ export class CascadeColumn extends Container {
 
   private symbolDelay(order: number, turbo: boolean): number {
     return order * (turbo ? TURBO_SYMBOL_INTERVAL_SECONDS : SYMBOL_INTERVAL_SECONDS);
+  }
+
+  private landSymbol(
+    timeline: gsap.core.Timeline,
+    symbol: ReelSymbol,
+    targetY: number,
+    fallSeconds: number,
+    startSeconds: number,
+    turbo: boolean,
+    playLandingSound: boolean,
+  ): void {
+    const offset = Math.min(LANDING_PIXELS, this.rowHeight * 0.06);
+    const downSeconds = turbo ? TURBO_LANDING_DOWN_SECONDS : LANDING_DOWN_SECONDS;
+    const returnSeconds = turbo ? TURBO_LANDING_RETURN_SECONDS : LANDING_RETURN_SECONDS;
+    timeline.to(
+      symbol,
+      {
+        y: targetY,
+        duration: fallSeconds,
+        ease: 'power2.out',
+        onComplete: playLandingSound ? () => this.onLand?.() : undefined,
+      },
+      startSeconds,
+    );
+    timeline.to(
+      symbol,
+      { y: targetY + offset, duration: downSeconds, ease: 'power2.out' },
+      startSeconds + fallSeconds,
+    );
+    timeline.to(
+      symbol,
+      { y: targetY, duration: returnSeconds, ease: 'power2.inOut' },
+      startSeconds + fallSeconds + downSeconds,
+    );
   }
 
   private animate(

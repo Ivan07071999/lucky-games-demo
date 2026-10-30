@@ -40,8 +40,14 @@ const SECTIONS = [
   {
     title: 'OTHER CONTROLS',
     items: [
-      { label: 'SOUND', description: 'The top-right sound icon opens volume and mute controls.' },
-      { label: 'INFO', description: 'The top-left information icon opens these game rules.' },
+      {
+        label: 'SOUND',
+        description: 'Click the sound icon below the left panel to turn audio on or off.',
+      },
+      {
+        label: 'INFO',
+        description: 'The information icon below the left panel opens these game rules.',
+      },
       {
         label: 'SETTINGS',
         description: 'The gear opens Turbo, Anticipation, Cascade and winning-line settings.',

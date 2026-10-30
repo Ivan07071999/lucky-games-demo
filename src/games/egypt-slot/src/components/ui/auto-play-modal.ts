@@ -192,6 +192,7 @@ export class AutoPlayModal extends Container {
     this.eventMode = 'none';
 
     this.backdrop.eventMode = 'static';
+    this.backdrop.cursor = 'pointer';
     this.backdrop.on('pointertap', () => this.close());
     this.counts = AUTO_PLAY_COUNTS.map(
       (count) => new ModalButton(String(count), () => store.autoPlay.selectSpins(count), true),

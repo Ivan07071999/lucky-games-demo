@@ -1,6 +1,7 @@
 import { Container, Graphics } from 'pixi.js';
 import { gsap } from 'gsap';
 import type { CascadeSequence, ReelAnticipationHint, Win } from '@lucky-games/contracts';
+import type { ReelsAnimationCue } from '../events/GameEvents';
 import { ReelColumn } from './ReelColumn';
 import { CascadeColumn } from './CascadeColumn';
 import { FreeSpinsTriggerOverlay } from './FreeSpinsTriggerOverlay';
@@ -21,6 +22,7 @@ export class ReelsBoard extends Container {
   private readonly winLine: WinLineOverlay;
   private readonly freeSpinsTrigger: FreeSpinsTriggerOverlay;
   private readonly onReelStopped?: (index: number) => void;
+  private readonly onAnimationCue?: (cue: ReelsAnimationCue) => void;
   private readonly scheduledStarts = new Set<gsap.core.Tween>();
   private startSignal: AbortSignal | null = null;
   private landingSignal: AbortSignal | null = null;
@@ -32,16 +34,18 @@ export class ReelsBoard extends Container {
   private cascadeActive = false;
   private cascadeQuickStop = false;
   private cascadeStartTask: Promise<void> | null = null;
-  private skipCascadeWait: (() => void) | null = null;
+  private cancelCascadePulse: (() => void) | null = null;
 
   constructor(
     width: number,
     height: number,
     initialReels: ReelsMatrix,
     onReelStopped?: (index: number) => void,
+    onAnimationCue?: (cue: ReelsAnimationCue) => void,
   ) {
     super();
     this.onReelStopped = onReelStopped;
+    this.onAnimationCue = onAnimationCue;
 
     this.label = 'reels-board';
     const columnWidth = width / REEL_COUNT;
@@ -53,7 +57,13 @@ export class ReelsBoard extends Container {
       return column;
     });
     this.cascadeColumns = initialReels.map((values, index) => {
-      const column = new CascadeColumn(columnWidth, rowHeight, values);
+      const column = new CascadeColumn(
+        columnWidth,
+        rowHeight,
+        values,
+        () => this.onAnimationCue?.('cascadeFall'),
+        () => this.onAnimationCue?.('cascadeLand'),
+      );
       column.position.x = index * columnWidth;
       column.visible = false;
       return column;
@@ -119,6 +129,7 @@ export class ReelsBoard extends Container {
     try {
       if (quickStop) {
         await Promise.all(this.columns.map((column, index) => column.land(reels[index], signal)));
+        await Promise.all(this.columns.map((column) => column.settle(signal)));
         this.onReelStopped?.(0);
         return;
       }
@@ -129,12 +140,37 @@ export class ReelsBoard extends Container {
         }
         await this.columns[index].land(reels[index], signal);
         this.stoppedColumns = index + 1;
-        if (!this.quickStopRequested) this.onReelStopped?.(index);
+        if (this.quickStopRequested) {
+          await this.finishQuickStop(reels, signal, index, index + 1);
+          return;
+        }
+        await this.columns[index].settle(signal);
+        if (this.quickStopRequested) {
+          await this.finishQuickStop(reels, signal, index + 1);
+          return;
+        }
+        this.onReelStopped?.(index);
       }
-      if (this.quickStopRequested) this.onReelStopped?.(0);
     } finally {
       this.landingSignal = null;
     }
+  }
+
+  private async finishQuickStop(
+    reels: ReelsMatrix,
+    signal: AbortSignal,
+    firstUnsettledIndex: number,
+    firstUnlandedIndex = firstUnsettledIndex,
+  ): Promise<void> {
+    await Promise.all(
+      this.columns
+        .slice(firstUnlandedIndex)
+        .map((column, offset) => column.land(reels[firstUnlandedIndex + offset], signal)),
+    );
+    await Promise.all(
+      this.columns.slice(firstUnsettledIndex).map((column) => column.settle(signal)),
+    );
+    this.onReelStopped?.(0);
   }
 
   requestQuickStop(reels: ReelsMatrix, signal: AbortSignal): void {
@@ -222,8 +258,8 @@ export class ReelsBoard extends Container {
     for (const step of sequence.steps) {
       if (!this.cascadeActive) return;
       for (const win of step.wins) {
-        this.winLine.show(win);
-        await this.waitForCascade(turbo ? 0.08 : 0.27, signal);
+        this.showWinLine(win);
+        await this.pulseCascadeWin(win, signal);
         if (!this.cascadeActive) return;
       }
       this.winLine.clear();
@@ -263,11 +299,10 @@ export class ReelsBoard extends Container {
     try {
       for (const win of wins) {
         signal.throwIfAborted();
-        this.winLine.show(win);
-        const rows = this.columns.map(() => new Set<number>());
-        win.positions.forEach(([reelIndex, rowIndex]) => rows[reelIndex]?.add(rowIndex));
+        this.showWinLine(win);
+        const rows = this.getWinRows(win);
         await Promise.all(
-          this.columns.map((column, index) => column.showWinRows([...rows[index]], signal)),
+          this.columns.map((column, index) => column.showWinRows(rows[index], signal)),
         );
       }
     } finally {
@@ -294,7 +329,7 @@ export class ReelsBoard extends Container {
   }
 
   private stopCascade(): void {
-    this.skipCascadeWait?.();
+    this.cancelCascadePulse?.();
     this.cascadeColumns.forEach((column) => {
       column.cancel();
       column.visible = false;
@@ -306,50 +341,56 @@ export class ReelsBoard extends Container {
   }
 
   private finishCascade(finalReels: ReelsMatrix): void {
+    const quickStopped = this.cascadeQuickStop;
     this.stopCascade();
     this.columns.forEach((column, index) => column.setSymbols(finalReels[index]));
-    this.onReelStopped?.(0);
+    if (quickStopped) this.onAnimationCue?.('cascadeLand');
   }
 
-  private waitForCascade(seconds: number, signal: AbortSignal): Promise<void> {
+  private getWinRows(win: Win): number[][] {
+    const rows = this.columns.map(() => new Set<number>());
+    win.positions.forEach(([reelIndex, rowIndex]) => rows[reelIndex]?.add(rowIndex));
+    return rows.map((positions) => [...positions]);
+  }
+
+  private showWinLine(win: Win): void {
+    this.winLine.show(win);
+    if (win.positions.length >= 2) this.onAnimationCue?.('winLine');
+  }
+
+  private async pulseCascadeWin(win: Win, signal: AbortSignal): Promise<void> {
     signal.throwIfAborted();
-    return new Promise<void>((resolve, reject) => {
-      let settled = false;
-      let delay: gsap.core.Tween | null = null;
-      const cleanup = (): void => {
-        signal.removeEventListener('abort', onAbort);
-        this.skipCascadeWait = null;
-      };
-      const finish = (): void => {
-        if (settled) return;
-        settled = true;
-        delay?.kill();
-        cleanup();
-        resolve();
-      };
-      const onAbort = (): void => {
-        if (settled) return;
-        settled = true;
-        delay?.kill();
-        cleanup();
-        reject(signal.reason ?? new Error('Cascade presentation cancelled'));
-      };
-      this.skipCascadeWait = finish;
-      signal.addEventListener('abort', onAbort, { once: true });
-      delay = gsap.delayedCall(seconds, finish);
-      if (signal.aborted) onAbort();
-    });
+    const pulse = new AbortController();
+    const onAbort = (): void => pulse.abort(signal.reason);
+    const cancelPulse = (): void => pulse.abort(new Error('Cascade presentation cancelled'));
+    this.cancelCascadePulse = cancelPulse;
+    signal.addEventListener('abort', onAbort, { once: true });
+    try {
+      const rows = this.getWinRows(win);
+      await Promise.all(
+        this.cascadeColumns.map((column, index) => column.showWinRows(rows[index], pulse.signal)),
+      );
+    } finally {
+      signal.removeEventListener('abort', onAbort);
+      if (this.cancelCascadePulse === cancelPulse) this.cancelCascadePulse = null;
+    }
   }
 
   private waitForAnticipation(extraSpinMs: number, signal: AbortSignal): Promise<void> {
     signal.throwIfAborted();
+    if (extraSpinMs <= 0) return Promise.resolve();
     return new Promise<void>((resolve, reject) => {
       let settled = false;
+      let cueStarted = false;
       let delay: gsap.core.Tween | null = null;
       const cleanup = (): void => {
         signal.removeEventListener('abort', onAbort);
         this.skipAnticipationWait = null;
         this.cancelAnticipationWait = null;
+        if (cueStarted) {
+          cueStarted = false;
+          this.onAnimationCue?.('anticipationEnd');
+        }
       };
       const finish = (): void => {
         if (settled) return;
@@ -372,6 +413,10 @@ export class ReelsBoard extends Container {
       signal.addEventListener('abort', onAbort, { once: true });
       delay = gsap.delayedCall(extraSpinMs / 1000, finish);
       if (signal.aborted) onAbort();
+      else {
+        cueStarted = true;
+        this.onAnimationCue?.('anticipationStart');
+      }
     });
   }
 
