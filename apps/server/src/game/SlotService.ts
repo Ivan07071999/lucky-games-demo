@@ -12,7 +12,6 @@ import {
 import { Database, SlotError, type SessionRow } from '../storage/Database.js';
 import {
   BETS,
-  COIN_VALUES_CENTS,
   evaluateRound,
   FREE_SPINS_AWARDED,
   generateReels,
@@ -54,12 +53,9 @@ export class SlotService {
     if (!/^[a-zA-Z0-9_-]{1,100}$/.test(command.requestId)) {
       throw new SlotError('INVALID_REQUEST', 'Invalid requestId');
     }
-    const validatedBet =
-      command.type === 'SPIN'
-        ? validateBet(command.bet, command.level, command.coinValueCents)
-        : null;
+    const validatedBet = command.type === 'SPIN' ? validateBet(command.bet, command.level) : null;
     if (command.type === 'SPIN' && !validatedBet) {
-      throw new SlotError('INVALID_BET', 'Bet, level or coin value is not allowed');
+      throw new SlotError('INVALID_BET', 'Bet or level is not allowed');
     }
     if (command.type === 'SPIN') {
       if (command.paylineCount !== undefined && !PAYLINE_COUNTS.includes(command.paylineCount)) {
@@ -240,7 +236,6 @@ export class SlotService {
       config: {
         bets: [...BETS],
         levels: [...LEVELS],
-        coinValuesCents: [...COIN_VALUES_CENTS],
         paylines: PAYLINES.map((line) => [...line]),
         payouts: Object.fromEntries(
           SYMBOLS.map((symbol) => [symbol, [...SLOT_MATH.payouts[symbol]]]),

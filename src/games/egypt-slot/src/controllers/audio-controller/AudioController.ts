@@ -47,7 +47,7 @@ export class AudioController {
       emitter.on('reel:stopped', () => this.playEffect(EgyptAudioAssetKey.reelStop)),
     ];
     this.stopBetReaction = reaction(
-      () => [panel.bet, panel.level, panel.coinValueCents],
+      () => [panel.bet, panel.level],
       () => this.playEffect(EgyptAudioAssetKey.uiBetChange),
     );
   }

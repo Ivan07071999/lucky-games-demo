@@ -29,12 +29,7 @@ export class AutoPlayController {
     )
       return 'unavailable';
     if (!panel.canPlaceBet) return 'insufficientBalance';
-    if (
-      !autoPlay.start(
-        { bet: panel.bet, level: panel.level, coinValueCents: panel.coinValueCents },
-        panel.balanceCoins,
-      )
-    )
+    if (!autoPlay.start({ bet: panel.bet, level: panel.level }, panel.balanceCoins))
       return 'unavailable';
     if (!this.store.requestAutoSpin()) {
       autoPlay.requestStop();

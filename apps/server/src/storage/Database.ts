@@ -152,8 +152,6 @@ function normalizeRound(result: RoundResult): RoundResult {
 }
 
 function normalizeBet(bet: Bet): Bet {
-  const { coinValue, ...rest } = bet as Bet & { coinValue?: number };
-  if (rest.coinValueCents !== undefined) return rest;
-  if (coinValue === undefined) throw new Error('Stored bet has no coin value');
-  return { ...rest, coinValueCents: Math.round(coinValue * 100) };
+  const { bet: stake, level, totalCoins, paylineCount } = bet;
+  return { bet: stake, level, totalCoins, ...(paylineCount === undefined ? {} : { paylineCount }) };
 }

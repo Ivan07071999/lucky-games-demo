@@ -23,7 +23,6 @@ const commandSchema = z.discriminatedUnion('type', [
     requestId,
     bet: z.number().int(),
     level: z.number().int(),
-    coinValueCents: z.number().int(),
     paylineCount: z.union([z.literal(5), z.literal(7), z.literal(9)]).optional(),
     anticipationDemo: z.boolean().optional(),
     winDemo: z

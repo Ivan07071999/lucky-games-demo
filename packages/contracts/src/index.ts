@@ -73,7 +73,6 @@ export interface ReelAnticipationHint {
 export interface Bet {
   bet: number;
   level: number;
-  coinValueCents: number;
   totalCoins: number;
   /** Active paylines for this round. Older stored bets omit this and use five. */
   paylineCount?: PaylineCount;
@@ -155,7 +154,6 @@ export interface SlotState {
   config: {
     bets: number[];
     levels: number[];
-    coinValuesCents: number[];
     paylines: number[][];
     payouts: SymbolPayouts;
     wildMultiplier: number;
@@ -172,7 +170,6 @@ export type SlotCommand =
       requestId: string;
       bet: number;
       level: number;
-      coinValueCents: number;
       /** Number of active paylines; defaults to five for older clients. */
       paylineCount?: PaylineCount;
       /** Demo only: server generates a round with two visible scatters before reel 3, 4 or 5. */
@@ -205,7 +202,6 @@ const paylineCount = z.union([z.literal(5), z.literal(7), z.literal(9)]);
 const betSchema: z.ZodType<Bet> = z.object({
   bet: positiveInteger,
   level: positiveInteger,
-  coinValueCents: positiveInteger,
   totalCoins: positiveInteger,
   paylineCount: paylineCount.optional(),
 });
@@ -293,7 +289,6 @@ export const slotStateSchema: z.ZodType<SlotState> = z.object({
   config: z.object({
     bets: z.array(positiveInteger).nonempty(),
     levels: z.array(positiveInteger).nonempty(),
-    coinValuesCents: z.array(positiveInteger).nonempty(),
     paylines: z.array(z.tuple([rowIndex, rowIndex, rowIndex, rowIndex, rowIndex])),
     payouts: z.object({
       defaultA: payoutCoefficients,

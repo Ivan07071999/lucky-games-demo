@@ -12,7 +12,6 @@ import { SLOT_MATH, type SlotMathConfig } from './mathConfig.js';
 export const PAYLINES = SLOT_MATH.paylines;
 export const BETS = SLOT_MATH.bets;
 export const LEVELS = SLOT_MATH.levels;
-export const COIN_VALUES_CENTS = SLOT_MATH.coinValuesCents;
 export const INITIAL_BALANCE = SLOT_MATH.initialBalance;
 export const FREE_SPINS_AWARDED = SLOT_MATH.freeSpinsAwarded;
 
@@ -54,16 +53,10 @@ function getWeightedTable(config: SlotMathConfig, mode: RoundResult['mode']): We
 export function validateBet(
   bet: number,
   level: number,
-  coinValueCents: number,
   config: SlotMathConfig = SLOT_MATH,
 ): Bet | null {
-  if (
-    !config.bets.includes(bet) ||
-    !config.levels.includes(level) ||
-    !config.coinValuesCents.includes(coinValueCents)
-  )
-    return null;
-  return { bet, level, coinValueCents, totalCoins: bet * level };
+  if (!config.bets.includes(bet) || !config.levels.includes(level)) return null;
+  return { bet, level, totalCoins: bet * level };
 }
 
 export function generateReels(

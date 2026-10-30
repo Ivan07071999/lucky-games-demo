@@ -121,8 +121,7 @@ export class AutoPlayStore {
       this.state === 'stopRequested' ||
       !bet ||
       result.bet.bet !== bet.bet ||
-      result.bet.level !== bet.level ||
-      result.bet.coinValueCents !== bet.coinValueCents
+      result.bet.level !== bet.level
     ) {
       this.state = 'inactive';
     } else if (this.remaining === 0) {

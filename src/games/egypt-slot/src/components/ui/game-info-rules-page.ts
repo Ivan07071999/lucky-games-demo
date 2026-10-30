@@ -80,7 +80,7 @@ class PaylineDiagram extends Container {
 
 export class GameInfoRulesPage extends Container {
   private readonly rules = [
-    makeText('A paid spin costs BET × LEVEL COINS. COIN VALUE sets their cash equivalent.', 18),
+    makeText('A paid spin costs BET × LEVEL COINS.', 18),
     makeText('3, 4 or 5 matching paying symbols win on adjacent reels from left to right.', 18),
     makeText('', 18),
     makeText('', 18),

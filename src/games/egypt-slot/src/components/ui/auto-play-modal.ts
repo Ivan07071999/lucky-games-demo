@@ -248,7 +248,7 @@ export class AutoPlayModal extends Container {
       this.winLimitToggle.setChecked(autoPlay.netWinLimitCoins !== null);
       this.lossLimitText.text = autoPlay.netLossLimitCoins?.toString() ?? 'OFF';
       this.winLimitText.text = autoPlay.netWinLimitCoins?.toString() ?? 'OFF';
-      this.updateSummary(panel.bet, panel.level, panel.coinValueCents);
+      this.updateSummary(panel.bet, panel.level);
     });
   }
 
@@ -344,11 +344,7 @@ export class AutoPlayModal extends Container {
     this.content.position.set(placement.x, placement.y);
     this.card.resize(width, cardHeight);
     this.closeButton.position.set(width - this.contentPaddingX, this.landscapeLayout ? 35 : 40);
-    this.updateSummary(
-      this.store.panel.bet,
-      this.store.panel.level,
-      this.store.panel.coinValueCents,
-    );
+    this.updateSummary(this.store.panel.bet, this.store.panel.level);
     if (this.landscapeLayout) {
       this.layoutLandscape(width);
       return;
@@ -472,18 +468,10 @@ export class AutoPlayModal extends Container {
     increase.position.set(width - this.contentPaddingX - 15, y + 2);
   }
 
-  private updateSummary(bet: number, level: number, coinValueCents: number): void {
+  private updateSummary(bet: number, level: number): void {
     const totalCoins = bet * level;
-    if (this.landscapeLayout) {
-      this.summary.text = `BET ${bet}  |  LEVEL ${level}`;
-      this.cost.text = `COIN ${(coinValueCents / 100).toFixed(2)}  |  ${totalCoins} COINS`;
-    } else if (this.viewportWidth < 420) {
-      this.summary.text = `BET ${bet}  |  LV ${level}  |  CV ${(coinValueCents / 100).toFixed(2)}`;
-      this.cost.text = `${totalCoins} COINS  |  ${((totalCoins * coinValueCents) / 100).toFixed(2)} / SPIN`;
-    } else {
-      this.summary.text = `BET ${bet}  |  LEVEL ${level}  |  COIN ${(coinValueCents / 100).toFixed(2)}`;
-      this.cost.text = `${totalCoins} COINS / SPIN  |  ${((totalCoins * coinValueCents) / 100).toFixed(2)}`;
-    }
+    this.summary.text = `BET ${bet}  |  LEVEL ${level}`;
+    this.cost.text = `${totalCoins} COINS / SPIN`;
   }
 
   private makeText(text: string, fontSize: number, fill: number = SCROLL_MODAL_COLORS.ink): Text {

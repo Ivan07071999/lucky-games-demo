@@ -2,11 +2,29 @@ import type { GameEvents } from '../events';
 import type { GameEmitter } from '../events/GameEmitter';
 import type { ReelsController } from '../controllers/reels-controller/ReelsController';
 import type { BalanceController } from '../controllers/balance-controller/BalanceController';
-import type { WinPopupController } from '../controllers/win-popup-controller/WinPopupController';
 import type { AudioController } from '../controllers/audio-controller/AudioController';
 import type { SlotStore } from '../stores/SlotStore';
 import type { Phase } from './PhaseManager';
 import { PhaseName, type NextPhase } from './types';
+
+const WIN_REVEAL_PAUSE_MS = 300;
+
+function waitForWinReveal(signal: AbortSignal): Promise<void> {
+  signal.throwIfAborted();
+  return new Promise((resolve, reject) => {
+    const timeout = setTimeout(() => {
+      signal.removeEventListener('abort', onAbort);
+      resolve();
+    }, WIN_REVEAL_PAUSE_MS);
+    const onAbort = (): void => {
+      clearTimeout(timeout);
+      signal.removeEventListener('abort', onAbort);
+      reject(signal.reason ?? new Error('Win presentation skipped'));
+    };
+    signal.addEventListener('abort', onAbort, { once: true });
+    if (signal.aborted) onAbort();
+  });
+}
 
 export class ResultPhase implements Phase<
   typeof PhaseName.result,
@@ -17,7 +35,6 @@ export class ResultPhase implements Phase<
   private readonly emitter: GameEmitter<GameEvents>;
   private readonly reels: ReelsController;
   private readonly balance: BalanceController;
-  private readonly popup: WinPopupController;
   private readonly audio?: AudioController;
 
   constructor(
@@ -25,14 +42,12 @@ export class ResultPhase implements Phase<
     emitter: GameEmitter<GameEvents>,
     reels: ReelsController,
     balance: BalanceController,
-    popup: WinPopupController,
     audio?: AudioController,
   ) {
     this.store = store;
     this.emitter = emitter;
     this.reels = reels;
     this.balance = balance;
-    this.popup = popup;
     this.audio = audio;
   }
 
@@ -52,11 +67,10 @@ export class ResultPhase implements Phase<
       this.store.applyRoundOutcome(result);
       this.store.round.startShowingWin();
       await this.reels.presentResult(result, presentation.signal);
+      this.store.round.revealWin();
       this.audio?.playWin((result.features.freeSpins.completion ?? result).winType ?? 'NO_WIN');
-      await Promise.all([
-        this.balance.showWin(result, presentation.signal),
-        this.popup.present(result, presentation.signal),
-      ]);
+      if (result.totalWinCoins > 0) await waitForWinReveal(presentation.signal);
+      await this.balance.showWin(result, presentation.signal);
     } catch (error) {
       if (signal.aborted) throw error;
       if (!this.store.round.skipWinRequested) {
@@ -66,7 +80,7 @@ export class ResultPhase implements Phase<
       presentation.abort();
       unsubscribeSkipWin();
       signal.removeEventListener('abort', abortPresentation);
-      this.popup.hide();
+      this.store.round.revealWin();
       this.balance.settle(result);
       try {
         if (!signal.aborted && result.mode === 'BASE_GAME' && this.store.round.isFreeSpin) {

@@ -1,21 +1,18 @@
 import { Container, Sprite, Texture } from 'pixi.js';
+import { autorun, type IReactionDisposer } from 'mobx';
 import { EgyptImageAssetKey } from '../../assets';
 import type { SceneTheme } from '../../scene/sceneTheme';
-import { CoinValueSwitcher } from './coin-value-switcher';
-import { Coins } from './coins';
-import type { ValueSwitcherActions } from './value-switcher';
+import type { SlotStore } from '../../stores/SlotStore';
+import { PanelAmount } from './panel-amount';
 
 export class RightBackground extends Container {
   readonly background: Sprite;
-  readonly coinValueSwitcher: CoinValueSwitcher;
-  readonly coins: Coins;
+  readonly coins: PanelAmount;
+  readonly win: PanelAmount;
+  private readonly stopObserving: IReactionDisposer;
+  private displayedRoundId: string | null = null;
 
-  constructor(
-    height: number,
-    coins: number,
-    coinValueCents: number,
-    coinValueActions: ValueSwitcherActions,
-  ) {
+  constructor(height: number, store: SlotStore) {
     super();
 
     this.label = 'bet-panel-right-background';
@@ -26,17 +23,29 @@ export class RightBackground extends Container {
     this.background.width =
       this.background.height * (this.background.texture.width / this.background.texture.height);
 
-    this.coinValueSwitcher = new CoinValueSwitcher(
-      this.background.width,
-      this.background.height,
-      coinValueCents,
-      coinValueActions,
-    );
-    this.coinValueSwitcher.position.x = -this.background.width * 0.25;
-    this.coinValueSwitcher.position.y = -10;
-    this.coins = new Coins(this.background.width, this.background.height, coins);
-    this.coins.position.set(this.background.width * 0.2, -10);
-    this.addChild(this.background, this.coinValueSwitcher, this.coins);
+    const amountWidth = this.background.width / 2;
+    const amountOffset = this.background.width * 0.25;
+    this.coins = new PanelAmount('COINS', amountWidth, this.background.height, 0);
+    this.win = new PanelAmount('WIN', amountWidth, this.background.height, 0);
+    this.win.position.set(-amountOffset, -10);
+    this.coins.position.set(amountOffset, -10);
+    this.addChild(this.background, this.win, this.coins);
+
+    this.stopObserving = autorun(() => {
+      const { round, panel } = store;
+      const completed = round.currentRound;
+      this.coins.setValue(panel.displayBalanceCoins);
+
+      if (round.winDisplayReady && completed && this.displayedRoundId !== completed.roundId) {
+        this.displayedRoundId = completed.roundId;
+        this.win.setValue(completed.totalWinCoins);
+      }
+    });
+  }
+
+  override destroy(options?: Parameters<Container['destroy']>[0]): void {
+    this.stopObserving();
+    super.destroy(options);
   }
 
   setTheme(theme: SceneTheme): void {

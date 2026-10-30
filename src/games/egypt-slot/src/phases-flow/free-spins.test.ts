@@ -17,12 +17,11 @@ const state: SlotState = {
   sessionId: 'session-1',
   balanceCoins: 100,
   freeSpins: { remaining: 1, totalWinCoins: 0, stickyReels: [] },
-  lastBet: { bet: 15, level: 1, coinValueCents: 2, totalCoins: 15 },
+  lastBet: { bet: 15, level: 1, totalCoins: 15 },
   nextAction: 'FREE_SPIN',
   config: {
     bets: [15],
     levels: [1],
-    coinValuesCents: [2],
     paylines: [],
     payouts: {
       defaultA: [1, 3, 5],

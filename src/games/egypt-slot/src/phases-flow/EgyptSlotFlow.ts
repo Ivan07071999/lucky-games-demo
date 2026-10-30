@@ -2,7 +2,6 @@ import type { GameMessages } from '../runtime/GameContext';
 import { MainSceneController } from '../controllers/main-scene-controller/MainSceneController';
 import { ReelsController } from '../controllers/reels-controller/ReelsController';
 import { BalanceController } from '../controllers/balance-controller/BalanceController';
-import { WinPopupController } from '../controllers/win-popup-controller/WinPopupController';
 import { FreeSpinsThemeController } from '../controllers/free-spins-theme-controller/FreeSpinsThemeController';
 import { MainScene } from '../scene/MainScene';
 import { FreeSpinsPhase } from './free-spins';
@@ -31,7 +30,6 @@ export class EgyptSlotFlow extends PhaseManager<PhaseName, typeof phaseTransitio
       () => slotStore.spinSettings.turboEnabled,
     );
     const balanceController = new BalanceController(slotStore.panel);
-    const winPopupController = new WinPopupController(sceneController);
     const themeController = new FreeSpinsThemeController(sceneController, audio);
     const unsubscribeMaxBetError = emitter.on('ui:maxBetInsufficientBalance', () => {
       sceneController.showError(messages.insufficientBalance);
@@ -78,7 +76,6 @@ export class EgyptSlotFlow extends PhaseManager<PhaseName, typeof phaseTransitio
         emitter,
         reelsController,
         balanceController,
-        winPopupController,
         audio,
       ),
     } satisfies PhaseRegistry<PhaseName, typeof phaseTransitions>;

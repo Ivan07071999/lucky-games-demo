@@ -12,7 +12,6 @@ const state: SlotState = {
   config: {
     bets: [15],
     levels: [1],
-    coinValuesCents: [2],
     paylines: [[0, 0, 0, 0, 0]],
     payouts: {
       defaultA: [1, 3, 5],
@@ -88,7 +87,6 @@ describe('HTTP and WebSocket protocol', () => {
           requestId: 'req_1',
           bet: 15,
           level: 1,
-          coinValueCents: 2,
         }),
       );
       expect(JSON.parse(await response)).toEqual({

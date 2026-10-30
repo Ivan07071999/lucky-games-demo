@@ -8,7 +8,6 @@ export interface SlotMathConfig {
   readonly paylines: readonly Payline[];
   readonly bets: readonly number[];
   readonly levels: readonly number[];
-  readonly coinValuesCents: readonly number[];
   readonly initialBalance: number;
   readonly freeSpinsAwarded: number;
   readonly scatterSymbol: SymbolKey;
@@ -41,7 +40,6 @@ export const SLOT_MATH = {
   ],
   bets: Array.from({ length: 20 }, (_, index) => index + 1),
   levels: Array.from({ length: 10 }, (_, index) => index + 1),
-  coinValuesCents: [1, 2, 5, 10, 20, 50, 100],
   initialBalance: 250_000,
   freeSpinsAwarded: 8,
   scatterSymbol: 'highScarab',
@@ -106,7 +104,6 @@ export function assertSlotMathConfig(config: SlotMathConfig): void {
   for (const [name, values] of [
     ['bets', config.bets],
     ['levels', config.levels],
-    ['coin values', config.coinValuesCents],
   ] as const) {
     if (values.length === 0 || values.some((value) => !positive(value))) {
       throw new Error(`Invalid ${name}`);

@@ -15,6 +15,7 @@ export class RoundStore {
   stage: RoundStage = 'idle';
   quickStopRequested = false;
   skipWinRequested = false;
+  winDisplayReady = false;
   isBonusRound = false;
   errorMessage: string | null = null;
   currentRound: RoundResult | null = null;
@@ -72,6 +73,7 @@ export class RoundStore {
     this.stage = 'idle';
     this.quickStopRequested = false;
     this.skipWinRequested = false;
+    this.winDisplayReady = false;
     this.isBonusRound = false;
     this.currentRound = null;
     this.lastRoundResult = null;
@@ -95,6 +97,7 @@ export class RoundStore {
     this.stage = 'waitingResult';
     this.quickStopRequested = false;
     this.skipWinRequested = false;
+    this.winDisplayReady = false;
     this.errorMessage = null;
     this.currentRound = null;
   }
@@ -107,11 +110,16 @@ export class RoundStore {
     this.stage = 'showingWin';
   }
 
+  revealWin(): void {
+    if (this.currentRound) this.winDisplayReady = true;
+  }
+
   startRecovery(isBonusRound = this.isBonusRound): void {
     this.stage = 'recovering';
     this.isBonusRound = isBonusRound;
     this.quickStopRequested = false;
     this.skipWinRequested = false;
+    this.winDisplayReady = false;
   }
 
   requestQuickStop(): boolean {
@@ -134,6 +142,7 @@ export class RoundStore {
     this.stage = 'idle';
     this.quickStopRequested = false;
     this.skipWinRequested = false;
+    this.winDisplayReady = false;
     this.isBonusRound = false;
     this.currentRound = null;
   }

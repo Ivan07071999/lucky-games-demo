@@ -2,12 +2,12 @@ import { describe, expect, it } from 'vitest';
 import type { ReelGrid } from '@lucky-games/contracts';
 import { evaluateRound, validateBet } from '../src/game/rules.js';
 
-const bet = { bet: 15, level: 1, coinValueCents: 2, totalCoins: 15 };
+const bet = { bet: 15, level: 1, totalCoins: 15 };
 
 describe('slot rules', () => {
-  it('keeps coin value separate from the coin balance', () => {
-    expect(validateBet(15, 1, 2)).toEqual(bet);
-    expect(validateBet(21, 1, 2)).toBeNull();
+  it('validates the coin stake using bet and level', () => {
+    expect(validateBet(15, 1)).toEqual(bet);
+    expect(validateBet(21, 1)).toBeNull();
   });
 
   it('pays three ankhs on the top line and returns zero-based positions', () => {

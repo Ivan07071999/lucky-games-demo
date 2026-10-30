@@ -1,6 +1,6 @@
 # Контракт слота v1
 
-Типы для клиента и сервера находятся в [`src/index.ts`](src/index.ts). Текущая версия относится к демо-слоту `egypt-slot`; правила выплат заданы сервером. Все суммы баланса, ставок и выигрышей передаются **целыми игровыми монетами**. `coinValueCents` — денежный номинал одной монеты в центах, также целое число. Например, `coinValueCents: 2` означает 0,02 денежной единицы. Сервер списывает `bet × level` игровых монет.
+Типы для клиента и сервера находятся в [`src/index.ts`](src/index.ts). Текущая версия относится к демо-слоту `egypt-slot`; правила выплат заданы сервером. Все суммы баланса, ставок и выигрышей передаются **целыми игровыми монетами**. Сервер списывает `bet × level` игровых монет.
 
 ## HTTP
 
@@ -10,7 +10,7 @@
 | `GET /api/slot/state`                | `SlotState`    | Восстановить баланс и бонусное состояние               |
 | `GET /api/slot/rounds/:requestId`    | `RoundResult`  | Получить сохранённый результат после обрыва соединения |
 
-Для двух `GET` требуется `Authorization: Bearer <sessionId>`. `SlotState.config` содержит разрешённые `bets`, `levels`, `coinValuesCents`, линии `paylines`, таблицу коэффициентов `payouts` (для 3/4/5 символов), множитель Wild и параметры Free Spins. Клиент показывает выплату в монетах как коэффициент × текущие `BET × LEVEL`; итог раунда рассчитывает сервер. `lastBet` равен `null` до первого вращения. `nextAction` равен `SPIN` или `FREE_SPIN`.
+Для двух `GET` требуется `Authorization: Bearer <sessionId>`. `SlotState.config` содержит разрешённые `bets`, `levels`, линии `paylines`, таблицу коэффициентов `payouts` (для 3/4/5 символов), множитель Wild и параметры Free Spins. Клиент показывает выплату в монетах как коэффициент × текущие `BET × LEVEL`; итог раунда рассчитывает сервер. `lastBet` равен `null` до первого вращения. `nextAction` равен `SPIN` или `FREE_SPIN`.
 
 ## WebSocket
 
@@ -78,7 +78,6 @@ cannot be combined with `winDemo` or `anticipationDemo`; it does not apply to
   "requestId": "spin_001",
   "bet": 15,
   "level": 1,
-  "coinValueCents": 2,
   "paylineCount": 7
 }
 ```

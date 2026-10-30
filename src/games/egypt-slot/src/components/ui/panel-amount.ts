@@ -1,17 +1,17 @@
 import 'pixi.js/text-bitmap';
 import { BitmapText, Container } from 'pixi.js';
 
-export class Coins extends Container {
+export class PanelAmount extends Container {
   readonly valueText: BitmapText;
   private readonly valueMaxWidth: number;
 
-  constructor(width: number, height: number, value: number) {
+  constructor(title: string, width: number, height: number, value: number) {
     super();
 
-    this.label = 'coins';
+    this.label = `panel-${title.toLowerCase()}`;
 
     const label = new BitmapText({
-      text: 'COINS',
+      text: title,
       style: {
         fontFamily: 'CasinoGoldBold',
         fontSize: height * 0.12,
@@ -19,10 +19,10 @@ export class Coins extends Container {
         align: 'center',
       },
     });
-    label.label = 'coins-title';
+    label.label = `${this.label}-title`;
     label.anchor.set(0.5);
     label.position.set(0, -height * 0.15 - 2);
-    label.scale.set(Math.min(1, (width * 0.32) / label.width));
+    label.scale.set(Math.min(1, (width * 0.7) / label.width));
 
     this.valueText = new BitmapText({
       text: String(value),
@@ -32,10 +32,10 @@ export class Coins extends Container {
         align: 'center',
       },
     });
-    this.valueText.label = 'coins-value';
+    this.valueText.label = `${this.label}-value`;
     this.valueText.anchor.set(0.5);
     this.valueText.position.y = height * 0.05;
-    this.valueMaxWidth = width * 0.42;
+    this.valueMaxWidth = width * 0.8;
     this.fitValueText();
 
     this.addChild(label, this.valueText);
@@ -47,6 +47,6 @@ export class Coins extends Container {
   }
 
   private fitValueText(): void {
-    this.valueText.scale.set(Math.min(1, this.valueMaxWidth / this.valueText.width));
+    this.valueText.scale.set(Math.min(1, this.valueMaxWidth / Math.max(this.valueText.width, 1)));
   }
 }

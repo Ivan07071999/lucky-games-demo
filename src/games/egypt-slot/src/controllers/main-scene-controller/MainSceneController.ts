@@ -1,5 +1,4 @@
 import type { Application } from 'pixi.js';
-import type { WinType } from '@lucky-games/contracts';
 import type { ReelsCommand } from '../../reelsMachine/commands';
 import type { MainScene } from '../../scene/MainScene';
 import type { FreeSpinsTransitionKind } from '../../components/free-spins-transition/FreeSpinsTransition';
@@ -46,14 +45,6 @@ export class MainSceneController {
 
   executeReels(command: ReelsCommand, signal: AbortSignal): void | Promise<void> {
     return this.scene.executeReels(command, signal);
-  }
-
-  showWinPopup(winType: WinType, totalWinCoins: number): void {
-    this.scene.showWinPopup(winType, totalWinCoins);
-  }
-
-  hideWinPopup(): void {
-    if (!this.scene.destroyed) this.scene.hideWinPopup();
   }
 
   setTheme(theme: SceneTheme): void {

@@ -46,7 +46,6 @@ export class SpinningPhase implements Phase<
       const bet = {
         bet: this.store.panel.bet,
         level: this.store.panel.level,
-        coinValueCents: this.store.panel.coinValueCents,
         paylineCount:
           this.store.spinSettings.paylineCount === 5
             ? undefined

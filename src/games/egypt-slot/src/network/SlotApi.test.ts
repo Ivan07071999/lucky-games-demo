@@ -37,7 +37,6 @@ const state: SlotState = {
   config: {
     bets: [15, 20],
     levels: [1, 10],
-    coinValuesCents: [2],
     paylines: [],
     payouts: {
       defaultA: [1, 3, 5],
@@ -77,10 +76,10 @@ describe('SlotApi round recovery', () => {
     network.send.mockRejectedValueOnce(new SlotApiError('WebSocket connection closed'));
     network.getRound.mockRejectedValueOnce(new SlotApiError('Round not found', 'ROUND_NOT_FOUND'));
 
-    await expect(api.spin({ bet: 15, level: 1, coinValueCents: 2 })).rejects.toThrow();
+    await expect(api.spin({ bet: 15, level: 1 })).rejects.toThrow();
     const original = network.send.mock.calls[0][0] as SlotCommand;
     expect(api.hasPendingRound).toBe(true);
-    await expect(api.spin({ bet: 20, level: 10, coinValueCents: 2 })).rejects.toThrow(
+    await expect(api.spin({ bet: 20, level: 10 })).rejects.toThrow(
       'The previous round must be recovered first',
     );
     expect(network.send).toHaveBeenCalledTimes(1);
@@ -101,7 +100,6 @@ describe('SlotApi round recovery', () => {
       requestId: 'saved_request',
       bet: 15,
       level: 1,
-      coinValueCents: 2,
     };
     const result = { requestId: command.requestId, roundId: 'saved_round' } as RoundResult;
     sessionStorage.setItem('egypt-slot:session-id', state.sessionId);
@@ -114,7 +112,7 @@ describe('SlotApi round recovery', () => {
     const initial = await api.initialize();
     expect(initial.recoveredRound).toBeNull();
     expect(api.pendingAction).toBe('SPIN');
-    await expect(api.spin({ bet: 20, level: 10, coinValueCents: 2 })).rejects.toThrow();
+    await expect(api.spin({ bet: 20, level: 10 })).rejects.toThrow();
     await expect(api.recoverPendingRound()).resolves.toBe(result);
     expect(network.getRound).toHaveBeenLastCalledWith(
       state.sessionId,

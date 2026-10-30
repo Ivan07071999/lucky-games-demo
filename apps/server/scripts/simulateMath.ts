@@ -22,7 +22,7 @@ export function simulateMath(config: SlotMathConfig, paidSpins: number, seed = 2
     throw new Error('Paid spin count must be a positive safe integer');
   }
   const random = createSeededRandom(seed);
-  const bet = { bet: 15, level: 1, coinValueCents: 2, totalCoins: 15 };
+  const bet = { bet: 15, level: 1, totalCoins: 15 };
   let baseWinCoins = 0;
   let bonusWinCoins = 0;
   let paidWins = 0;

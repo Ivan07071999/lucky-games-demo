@@ -76,7 +76,6 @@ export class SlotStore {
       !this.panel.canPlaceBet ||
       this.panel.bet !== bet.bet ||
       this.panel.level !== bet.level ||
-      this.panel.coinValueCents !== bet.coinValueCents ||
       !this.autoPlay.markRoundStarted()
     )
       return false;

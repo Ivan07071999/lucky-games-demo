@@ -11,11 +11,6 @@ const SECTIONS = [
         description: 'Use the arrows to change the stake level. Total stake is BET × LEVEL coins.',
       },
       {
-        label: 'COIN VALUE',
-        description:
-          'Use the arrows to change the cash value of one coin. The COINS balance stays in coins.',
-      },
-      {
         label: 'COINS',
         description:
           'Shows your coin balance. The stake is deducted on SPIN; any win is added after the reels stop.',
@@ -33,7 +28,7 @@ const SECTIONS = [
       {
         label: 'MAX BET',
         description:
-          'Sets BET and LEVEL to their allowed maximums and immediately starts one spin. COIN VALUE stays selected.',
+          'Sets BET and LEVEL to their allowed maximums and immediately starts one spin.',
       },
       {
         label: 'AUTO PLAY',

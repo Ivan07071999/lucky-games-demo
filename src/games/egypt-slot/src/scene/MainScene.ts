@@ -9,12 +9,10 @@ import { GameSettingsModal } from '../components/ui/game-settings-modal';
 import { InfoButton } from '../components/ui/info-button';
 import { SettingsButton } from '../components/ui/settings-button';
 import { FreeSpinsStatus } from '../components/ui/free-spins-status';
-import { WinPopup } from '../components/win-popup/WinPopup';
 import {
   FreeSpinsTransition,
   type FreeSpinsTransitionKind,
 } from '../components/free-spins-transition/FreeSpinsTransition';
-import type { WinType } from '@lucky-games/contracts';
 import { ReelsMachine } from '../reelsMachine/ReelsMachine';
 import type { ReelsCommand } from '../reelsMachine/commands';
 import { GameContext, type GameMessages } from '../runtime/GameContext';
@@ -39,7 +37,6 @@ export class MainScene extends Container {
   private infoModal: GameInfoModal | null = null;
   private settingsModal: GameSettingsModal | null = null;
   private freeSpinsStatus: FreeSpinsStatus | null = null;
-  private winPopup: WinPopup | null = null;
   private freeSpinsTransition: FreeSpinsTransition | null = null;
   private theme: SceneTheme = 'base';
   private viewportWidth = 0;
@@ -98,8 +95,6 @@ export class MainScene extends Container {
     betPanel.on('pointerover', () => this.context.audio.playHover());
     betPanel.on('pointertap', () => this.context.audio.playClick());
     const freeSpinsStatus = new FreeSpinsStatus(this.context.slotStore.round);
-    const winPopup = new WinPopup();
-    winPopup.on('pointertap', () => this.context.emitter.emit('ui:skipWinRequested'));
     const freeSpinsTransition = new FreeSpinsTransition();
 
     this.background = background;
@@ -113,7 +108,6 @@ export class MainScene extends Container {
     this.infoModal = infoModal;
     this.settingsModal = settingsModal;
     this.freeSpinsStatus = freeSpinsStatus;
-    this.winPopup = winPopup;
     this.freeSpinsTransition = freeSpinsTransition;
 
     this.addChild(
@@ -128,7 +122,6 @@ export class MainScene extends Container {
       autoPlayModal,
       infoModal,
       settingsModal,
-      winPopup,
       freeSpinsTransition,
     );
     if (this.context.slotStore.round.isFreeSpin) this.setTheme('freeSpins');
@@ -153,7 +146,6 @@ export class MainScene extends Container {
     this.settingsButton?.position.set(cornerMargin + 80, cornerMargin + 36);
     this.infoModal?.resize(width, height);
     this.settingsModal?.resize(width, height);
-    this.winPopup?.resize(width, height);
     this.freeSpinsTransition?.resize(width, height);
 
     const panel = this.betPanel;
@@ -173,15 +165,6 @@ export class MainScene extends Container {
   executeReels(command: ReelsCommand, signal: AbortSignal): void | Promise<void> {
     if (!this.reelsMachine) throw new Error('ReelsMachine has not been initialized');
     return this.reelsMachine.execute(command, signal);
-  }
-
-  showWinPopup(winType: WinType, totalWinCoins: number): void {
-    if (!this.winPopup) throw new Error('MainScene has not been initialized');
-    this.winPopup.show(winType, totalWinCoins);
-  }
-
-  hideWinPopup(): void {
-    this.winPopup?.hide();
   }
 
   setTheme(theme: SceneTheme): void {

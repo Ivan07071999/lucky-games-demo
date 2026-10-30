@@ -6,14 +6,12 @@ import type { AutoPlayStore } from './AutoPlayStore';
 export class PanelStore {
   bet = 15;
   level = 1;
-  coinValueCents = 2;
   // Последний баланс, подтверждённый сервером.
   balanceCoins = 0;
   // Баланс, который видит игрок во время анимации раунда.
   displayBalanceCoins = 0;
   private bets: number[] = [];
   private levels: number[] = [];
-  private coinValuesCents: number[] = [];
   private readonly round: RoundStore;
   private readonly autoPlay: AutoPlayStore;
 
@@ -31,7 +29,6 @@ export class PanelStore {
     return (
       this.bets.includes(this.bet) &&
       this.levels.includes(this.level) &&
-      this.coinValuesCents.includes(this.coinValueCents) &&
       this.balanceCoins >= this.totalBetCoins
     );
   }
@@ -74,16 +71,6 @@ export class PanelStore {
     this.level = this.previousValue(this.levels, this.level);
   }
 
-  increaseCoinValue(): void {
-    if (!this.canEditBet) return;
-    this.coinValueCents = this.nextValue(this.coinValuesCents, this.coinValueCents);
-  }
-
-  decreaseCoinValue(): void {
-    if (!this.canEditBet) return;
-    this.coinValueCents = this.previousValue(this.coinValuesCents, this.coinValueCents);
-  }
-
   setBet(bet: number): void {
     if (!this.canEditBet) return;
     if (!this.bets.includes(bet)) throw new RangeError('Bet is not allowed');
@@ -93,11 +80,8 @@ export class PanelStore {
   applyInitialState(state: SlotState): void {
     this.bets = [...state.config.bets];
     this.levels = [...state.config.levels];
-    this.coinValuesCents = [...state.config.coinValuesCents];
     this.bet = state.lastBet?.bet ?? this.chooseValue(this.bets, this.bet);
     this.level = state.lastBet?.level ?? this.chooseValue(this.levels, this.level);
-    this.coinValueCents =
-      state.lastBet?.coinValueCents ?? this.chooseValue(this.coinValuesCents, this.coinValueCents);
     this.balanceCoins = state.balanceCoins;
     this.displayBalanceCoins = state.balanceCoins;
   }
@@ -105,7 +89,6 @@ export class PanelStore {
   applyRoundResult(result: RoundResult): void {
     this.bet = result.bet.bet;
     this.level = result.bet.level;
-    this.coinValueCents = result.bet.coinValueCents;
     this.balanceCoins = result.balance.afterWin;
     this.displayBalanceCoins = result.balance.afterWin;
   }
@@ -113,7 +96,6 @@ export class PanelStore {
   applyConfirmedBet(result: RoundResult): void {
     this.bet = result.bet.bet;
     this.level = result.bet.level;
-    this.coinValueCents = result.bet.coinValueCents;
     this.balanceCoins = result.balance.afterWin;
     this.displayBalanceCoins = result.balance.afterBet;
   }

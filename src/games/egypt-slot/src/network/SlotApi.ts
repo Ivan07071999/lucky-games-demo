@@ -17,14 +17,7 @@ const KNOWN_WIN_DEMO_TYPES = new Set<string>(WIN_DEMO_TYPES);
 
 export type SpinOptions = Pick<
   Extract<SlotCommand, { type: 'SPIN' }>,
-  | 'bet'
-  | 'level'
-  | 'coinValueCents'
-  | 'paylineCount'
-  | 'anticipationDemo'
-  | 'winDemo'
-  | 'winTypeDemo'
-  | 'spinMode'
+  'bet' | 'level' | 'paylineCount' | 'anticipationDemo' | 'winDemo' | 'winTypeDemo' | 'spinMode'
 >;
 
 export class SlotApi {
@@ -218,8 +211,6 @@ export class SlotApi {
             Number.isInteger(value.bet) &&
             'level' in value &&
             Number.isInteger(value.level) &&
-            'coinValueCents' in value &&
-            Number.isInteger(value.coinValueCents) &&
             (!('paylineCount' in value) ||
               value.paylineCount === 5 ||
               value.paylineCount === 7 ||
@@ -244,7 +235,23 @@ export class SlotApi {
               value.spinMode === 'HYBRID') &&
             (!('cascade' in value) || typeof value.cascade === 'boolean')))
       ) {
-        return value as SlotCommand;
+        if (value.type === 'FREE_SPIN') return value as SlotCommand;
+        const command = value as Extract<SlotCommand, { type: 'SPIN' }>;
+        return {
+          type: command.type,
+          sessionId: command.sessionId,
+          requestId: command.requestId,
+          bet: command.bet,
+          level: command.level,
+          ...(command.paylineCount !== undefined && { paylineCount: command.paylineCount }),
+          ...(command.anticipationDemo !== undefined && {
+            anticipationDemo: command.anticipationDemo,
+          }),
+          ...(command.winDemo !== undefined && { winDemo: command.winDemo }),
+          ...(command.winTypeDemo !== undefined && { winTypeDemo: command.winTypeDemo }),
+          ...(command.spinMode !== undefined && { spinMode: command.spinMode }),
+          ...(command.cascade !== undefined && { cascade: command.cascade }),
+        };
       }
     } catch {
       // Повреждённая запись не должна блокировать запуск игры.
