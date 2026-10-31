@@ -1,6 +1,6 @@
 import type { SymbolKey } from '@lucky-games/contracts';
 import { Container, Graphics, Rectangle, Text } from 'pixi.js';
-import { SCROLL_MODAL_COLORS } from './scroll-modal-theme';
+import { SCROLL_MODAL_COLORS } from '../scroll-modal-theme';
 
 const SYMBOL_NAMES: Partial<Record<SymbolKey, string>> = {
   highAnkh: 'ANKH',

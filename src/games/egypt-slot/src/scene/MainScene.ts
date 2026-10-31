@@ -5,7 +5,7 @@ import { BetSelectionModal } from '../components/popups/bet-selection/bet-select
 import { AutoPlayModal } from '../components/popups/auto-play/auto-play-modal';
 import { AudioToggle } from '../components/ui/audio-toggle';
 import { GameInfoModal } from '../components/popups/game-info/game-info-modal';
-import { GameSettingsModal } from '../components/popups/game-settings-modal';
+import { GameSettingsModal } from '../components/popups/game-settings/game-settings-modal';
 import { InfoButton } from '../components/ui/info-button';
 import { SettingsButton } from '../components/ui/settings-button';
 import { FreeSpinsStatus } from '../components/ui/free-spins-status';
