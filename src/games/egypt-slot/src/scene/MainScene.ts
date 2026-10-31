@@ -1,15 +1,15 @@
 import { Container, Sprite, Texture } from 'pixi.js';
 import { EgyptImageAssetKey } from '../assets';
 import { BetPanel } from '../components/bet-panel';
-import { BetSelectionModal } from '../components/ui/bet-selection-modal';
-import { AutoPlayModal } from '../components/ui/auto-play-modal';
+import { BetSelectionModal } from '../components/popups/bet-selection-modal';
+import { AutoPlayModal } from '../components/popups/auto-play-modal';
 import { AudioToggle } from '../components/ui/audio-toggle';
-import { GameInfoModal } from '../components/ui/game-info-modal';
-import { GameSettingsModal } from '../components/ui/game-settings-modal';
+import { GameInfoModal } from '../components/popups/game-info/game-info-modal';
+import { GameSettingsModal } from '../components/popups/game-settings-modal';
 import { InfoButton } from '../components/ui/info-button';
 import { SettingsButton } from '../components/ui/settings-button';
 import { FreeSpinsStatus } from '../components/ui/free-spins-status';
-import { WinPopup } from '../components/win-popup/WinPopup';
+import { WinPopup } from '../components/popups/win-popup/WinPopup';
 import type { WinType } from '@lucky-games/contracts';
 import {
   FreeSpinsTransition,

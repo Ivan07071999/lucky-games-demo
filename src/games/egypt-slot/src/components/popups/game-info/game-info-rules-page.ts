@@ -1,6 +1,6 @@
 import type { SlotState } from '@lucky-games/contracts';
 import { Container, Graphics, Text } from 'pixi.js';
-import { SCROLL_MODAL_COLORS } from './scroll-modal-theme';
+import { SCROLL_MODAL_COLORS } from '../scroll-modal-theme';
 
 const makeText = (text: string, size: number, bold = false): Text =>
   new Text({

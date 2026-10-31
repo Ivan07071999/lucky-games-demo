@@ -23,6 +23,7 @@ export class LoadingPhase implements Phase<
   private readonly store: SlotStore;
   private readonly scene: MainSceneController;
   private readonly messages: GameMessages;
+  private readonly onLoadingChange: (loading: boolean) => void;
   private status: StatusScene | null = null;
 
   constructor(
@@ -33,6 +34,7 @@ export class LoadingPhase implements Phase<
     store: SlotStore,
     scene: MainSceneController,
     messages: GameMessages,
+    onLoadingChange: (loading: boolean) => void,
   ) {
     this.application = application;
     this.assets = assets;
@@ -41,6 +43,7 @@ export class LoadingPhase implements Phase<
     this.store = store;
     this.scene = scene;
     this.messages = messages;
+    this.onLoadingChange = onLoadingChange;
   }
 
   async enter(signal: AbortSignal): Promise<NextPhase<typeof PhaseName.loading>> {
@@ -50,7 +53,8 @@ export class LoadingPhase implements Phase<
 
     while (true) {
       this.status?.dispose();
-      this.status = new StatusScene(this.messages.loading).show(application);
+      this.status = null;
+      this.onLoadingChange(true);
       try {
         const { state, recoveredRound } = await this.api.initialize(signal);
         await this.assets.loadAll();
@@ -63,11 +67,13 @@ export class LoadingPhase implements Phase<
           this.scene.setTheme(this.api.pendingAction === 'FREE_SPIN' ? 'freeSpins' : 'base');
         }
         this.audio.load();
+        this.onLoadingChange(false);
         if (this.api.hasPendingRound) return PhaseName.recovering;
         return this.store.round.isFreeSpin ? PhaseName.freeSpins : PhaseName.idle;
       } catch (error) {
         if (signal.aborted) throw error;
         console.error('Egypt slot loading failed', error);
+        this.onLoadingChange(false);
         await this.waitForRetry(
           application,
           signal,

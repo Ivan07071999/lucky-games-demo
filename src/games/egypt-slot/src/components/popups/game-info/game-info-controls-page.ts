@@ -1,5 +1,5 @@
 import { Container, Graphics, Text } from 'pixi.js';
-import { SCROLL_MODAL_COLORS } from './scroll-modal-theme';
+import { SCROLL_MODAL_COLORS } from '../scroll-modal-theme';
 
 const SECTIONS = [
   {

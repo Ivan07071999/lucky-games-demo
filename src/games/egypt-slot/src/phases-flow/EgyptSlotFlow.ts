@@ -17,7 +17,11 @@ import { SpinningPhase } from './spinning';
 import { PhaseName, phaseTransitions } from './types';
 
 export class EgyptSlotFlow extends PhaseManager<PhaseName, typeof phaseTransitions> {
-  constructor(canvas: HTMLCanvasElement, messages: GameMessages) {
+  constructor(
+    canvas: HTMLCanvasElement,
+    messages: GameMessages,
+    onLoadingChange: (loading: boolean) => void = () => {},
+  ) {
     const scene = new MainScene(canvas, messages);
     const { application, assets } = scene.context.controllers;
     const { api, audio, autoPlayController, emitter, slotStore } = scene.context;
@@ -44,6 +48,7 @@ export class EgyptSlotFlow extends PhaseManager<PhaseName, typeof phaseTransitio
         slotStore,
         sceneController,
         messages,
+        onLoadingChange,
       ),
       [PhaseName.idle]: new IdlePhase(slotStore, emitter, autoPlayController),
       [PhaseName.spinning]: new SpinningPhase(

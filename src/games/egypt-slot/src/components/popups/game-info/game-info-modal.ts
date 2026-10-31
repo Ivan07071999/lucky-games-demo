@@ -8,13 +8,13 @@ import {
   type FederatedPointerEvent,
   type FederatedWheelEvent,
 } from 'pixi.js';
-import type { SlotStore } from '../../stores/SlotStore';
+import type { SlotStore } from '../../../stores/SlotStore';
 import { GameInfoControlsPage } from './game-info-controls-page';
 import { GameInfoPaytablePage } from './game-info-paytable-page';
 import { GameInfoRulesPage } from './game-info-rules-page';
-import { ScrollModalBackground } from './scroll-modal-background';
-import { ScrollModalCloseButton } from './scroll-modal-close-button';
-import { SCROLL_MODAL_COLORS } from './scroll-modal-theme';
+import { ScrollModalBackground } from '../scroll-modal-background';
+import { ScrollModalCloseButton } from '../scroll-modal-close-button';
+import { SCROLL_MODAL_COLORS } from '../scroll-modal-theme';
 
 const PAGE_SUBTITLES = [
   'Symbols pay left to right on adjacent reels, starting from the leftmost reel.',
@@ -252,9 +252,7 @@ export class GameInfoModal extends Container {
     if (!this.cardWidth) return;
     const contentWidth =
       this.viewport.hitArea instanceof Rectangle ? this.viewport.hitArea.width : 0;
-    const baseHeight = this.paytablePage.layout(contentWidth);
-    const growth = Math.max(1, Math.min(1.5, (this.visiblePageHeight / baseHeight) * 0.98));
-    const paytableHeight = growth > 1 ? this.paytablePage.layout(contentWidth, growth) : baseHeight;
+    const paytableHeight = this.paytablePage.layout(contentWidth);
     const paytableScale = Math.min(1, this.visiblePageHeight / Math.max(1, paytableHeight));
     this.paytablePage.scale.set(paytableScale);
     this.paytablePage.position.set(

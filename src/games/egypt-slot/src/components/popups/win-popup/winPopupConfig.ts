@@ -1,5 +1,5 @@
 import type { WinType } from '@lucky-games/contracts';
-import { EgyptImageAssetKey } from '../../assets';
+import { EgyptImageAssetKey } from '../../../assets';
 
 export type PopupWinType = Extract<WinType, 'BIG_WIN' | 'MEGA_WIN' | 'SUPER_MEGA_WIN'>;
 
