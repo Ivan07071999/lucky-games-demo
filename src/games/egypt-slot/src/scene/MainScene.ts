@@ -1,7 +1,7 @@
 import { Container, Sprite, Texture } from 'pixi.js';
 import { EgyptImageAssetKey } from '../assets';
 import { BetPanel } from '../components/bet-panel';
-import { BetSelectionModal } from '../components/popups/bet-selection-modal';
+import { BetSelectionModal } from '../components/popups/bet-selection/bet-selection-modal';
 import { AutoPlayModal } from '../components/popups/auto-play/auto-play-modal';
 import { AudioToggle } from '../components/ui/audio-toggle';
 import { GameInfoModal } from '../components/popups/game-info/game-info-modal';
