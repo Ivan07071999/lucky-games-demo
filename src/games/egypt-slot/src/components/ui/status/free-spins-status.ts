@@ -1,9 +1,9 @@
 import 'pixi.js/text-bitmap';
 import { BitmapText, Container, Sprite, Texture } from 'pixi.js';
 import { autorun, type IReactionDisposer } from 'mobx';
-import { EgyptImageAssetKey } from '../../assets';
-import type { RoundStore } from '../../stores/RoundStore';
-import type { SceneTheme } from '../../scene/sceneTheme';
+import { EgyptImageAssetKey } from '../../../assets';
+import type { RoundStore } from '../../../stores/RoundStore';
+import type { SceneTheme } from '../../../scene/sceneTheme';
 
 const TABLET_WIDTH = 300;
 const TABLET_HEIGHT = 100;

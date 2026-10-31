@@ -1,6 +1,6 @@
 import { Sprite, Texture } from 'pixi.js';
 import { gsap } from 'gsap';
-import { EgyptImageAssetKey } from '../../assets';
+import { EgyptImageAssetKey } from '../../../assets';
 import { Button } from './button';
 
 export class SpinButton extends Button {

@@ -1,12 +1,12 @@
-import { Container, Sprite, Texture } from 'pixi.js';
+import { Container } from 'pixi.js';
 import { autorun, type IReactionDisposer } from 'mobx';
-import { EgyptImageAssetKey } from '../../assets';
-import type { SceneTheme } from '../../scene/sceneTheme';
-import type { SlotStore } from '../../stores/SlotStore';
+import type { SceneTheme } from '../../../scene/sceneTheme';
+import type { SlotStore } from '../../../stores/SlotStore';
 import { PanelAmount } from './panel-amount';
+import { PanelBackground } from './panel-background';
 
 export class RightBackground extends Container {
-  readonly background: Sprite;
+  readonly background: PanelBackground;
   readonly coins: PanelAmount;
   readonly win: PanelAmount;
   private readonly stopObserving: IReactionDisposer;
@@ -16,12 +16,7 @@ export class RightBackground extends Container {
     super();
 
     this.label = 'bet-panel-right-background';
-    this.background = new Sprite(Texture.from(EgyptImageAssetKey.buttons.panelBackground));
-    this.background.label = 'bet-panel-right-background-image';
-    this.background.anchor.set(0.5);
-    this.background.height = height * 0.15;
-    this.background.width =
-      this.background.height * (this.background.texture.width / this.background.texture.height);
+    this.background = new PanelBackground('bet-panel-right-background-image', height);
 
     const amountWidth = this.background.width / 2;
     const amountOffset = this.background.width * 0.25;
@@ -49,14 +44,6 @@ export class RightBackground extends Container {
   }
 
   setTheme(theme: SceneTheme): void {
-    const width = this.background.width;
-    const height = this.background.height;
-    this.background.texture = Texture.from(
-      theme === 'freeSpins'
-        ? EgyptImageAssetKey.buttons.panelBackgroundFreeSpins
-        : EgyptImageAssetKey.buttons.panelBackground,
-    );
-    this.background.width = width;
-    this.background.height = height;
+    this.background.setTheme(theme);
   }
 }

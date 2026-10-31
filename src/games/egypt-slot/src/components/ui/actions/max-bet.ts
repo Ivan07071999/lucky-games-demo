@@ -1,4 +1,4 @@
-import { EgyptImageAssetKey } from '../../assets';
+import { EgyptImageAssetKey } from '../../../assets';
 import { BetActionButton } from './bet-action-button';
 
 export class MaxBetButton extends BetActionButton {

@@ -1,14 +1,14 @@
 import { Container, Sprite, Texture } from 'pixi.js';
 import { EgyptImageAssetKey } from '../assets';
-import { BetPanel } from '../components/bet-panel';
+import { BetPanel } from '../components/ui/panel/BetPanel';
 import { BetSelectionModal } from '../components/popups/bet-selection/bet-selection-modal';
 import { AutoPlayModal } from '../components/popups/auto-play/auto-play-modal';
-import { AudioToggle } from '../components/ui/audio-toggle';
+import { AudioToggle } from '../components/ui/actions/audio-toggle';
 import { GameInfoModal } from '../components/popups/game-info/game-info-modal';
 import { GameSettingsModal } from '../components/popups/game-settings/game-settings-modal';
-import { InfoButton } from '../components/ui/info-button';
-import { SettingsButton } from '../components/ui/settings-button';
-import { FreeSpinsStatus } from '../components/ui/free-spins-status';
+import { InfoButton } from '../components/ui/actions/info-button';
+import { SettingsButton } from '../components/ui/actions/settings-button';
+import { FreeSpinsStatus } from '../components/ui/status/free-spins-status';
 import { WinPopup } from '../components/popups/win-popup/WinPopup';
 import type { WinType } from '@lucky-games/contracts';
 import {
@@ -60,15 +60,15 @@ export class MainScene extends Container {
       (cue) => this.context.emitter.emit('reels:cue', cue),
     );
     const reelsBounds = reelsMachine.getLayoutBounds();
-    const betPanel = new BetPanel(
-      reelsBounds.width,
-      reelsBounds.height,
-      this.context.slotStore,
-      this.handleSpinButtonPress,
-      this.openBetSelection,
-      this.handleMaxBetButtonPress,
-      this.handleAutoPlayButtonPress,
-    );
+    const betPanel = new BetPanel({
+      width: reelsBounds.width,
+      height: reelsBounds.height,
+      store: this.context.slotStore,
+      onSpinRequested: this.handleSpinButtonPress,
+      onBetRequested: this.openBetSelection,
+      onMaxBetRequested: this.handleMaxBetButtonPress,
+      onAutoPlayRequested: this.handleAutoPlayButtonPress,
+    });
     const betSelectionModal = new BetSelectionModal({
       onSelect: this.selectBet,
       onClose: this.closeBetSelection,
@@ -87,7 +87,7 @@ export class MainScene extends Container {
       settingsModal.open();
       this.context.audio.playMenuOpen();
     });
-    betPanel.attachUtilityButtons(settingsButton, audioToggle, infoButton);
+    betPanel.attachUtilityButtons(infoButton, settingsButton, audioToggle);
     const freeSpinsStatus = new FreeSpinsStatus(this.context.slotStore.round);
     const freeSpinsTransition = new FreeSpinsTransition();
     const winPopup = new WinPopup();

@@ -1,6 +1,6 @@
 import 'pixi.js/text-bitmap';
 import { BitmapText, Graphics } from 'pixi.js';
-import { EgyptImageAssetKey } from '../../assets';
+import { EgyptImageAssetKey } from '../../../assets';
 import { BetActionButton } from './bet-action-button';
 
 const LABEL_VERTICAL_OFFSET = -0.15;
