@@ -1,6 +1,6 @@
 import type { SymbolKey } from '@lucky-games/contracts';
 import { Container, Graphics, Rectangle, Text } from 'pixi.js';
-import { SCROLL_MODAL_COLORS } from '../scroll-modal-theme';
+import { SCROLL_MODAL_COLORS, SCROLL_MODAL_FONT_FAMILY } from '../shared/scroll-modal-theme';
 
 const SYMBOL_NAMES: Partial<Record<SymbolKey, string>> = {
   highAnkh: 'ANKH',
@@ -22,7 +22,7 @@ type PickerActions = {
 const makeText = (content: string, size: number, color: number): Text =>
   new Text({
     text: content,
-    style: { fontFamily: 'Manrope Variable, sans-serif', fontSize: size, fill: color },
+    style: { fontFamily: SCROLL_MODAL_FONT_FAMILY, fontSize: size, fill: color },
   });
 
 export class WinDemoPicker extends Container {

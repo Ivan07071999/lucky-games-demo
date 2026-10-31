@@ -1,9 +1,10 @@
 import 'pixi.js/text-bitmap';
-import { BitmapText, Container, Graphics, Rectangle } from 'pixi.js';
-import { fitModalToViewport } from '../modal-viewport-layout';
-import { ScrollModalBackground } from '../scroll-modal-background';
-import { ScrollModalCloseButton } from '../scroll-modal-close-button';
-import { SCROLL_MODAL_COLORS } from '../scroll-modal-theme';
+import { BitmapText, Container } from 'pixi.js';
+import { fitModalToViewport } from '../shared/modal-layout';
+import { ModalBackdrop } from '../shared/ModalBackdrop';
+import { ScrollModalBackground } from '../shared/ScrollModalBackground';
+import { ScrollModalCloseButton } from '../shared/ScrollModalCloseButton';
+import { SCROLL_MODAL_COLORS } from '../shared/scroll-modal-theme';
 import { BetOptionsGrid } from './BetOptionsGrid';
 import {
   BET_MODAL_MARGIN,
@@ -19,7 +20,7 @@ export type BetSelectionModalOptions = {
 };
 
 export class BetSelectionModal extends Container {
-  private readonly backdrop = new Graphics();
+  private readonly backdrop: ModalBackdrop;
   private readonly content = new Container();
   private readonly card = new ScrollModalBackground();
   private readonly closeButton: ScrollModalCloseButton;
@@ -35,10 +36,8 @@ export class BetSelectionModal extends Container {
     this.visible = false;
     this.eventMode = 'none';
 
+    this.backdrop = new ModalBackdrop(0x09030f, 0.72, onClose);
     this.backdrop.label = 'bet-selection-backdrop';
-    this.backdrop.eventMode = 'static';
-    this.backdrop.cursor = 'pointer';
-    this.backdrop.on('pointertap', onClose);
 
     this.card.label = 'bet-selection-card';
     this.closeButton = new ScrollModalCloseButton(onClose);
@@ -81,11 +80,7 @@ export class BetSelectionModal extends Container {
   private layout(): void {
     if (this.viewportWidth <= 0 || this.viewportHeight <= 0) return;
 
-    this.backdrop
-      .clear()
-      .rect(0, 0, this.viewportWidth, this.viewportHeight)
-      .fill({ color: 0x09030f, alpha: 0.72 });
-    this.backdrop.hitArea = new Rectangle(0, 0, this.viewportWidth, this.viewportHeight);
+    this.backdrop.setViewport(this.viewportWidth, this.viewportHeight);
 
     const { width, height, columns, buttonWidth } = getBetSelectionLayout(
       this.viewportWidth,

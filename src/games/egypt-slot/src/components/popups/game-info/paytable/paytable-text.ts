@@ -1,5 +1,5 @@
 import { Text } from 'pixi.js';
-import { SCROLL_MODAL_COLORS } from '../../scroll-modal-theme';
+import { SCROLL_MODAL_COLORS, SCROLL_MODAL_FONT_FAMILY } from '../../shared/scroll-modal-theme';
 
 export const formatWager = (bet: number, level: number, totalBetCoins: number): string =>
   `BET ${bet} × LEVEL ${level} = ${totalBetCoins.toLocaleString('en-US')} COINS`;
@@ -23,7 +23,7 @@ export const makePaytableText = (text: string, size: number, bold = false): Text
   new Text({
     text,
     style: {
-      fontFamily: 'Manrope Variable, sans-serif',
+      fontFamily: SCROLL_MODAL_FONT_FAMILY,
       fontSize: size,
       fontWeight: bold ? '800' : '600',
       fill: bold ? SCROLL_MODAL_COLORS.heading : SCROLL_MODAL_COLORS.ink,

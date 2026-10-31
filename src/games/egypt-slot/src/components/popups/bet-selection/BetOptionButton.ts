@@ -1,6 +1,6 @@
 import 'pixi.js/text-bitmap';
 import { BitmapText, Container, Graphics, Rectangle } from 'pixi.js';
-import { SCROLL_MODAL_COLORS } from '../scroll-modal-theme';
+import { SCROLL_MODAL_COLORS } from '../shared/scroll-modal-theme';
 import { BET_OPTION_HEIGHT } from './bet-selection-layout';
 
 export class BetOptionButton extends Container {

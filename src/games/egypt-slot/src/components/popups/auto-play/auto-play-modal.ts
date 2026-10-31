@@ -1,11 +1,12 @@
 import { autorun, type IReactionDisposer } from 'mobx';
-import { Container, Graphics, Rectangle } from 'pixi.js';
+import { Container } from 'pixi.js';
 import type { AutoPlayStartResult } from '../../../controllers/auto-play-controller/AutoPlayController';
 import type { SlotStore } from '../../../stores/SlotStore';
-import { fitModalToViewport } from '../modal-viewport-layout';
-import { ScrollModalBackground } from '../scroll-modal-background';
-import { ScrollModalCloseButton } from '../scroll-modal-close-button';
-import { SCROLL_MODAL_COLORS } from '../scroll-modal-theme';
+import { fitModalToViewport } from '../shared/modal-layout';
+import { ModalBackdrop } from '../shared/ModalBackdrop';
+import { ScrollModalBackground } from '../shared/ScrollModalBackground';
+import { ScrollModalCloseButton } from '../shared/ScrollModalCloseButton';
+import { SCROLL_MODAL_COLORS } from '../shared/scroll-modal-theme';
 import { AutoPlayFooter } from './AutoPlayFooter';
 import { SpinCountSection } from './SpinCountSection';
 import { StopConditionsSection } from './StopConditionsSection';
@@ -19,7 +20,7 @@ import { makeAutoPlayText } from './auto-play-text';
 export class AutoPlayModal extends Container {
   private readonly store: SlotStore;
   private readonly onStart: () => AutoPlayStartResult;
-  private readonly backdrop = new Graphics();
+  private readonly backdrop = new ModalBackdrop(0x08040e, 0.78, () => this.close());
   private readonly content = new Container();
   private readonly card = new ScrollModalBackground();
   private readonly closeButton = new ScrollModalCloseButton(() => this.close());
@@ -40,9 +41,6 @@ export class AutoPlayModal extends Container {
     this.visible = false;
     this.eventMode = 'none';
 
-    this.backdrop.eventMode = 'static';
-    this.backdrop.cursor = 'pointer';
-    this.backdrop.on('pointertap', () => this.close());
     this.spinChoices = new SpinCountSection(store.autoPlay);
     this.conditions = new StopConditionsSection(store);
     this.footer = new AutoPlayFooter(() => this.start());
@@ -106,11 +104,7 @@ export class AutoPlayModal extends Container {
 
   private layout(): void {
     if (this.viewportWidth <= 0 || this.viewportHeight <= 0) return;
-    this.backdrop
-      .clear()
-      .rect(0, 0, this.viewportWidth, this.viewportHeight)
-      .fill({ color: 0x08040e, alpha: 0.78 });
-    this.backdrop.hitArea = new Rectangle(0, 0, this.viewportWidth, this.viewportHeight);
+    this.backdrop.setViewport(this.viewportWidth, this.viewportHeight);
 
     const cardLayout = getAutoPlayCardLayout(this.viewportWidth, this.viewportHeight);
     const placement = fitModalToViewport(

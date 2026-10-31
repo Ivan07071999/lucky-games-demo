@@ -1,10 +1,12 @@
 import { gsap } from 'gsap';
 import { autorun, type IReactionDisposer } from 'mobx';
-import { Container, Graphics, Rectangle } from 'pixi.js';
+import { Container, Graphics } from 'pixi.js';
 import type { SlotStore } from '../../../stores/SlotStore';
-import { ScrollModalBackground } from '../scroll-modal-background';
-import { ScrollModalCloseButton } from '../scroll-modal-close-button';
-import { SCROLL_MODAL_COLORS } from '../scroll-modal-theme';
+import { calculateModalScale } from '../shared/modal-layout';
+import { ModalBackdrop } from '../shared/ModalBackdrop';
+import { ScrollModalBackground } from '../shared/ScrollModalBackground';
+import { ScrollModalCloseButton } from '../shared/ScrollModalCloseButton';
+import { SCROLL_MODAL_COLORS } from '../shared/scroll-modal-theme';
 import { DemoSettingsSection } from './DemoSettingsSection';
 import { SpinSettingsSection } from './SpinSettingsSection';
 import {
@@ -17,7 +19,7 @@ import {
 import { settingsText } from './settings-text';
 
 export class GameSettingsModal extends Container {
-  private readonly backdrop = new Graphics();
+  private readonly backdrop = new ModalBackdrop(0x09030f, 0.72, () => this.close());
   private readonly surface = new Container();
   private readonly card = new ScrollModalBackground();
   private readonly dividers = new Graphics();
@@ -38,9 +40,6 @@ export class GameSettingsModal extends Container {
     this.visible = false;
     this.eventMode = 'none';
 
-    this.backdrop.eventMode = 'static';
-    this.backdrop.cursor = 'pointer';
-    this.backdrop.on('pointertap', () => this.close());
     this.dividers.eventMode = 'none';
     this.heading.anchor.set(0, 0.5);
     this.subtitle.anchor.set(0, 0.5);
@@ -120,13 +119,14 @@ export class GameSettingsModal extends Container {
     const wide = width >= 620;
     if (wide !== this.wide) this.layoutContent(wide);
     const layout = getSettingsLayout(wide);
-    this.backdrop.clear().rect(0, 0, width, height).fill({ color: 0x09030f, alpha: 0.72 });
-    this.backdrop.hitArea = new Rectangle(0, 0, width, height);
+    this.backdrop.setViewport(width, height);
     this.surface.position.set(width / 2, height / 2);
-    this.targetScale = Math.min(
-      1,
-      (width - SETTINGS_MARGIN * 2) / layout.width,
-      (height - SETTINGS_MARGIN * 2) / layout.height,
+    this.targetScale = calculateModalScale(
+      width,
+      height,
+      layout.width,
+      layout.height,
+      SETTINGS_MARGIN,
     );
     if (!this.animation) this.surface.scale.set(this.targetScale);
   }

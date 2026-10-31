@@ -1,5 +1,5 @@
 import { NineSliceSprite, Rectangle, Texture } from 'pixi.js';
-import { EgyptImageAssetKey } from '../../assets';
+import { EgyptImageAssetKey } from '../../../assets';
 
 const ART_SCALE = 0.22;
 

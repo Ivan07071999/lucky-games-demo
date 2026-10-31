@@ -1,5 +1,5 @@
 import { Text } from 'pixi.js';
-import { SCROLL_MODAL_COLORS } from '../scroll-modal-theme';
+import { SCROLL_MODAL_COLORS, SCROLL_MODAL_FONT_FAMILY } from '../shared/scroll-modal-theme';
 
 export function settingsText(
   content: string,
@@ -10,7 +10,7 @@ export function settingsText(
   return new Text({
     text: content,
     style: {
-      fontFamily: 'Manrope Variable, sans-serif',
+      fontFamily: SCROLL_MODAL_FONT_FAMILY,
       fontSize,
       fill: color,
       wordWrap: wrap,

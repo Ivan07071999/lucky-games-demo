@@ -1,14 +1,14 @@
 import { PAYLINE_COUNTS } from '@lucky-games/contracts';
 import { Container } from 'pixi.js';
 import type { SlotStore } from '../../../stores/SlotStore';
-import { SCROLL_MODAL_COLORS } from '../scroll-modal-theme';
-import { SettingsCheckbox } from './SettingsCheckbox';
+import { SCROLL_MODAL_COLORS } from '../shared/scroll-modal-theme';
+import { ScrollModalCheckbox } from '../shared/ScrollModalCheckbox';
 import { settingsText } from './settings-text';
 
 export class SpinSettingsSection extends Container {
   private readonly store: SlotStore;
   private readonly heading = settingsText('SPIN SETTINGS', 15, SCROLL_MODAL_COLORS.heading);
-  private readonly turbo = new SettingsCheckbox('TURBO SPIN', () => {
+  private readonly turbo = new ScrollModalCheckbox('TURBO SPIN', () => {
     if (this.store.canToggleSpinSettings) this.store.spinSettings.toggleTurbo();
   });
   private readonly turboDescription = settingsText(
@@ -18,12 +18,12 @@ export class SpinSettingsSection extends Container {
     true,
   );
   private readonly paylineHeading = settingsText('WINNING LINES', 15, SCROLL_MODAL_COLORS.heading);
-  private readonly paylines: SettingsCheckbox[];
+  private readonly paylines: ScrollModalCheckbox[];
   private readonly modeHeading = settingsText('REEL MODE', 15, SCROLL_MODAL_COLORS.heading);
-  private readonly classic = new SettingsCheckbox('CLASSIC SPIN', () => {
+  private readonly classic = new ScrollModalCheckbox('CLASSIC SPIN', () => {
     if (this.store.canToggleSpinSettings) this.store.spinSettings.selectClassic();
   });
-  private readonly cascade = new SettingsCheckbox('CASCADE', () => {
+  private readonly cascade = new ScrollModalCheckbox('CASCADE', () => {
     if (this.store.canToggleSpinSettings) this.store.spinSettings.toggleCascade();
   });
   private readonly cascadeDescription = settingsText(
@@ -32,7 +32,7 @@ export class SpinSettingsSection extends Container {
     SCROLL_MODAL_COLORS.ink,
     true,
   );
-  private readonly hybrid = new SettingsCheckbox('HYBRID SPIN', () => {
+  private readonly hybrid = new ScrollModalCheckbox('HYBRID SPIN', () => {
     if (this.store.canToggleSpinSettings) this.store.spinSettings.toggleHybrid();
   });
   private readonly hybridDescription = settingsText(
@@ -47,7 +47,7 @@ export class SpinSettingsSection extends Container {
     this.store = store;
     this.paylines = PAYLINE_COUNTS.map(
       (count) =>
-        new SettingsCheckbox(`${count} LINES`, () => {
+        new ScrollModalCheckbox(`${count} LINES`, () => {
           if (store.canToggleSpinSettings && (store.gameConfig?.paylines.length ?? 0) >= count) {
             store.spinSettings.setPaylineCount(count);
           }

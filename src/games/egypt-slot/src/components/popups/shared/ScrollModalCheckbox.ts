@@ -1,10 +1,9 @@
 import { Container, Graphics, Rectangle, Text } from 'pixi.js';
-import { SCROLL_MODAL_COLORS } from '../scroll-modal-theme';
+import { SCROLL_MODAL_COLORS, SCROLL_MODAL_FONT_FAMILY } from './scroll-modal-theme';
 
-const WIDTH = 280;
 const HIT_HEIGHT = 34;
 
-export class SettingsCheckbox extends Container {
+export class ScrollModalCheckbox extends Container {
   private readonly mark = new Graphics();
   private readonly caption: Text;
   private checked = false;
@@ -12,15 +11,13 @@ export class SettingsCheckbox extends Container {
 
   constructor(label: string, onToggle: () => void) {
     super();
-    this.label = `settings-checkbox-${label.toLowerCase().replaceAll(' ', '-')}`;
+    this.label = `scroll-modal-checkbox-${label.toLowerCase().replaceAll(' ', '-')}`;
     this.eventMode = 'static';
     this.cursor = 'pointer';
-    this.hitArea = new Rectangle(0, -HIT_HEIGHT / 2, WIDTH, HIT_HEIGHT);
-
     this.caption = new Text({
       text: label,
       style: {
-        fontFamily: 'Manrope Variable, sans-serif',
+        fontFamily: SCROLL_MODAL_FONT_FAMILY,
         fontSize: 15,
         fill: SCROLL_MODAL_COLORS.ink,
       },
@@ -30,11 +27,11 @@ export class SettingsCheckbox extends Container {
     this.mark.eventMode = 'none';
     this.caption.eventMode = 'none';
     this.addChild(this.mark, this.caption);
-
     this.on('pointertap', (event) => {
       event.stopPropagation();
       if (this.enabled) onToggle();
     });
+    this.resize(280);
     this.draw();
   }
 
@@ -42,7 +39,7 @@ export class SettingsCheckbox extends Container {
     this.hitArea = new Rectangle(0, -HIT_HEIGHT / 2, width, HIT_HEIGHT);
   }
 
-  setState(checked: boolean, enabled: boolean): void {
+  setState(checked: boolean, enabled = true): void {
     this.checked = checked;
     this.enabled = enabled;
     this.eventMode = enabled ? 'static' : 'none';

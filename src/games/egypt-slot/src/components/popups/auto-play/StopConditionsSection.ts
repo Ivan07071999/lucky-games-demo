@@ -1,8 +1,8 @@
 import { Container, Text } from 'pixi.js';
 import type { SlotStore } from '../../../stores/SlotStore';
-import { SCROLL_MODAL_COLORS } from '../scroll-modal-theme';
+import { SCROLL_MODAL_COLORS } from '../shared/scroll-modal-theme';
 import { AutoPlayButton } from './AutoPlayButton';
-import { AutoPlayToggle } from './AutoPlayToggle';
+import { ScrollModalCheckbox } from '../shared/ScrollModalCheckbox';
 import { makeAutoPlayText } from './auto-play-text';
 
 type LimitType = 'loss' | 'win';
@@ -10,10 +10,10 @@ type LimitType = 'loss' | 'win';
 export class StopConditionsSection extends Container {
   private readonly store: SlotStore;
   private readonly heading = makeAutoPlayText('STOP CONDITIONS', 15, SCROLL_MODAL_COLORS.heading);
-  private readonly bonusToggle: AutoPlayToggle;
-  private readonly winToggle: AutoPlayToggle;
-  private readonly lossToggle: AutoPlayToggle;
-  private readonly winLimitToggle: AutoPlayToggle;
+  private readonly bonusToggle: ScrollModalCheckbox;
+  private readonly winToggle: ScrollModalCheckbox;
+  private readonly lossToggle: ScrollModalCheckbox;
+  private readonly winLimitToggle: ScrollModalCheckbox;
   private readonly lossLabel = makeAutoPlayText('LOSS LIMIT', 12);
   private readonly winLabel = makeAutoPlayText('WIN LIMIT', 12);
   private readonly lossDecrease: AutoPlayButton;
@@ -26,14 +26,16 @@ export class StopConditionsSection extends Container {
   constructor(store: SlotStore) {
     super();
     this.store = store;
-    this.bonusToggle = new AutoPlayToggle('Stop on Free Spins', () =>
+    this.bonusToggle = new ScrollModalCheckbox('Stop on Free Spins', () =>
       store.autoPlay.setStopOnFreeSpins(!store.autoPlay.stopOnFreeSpins),
     );
-    this.winToggle = new AutoPlayToggle('Stop after any win', () =>
+    this.winToggle = new ScrollModalCheckbox('Stop after any win', () =>
       store.autoPlay.setStopOnWin(!store.autoPlay.stopOnWin),
     );
-    this.lossToggle = new AutoPlayToggle('Stop at net loss limit', () => this.toggleLimit('loss'));
-    this.winLimitToggle = new AutoPlayToggle('Stop at net win limit', () =>
+    this.lossToggle = new ScrollModalCheckbox('Stop at net loss limit', () =>
+      this.toggleLimit('loss'),
+    );
+    this.winLimitToggle = new ScrollModalCheckbox('Stop at net win limit', () =>
       this.toggleLimit('win'),
     );
     this.lossDecrease = new AutoPlayButton('-', () => this.adjustLimit('loss', -1));
@@ -59,10 +61,10 @@ export class StopConditionsSection extends Container {
 
   update(): void {
     const { autoPlay } = this.store;
-    this.bonusToggle.setChecked(autoPlay.stopOnFreeSpins);
-    this.winToggle.setChecked(autoPlay.stopOnWin);
-    this.lossToggle.setChecked(autoPlay.netLossLimitCoins !== null);
-    this.winLimitToggle.setChecked(autoPlay.netWinLimitCoins !== null);
+    this.bonusToggle.setState(autoPlay.stopOnFreeSpins);
+    this.winToggle.setState(autoPlay.stopOnWin);
+    this.lossToggle.setState(autoPlay.netLossLimitCoins !== null);
+    this.winLimitToggle.setState(autoPlay.netWinLimitCoins !== null);
     this.lossLimitText.text = autoPlay.netLossLimitCoins?.toString() ?? 'OFF';
     this.winLimitText.text = autoPlay.netWinLimitCoins?.toString() ?? 'OFF';
   }

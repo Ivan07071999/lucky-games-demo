@@ -1,6 +1,7 @@
 import { gsap } from 'gsap';
 import type { WinType } from '@lucky-games/contracts';
 import { Container } from 'pixi.js';
+import { calculateModalScale } from '../shared/modal-layout';
 import { WinPopupAmount } from './WinPopupAmount';
 import { WinPopupArtwork } from './WinPopupArtwork';
 import { WinPopupBackdrop } from './WinPopupBackdrop';
@@ -64,10 +65,12 @@ export class WinPopup extends Container {
 
     this.backdrop.setViewport(width, height);
 
-    const scale = Math.min(
-      1,
-      (width - WIN_POPUP_LAYOUT.viewportMargin * 2) / WIN_POPUP_LAYOUT.width,
-      (height - WIN_POPUP_LAYOUT.viewportMargin * 2) / WIN_POPUP_LAYOUT.height,
+    const scale = calculateModalScale(
+      width,
+      height,
+      WIN_POPUP_LAYOUT.width,
+      WIN_POPUP_LAYOUT.height,
+      WIN_POPUP_LAYOUT.viewportMargin,
     );
     this.layoutRoot.scale.set(Math.max(0, scale));
     this.layoutRoot.position.set(width / 2, height / 2);

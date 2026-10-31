@@ -1,5 +1,5 @@
 import { Container, Graphics, Rectangle, Text } from 'pixi.js';
-import { SCROLL_MODAL_COLORS } from '../scroll-modal-theme';
+import { SCROLL_MODAL_COLORS, SCROLL_MODAL_FONT_FAMILY } from '../shared/scroll-modal-theme';
 
 export class AutoPlayButton extends Container {
   private readonly background = new Graphics();
@@ -18,7 +18,7 @@ export class AutoPlayButton extends Container {
     this.caption = new Text({
       text: label,
       style: {
-        fontFamily: 'Manrope Variable, sans-serif',
+        fontFamily: SCROLL_MODAL_FONT_FAMILY,
         fontSize: 15,
         fill: choice ? SCROLL_MODAL_COLORS.ink : SCROLL_MODAL_COLORS.buttonText,
       },

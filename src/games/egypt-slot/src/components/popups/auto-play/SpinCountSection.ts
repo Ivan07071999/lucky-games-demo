@@ -1,6 +1,6 @@
 import { Container } from 'pixi.js';
 import { AUTO_PLAY_COUNTS, type AutoPlayStore } from '../../../stores/AutoPlayStore';
-import { SCROLL_MODAL_COLORS } from '../scroll-modal-theme';
+import { SCROLL_MODAL_COLORS } from '../shared/scroll-modal-theme';
 import { AutoPlayButton } from './AutoPlayButton';
 import { makeAutoPlayText } from './auto-play-text';
 

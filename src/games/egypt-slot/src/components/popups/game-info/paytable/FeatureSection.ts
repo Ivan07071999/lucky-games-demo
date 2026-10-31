@@ -1,6 +1,6 @@
 import type { SlotState } from '@lucky-games/contracts';
 import { Container, Graphics } from 'pixi.js';
-import { SCROLL_MODAL_COLORS } from '../../scroll-modal-theme';
+import { SCROLL_MODAL_COLORS } from '../../shared/scroll-modal-theme';
 import { FeatureCard } from './FeatureCard';
 import type { PaytableLayout } from './paytable-layout';
 import { formatScarabDescription, formatWildDescription } from './paytable-text';

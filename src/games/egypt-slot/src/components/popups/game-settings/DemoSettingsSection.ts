@@ -1,15 +1,15 @@
 import { WIN_DEMO_TYPES } from '@lucky-games/contracts';
 import { Container } from 'pixi.js';
 import type { SlotStore } from '../../../stores/SlotStore';
-import { SCROLL_MODAL_COLORS } from '../scroll-modal-theme';
-import { SettingsCheckbox } from './SettingsCheckbox';
+import { SCROLL_MODAL_COLORS } from '../shared/scroll-modal-theme';
+import { ScrollModalCheckbox } from '../shared/ScrollModalCheckbox';
 import { WinDemoPicker } from './WinDemoPicker';
 import { settingsText } from './settings-text';
 
 export class DemoSettingsSection extends Container {
   private readonly store: SlotStore;
   private readonly heading = settingsText('DEMO SETTINGS', 15, SCROLL_MODAL_COLORS.heading);
-  private readonly anticipation = new SettingsCheckbox('ANTICIPATION DEMO', () => {
+  private readonly anticipation = new ScrollModalCheckbox('ANTICIPATION DEMO', () => {
     if (this.store.canToggleSpinSettings) this.store.spinSettings.toggleAnticipationDemo();
   });
   private readonly anticipationDescription = settingsText(
@@ -18,7 +18,7 @@ export class DemoSettingsSection extends Container {
     SCROLL_MODAL_COLORS.ink,
     true,
   );
-  private readonly winCombination = new SettingsCheckbox('WIN COMBINATION DEMO', () => {
+  private readonly winCombination = new ScrollModalCheckbox('WIN COMBINATION DEMO', () => {
     if (this.store.canToggleSpinSettings) this.store.spinSettings.toggleWinDemo();
   });
   private readonly winPicker: WinDemoPicker;
@@ -33,7 +33,7 @@ export class DemoSettingsSection extends Container {
     SCROLL_MODAL_COLORS.ink,
     true,
   );
-  private readonly winTypes: SettingsCheckbox[];
+  private readonly winTypes: ScrollModalCheckbox[];
 
   constructor(store: SlotStore) {
     super();
@@ -46,7 +46,7 @@ export class DemoSettingsSection extends Container {
     });
     this.winTypes = WIN_DEMO_TYPES.map(
       (winType) =>
-        new SettingsCheckbox(winType.replaceAll('_', ' '), () => {
+        new ScrollModalCheckbox(winType.replaceAll('_', ' '), () => {
           if (store.canToggleSpinSettings) store.spinSettings.selectWinTypeDemo(winType);
         }),
     );

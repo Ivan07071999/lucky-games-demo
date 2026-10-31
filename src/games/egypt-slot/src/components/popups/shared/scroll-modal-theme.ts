@@ -7,3 +7,4 @@ export const SCROLL_MODAL_COLORS = {
   buttonBorderSelected: 0xffd577,
   buttonText: 0xffedc8,
 } as const;
+export const SCROLL_MODAL_FONT_FAMILY = 'Manrope Variable, sans-serif';
