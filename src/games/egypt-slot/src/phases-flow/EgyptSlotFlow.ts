@@ -23,8 +23,8 @@ export class EgyptSlotFlow extends PhaseManager<PhaseName, typeof phaseTransitio
     onLoadingChange: (loading: boolean) => void = () => {},
   ) {
     const scene = new MainScene(canvas, messages);
-    const { application, assets } = scene.context.controllers;
-    const { api, audio, autoPlayController, emitter, slotStore } = scene.context;
+    const { application, assets, api, audio, autoPlayController, emitter, slotStore } =
+      scene.context;
     const sceneController = new MainSceneController(application, scene);
     const reelsController = new ReelsController(
       sceneController,
@@ -43,7 +43,6 @@ export class EgyptSlotFlow extends PhaseManager<PhaseName, typeof phaseTransitio
       [PhaseName.loading]: new LoadingPhase(
         application,
         assets,
-        audio,
         api,
         slotStore,
         sceneController,

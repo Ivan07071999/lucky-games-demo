@@ -1,10 +1,4 @@
 export { EgyptAssetLoader } from './EgyptAssetLoader';
-export type { EgyptImageBundle } from './EgyptAssetLoader';
 export { EgyptAudioAssetKey } from './EgyptAudioAssetKey';
 export type { EgyptAudioAssetKey as EgyptAudioAssetKeyType } from './EgyptAudioAssetKey';
-export { EgyptAudioAssets } from './EgyptAudioAssets';
-export { EgyptBitmapFontAssets } from './EgyptBitmapFontAssets';
 export { EgyptImageAssetKey } from './EgyptImageAssetKey';
-export type { EgyptImageAssetKey as EgyptImageAssetKeyType } from './EgyptImageAssetKey';
-export { EgyptImageAssets } from './EgyptImageAssets';
-export { EgyptSpineAssets } from './EgyptSpineAssets';

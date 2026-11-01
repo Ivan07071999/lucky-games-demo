@@ -1,4 +1,5 @@
-import { Controller } from '../controllers/controller';
+import { ApplicationController } from '../controllers/application-controller/ApplicationController';
+import { AssetsController } from '../controllers/assets-controller/AssetsController';
 import { AutoPlayController } from '../controllers/auto-play-controller/AutoPlayController';
 import { AudioController } from '../controllers/audio-controller/AudioController';
 import { GameEmitter, type GameEvents } from '../events';
@@ -19,7 +20,8 @@ export type GameMessages = {
 export class GameContext {
   readonly canvas: HTMLCanvasElement;
   readonly messages: GameMessages;
-  readonly controllers = new Controller();
+  readonly application = new ApplicationController();
+  readonly assets = new AssetsController();
   readonly emitter = new GameEmitter<GameEvents>();
   readonly api = new SlotApi();
   readonly slotStore = new SlotStore();
@@ -30,12 +32,7 @@ export class GameContext {
   constructor(canvas: HTMLCanvasElement, messages: GameMessages) {
     this.canvas = canvas;
     this.messages = messages;
-    this.audio = new AudioController(
-      this.controllers.assets,
-      this.audioStore,
-      this.emitter,
-      this.slotStore.panel,
-    );
+    this.audio = new AudioController(this.assets, this.audioStore, this.emitter);
   }
 
   destroy(): void {
@@ -43,6 +40,7 @@ export class GameContext {
     this.autoPlayController.destroy();
     this.api.destroy();
     this.emitter.destroy();
-    this.controllers.destroy();
+    this.assets.destroy();
+    this.application.destroy();
   }
 }

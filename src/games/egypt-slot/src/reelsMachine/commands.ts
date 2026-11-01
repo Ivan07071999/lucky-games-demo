@@ -32,25 +32,21 @@ export class StartCascadeCommand implements ReelsCommand {
   }
 }
 
+interface CascadePlaybackOptions {
+  turbo: boolean;
+  quickStop: boolean;
+  hybrid: boolean;
+}
+
 export class PlayCascadeCommand implements ReelsCommand {
   private readonly sequence: CascadeSequence;
   private readonly finalReels: ReelsMatrix;
-  private readonly turbo: boolean;
-  private readonly quickStop: boolean;
-  private readonly hybrid: boolean;
+  private readonly options: CascadePlaybackOptions;
 
-  constructor(
-    sequence: CascadeSequence,
-    finalReels: ReelsMatrix,
-    turbo = false,
-    quickStop = false,
-    hybrid = false,
-  ) {
+  constructor(sequence: CascadeSequence, finalReels: ReelsMatrix, options: CascadePlaybackOptions) {
     this.sequence = sequence;
     this.finalReels = finalReels;
-    this.turbo = turbo;
-    this.quickStop = quickStop;
-    this.hybrid = hybrid;
+    this.options = options;
   }
 
   execute(machine: ReelsMachine, signal: AbortSignal): Promise<void> {
@@ -58,9 +54,9 @@ export class PlayCascadeCommand implements ReelsCommand {
       this.sequence,
       this.finalReels,
       signal,
-      this.turbo,
-      this.quickStop,
-      this.hybrid,
+      this.options.turbo,
+      this.options.quickStop,
+      this.options.hybrid,
     );
   }
 }

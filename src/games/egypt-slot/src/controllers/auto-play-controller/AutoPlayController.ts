@@ -1,6 +1,7 @@
 import type { GameEvents } from '../../events';
 import type { GameEmitter } from '../../events/GameEmitter';
 import type { SlotStore } from '../../stores/SlotStore';
+import type { AutoPlayStopReason } from '../../stores/AutoPlayStore';
 
 export type AutoPlayStartResult = 'started' | 'insufficientBalance' | 'unavailable';
 
@@ -28,11 +29,13 @@ export class AutoPlayController {
       round.isFreeSpin
     )
       return 'unavailable';
-    if (!panel.canPlaceBet) return 'insufficientBalance';
+    if (!panel.canPlaceBet) {
+      return panel.balanceCoins < panel.totalBetCoins ? 'insufficientBalance' : 'unavailable';
+    }
     if (!autoPlay.start({ bet: panel.bet, level: panel.level }, panel.balanceCoins))
       return 'unavailable';
     if (!this.store.requestAutoSpin()) {
-      autoPlay.requestStop();
+      autoPlay.cancelStart();
       return 'unavailable';
     }
     this.emitter.emit('ui:spinRequested');
@@ -40,20 +43,24 @@ export class AutoPlayController {
   }
 
   tryStartNext(): boolean {
-    const { round, autoPlay } = this.store;
-    if (autoPlay.state === 'pausedForBonus' && !round.isFreeSpin && !round.errorMessage) {
-      autoPlay.resumeAfterBonus();
+    const { round, panel, autoPlay } = this.store;
+    if (autoPlay.state === 'pausedForBonus') {
+      if (round.errorMessage) autoPlay.stop('roundError');
+      else if (!round.isFreeSpin) autoPlay.resumeAfterBonus();
     }
     if (autoPlay.state !== 'running') return false;
-    if (
-      round.errorMessage ||
-      autoPlay.reachedBalanceLimit(this.store.panel.balanceCoins) ||
-      !this.store.requestAutoSpin()
-    ) {
-      autoPlay.requestStop();
+    if (round.errorMessage) {
+      autoPlay.stop('roundError');
       return false;
     }
-    return true;
+    const balanceLimit = autoPlay.balanceLimitReason(panel.balanceCoins);
+    if (balanceLimit) {
+      autoPlay.stop(balanceLimit);
+      return false;
+    }
+    if (this.store.requestAutoSpin()) return true;
+    autoPlay.stop(this.nextSpinFailureReason());
+    return false;
   }
 
   requestStop(): void {
@@ -66,5 +73,13 @@ export class AutoPlayController {
 
   destroy(): void {
     this.unsubscribeRoundCompleted();
+  }
+
+  private nextSpinFailureReason(): AutoPlayStopReason {
+    const { panel, autoPlay } = this.store;
+    const bet = autoPlay.lockedBet;
+    if (!bet || panel.bet !== bet.bet || panel.level !== bet.level) return 'betMismatch';
+    if (panel.balanceCoins < bet.bet * bet.level) return 'insufficientBalance';
+    return 'unavailable';
   }
 }

@@ -1,227 +1,53 @@
-import { Assets, type Texture } from 'pixi.js';
 import type { Sound } from '@pixi/sound';
-import { EgyptAudioAssetKey } from './EgyptAudioAssetKey';
-import { EgyptAudioAssets } from './EgyptAudioAssets';
+import type { Texture } from 'pixi.js';
+import { AssetLeasePool } from './AssetLeasePool';
+import type { EgyptAudioAssetKey } from './EgyptAudioAssetKey';
 import { EgyptBitmapFontAssets } from './EgyptBitmapFontAssets';
-import { EgyptImageAssets } from './EgyptImageAssets';
-import { type EgyptImageAssetKey } from './EgyptImageAssetKey';
-import { EgyptSpineAssets } from './EgyptSpineAssets';
+import { egyptImageAliases, registerEgyptAssets } from './registerEgyptAssets';
 
-const imageBundles = {
-  buttons: EgyptImageAssets.buttons,
-  scene: EgyptImageAssets.scene,
-  transitions: EgyptImageAssets.transitions,
-  symbols: EgyptImageAssets.symbols,
-  popups: EgyptImageAssets.popups,
-} as const;
+const imagePool = new AssetLeasePool<Texture>('image');
+const audioPool = new AssetLeasePool<Sound>('audio');
+const fontPool = new AssetLeasePool<unknown>('bitmap font');
 
-export type EgyptImageBundle = keyof typeof imageBundles;
-type ImageLease = {
-  users: number;
-  promise: Promise<Texture>;
-  unloading: Promise<void> | null;
-};
-type AudioLease = {
-  users: number;
-  promise: Promise<Sound>;
-  unloading: Promise<void> | null;
-};
+const bitmapFonts = [
+  EgyptBitmapFontAssets.casinoGold,
+  EgyptBitmapFontAssets.casinoGoldBold,
+  EgyptBitmapFontAssets.luckyGoldDigits,
+];
 
 export class EgyptAssetLoader {
-  private static registered = false;
-  private static readonly imageLeases = new Map<string, ImageLease>();
-  private static readonly audioLeases = new Map<string, AudioLease>();
-  private readonly acquiredImages = new Set<string>();
-  private readonly acquiredAudio = new Set<string>();
+  private readonly images = imagePool.createScope();
+  private readonly audio = audioPool.createScope();
+  private readonly fonts = fontPool.createScope();
   private disposed = false;
 
-  static alias(group: EgyptImageBundle, asset: PropertyKey): string {
-    return `egypt.${group}.${String(asset)}`;
-  }
-
-  async loadAllImages(): Promise<void> {
-    await Promise.all(
-      (Object.keys(imageBundles) as EgyptImageBundle[]).map((group) => this.loadImages(group)),
-    );
-  }
-
   async loadAll(): Promise<void> {
+    if (this.disposed) throw new Error('Asset loader has been destroyed');
+    registerEgyptAssets();
+
     await Promise.all([
-      this.loadAllImages(),
-      Assets.load([
-        EgyptBitmapFontAssets.casinoGold,
-        EgyptBitmapFontAssets.casinoGoldBold,
-        EgyptBitmapFontAssets.luckyGoldDigits,
-      ]),
+      Promise.all(egyptImageAliases.map((alias) => this.images.load(alias))),
+      Promise.all(bitmapFonts.map((url) => this.fonts.load(url))),
     ]);
-  }
 
-  async loadImages(group: EgyptImageBundle): Promise<Record<string, Texture>> {
-    this.registerBundles();
-    const names = Object.keys(imageBundles[group]);
-    const textures = await Promise.all(
-      names.map(
-        async (name) =>
-          [name, await this.acquireImage(EgyptAssetLoader.alias(group, name))] as const,
-      ),
-    );
-    return Object.fromEntries(textures);
-  }
-
-  loadImage(asset: EgyptImageAssetKey): Promise<Texture> {
-    this.registerBundles();
-    return this.acquireImage(asset);
-  }
-
-  loadBackgroundMusic(): Promise<Sound> {
-    return this.loadAudio(EgyptAudioAssetKey.background);
+    if (this.disposed) throw new Error('Asset loader has been destroyed');
   }
 
   async loadAudio(asset: EgyptAudioAssetKey): Promise<Sound> {
-    // Регистрируем загрузчик звука только после пользовательского действия.
+    if (this.disposed) throw new Error('Asset loader has been destroyed');
+    // Load the sound parser only after a user gesture.
     await import('@pixi/sound');
-    this.registerBundles();
-    return this.acquireAudio(asset);
-  }
+    if (this.disposed) throw new Error('Asset loader has been destroyed');
 
-  async loadSpine() {
-    EgyptSpineAssets.assertRuntimeCompatible();
-
-    // Импорт среды выполнения регистрирует в PixiJS загрузчики скелетов .json и атласов .atlas.
-    await import('@esotericsoftware/spine-pixi-v8');
-
-    return Assets.load([
-      { alias: 'egypt.anubis.skeleton', src: EgyptSpineAssets.anubis.skeleton },
-      { alias: 'egypt.anubis.atlas', src: EgyptSpineAssets.anubis.atlas },
-    ]);
+    registerEgyptAssets();
+    return this.audio.load(asset);
   }
 
   destroy(): void {
     if (this.disposed) return;
     this.disposed = true;
-
-    for (const alias of this.acquiredImages) this.releaseImage(alias);
-    for (const alias of this.acquiredAudio) this.releaseAudio(alias);
-  }
-
-  private async acquireImage(alias: string): Promise<Texture> {
-    if (this.disposed) throw new Error('Asset loader has been destroyed');
-
-    let lease = EgyptAssetLoader.imageLeases.get(alias);
-    while (lease?.unloading) {
-      await lease.unloading;
-      if (this.disposed) throw new Error('Asset loader has been destroyed');
-      lease = EgyptAssetLoader.imageLeases.get(alias);
-    }
-
-    if (!lease) {
-      lease = { users: 0, promise: Assets.load<Texture>(alias), unloading: null };
-      EgyptAssetLoader.imageLeases.set(alias, lease);
-    }
-
-    if (!this.acquiredImages.has(alias)) {
-      this.acquiredImages.add(alias);
-      lease.users++;
-    }
-
-    try {
-      return await lease.promise;
-    } catch (error) {
-      this.releaseImage(alias);
-      throw error;
-    }
-  }
-
-  private releaseImage(alias: string): void {
-    if (!this.acquiredImages.delete(alias)) return;
-
-    const lease = EgyptAssetLoader.imageLeases.get(alias);
-    if (!lease || --lease.users > 0) return;
-
-    lease.unloading = lease.promise
-      .then(
-        () => Assets.unload(alias),
-        () => undefined,
-      )
-      .catch((error: unknown) => {
-        console.warn(`Failed to unload image asset ${alias}`, error);
-      })
-      .finally(() => {
-        if (EgyptAssetLoader.imageLeases.get(alias) === lease) {
-          EgyptAssetLoader.imageLeases.delete(alias);
-        }
-      });
-  }
-
-  private async acquireAudio(alias: string): Promise<Sound> {
-    if (this.disposed) throw new Error('Asset loader has been destroyed');
-
-    let lease = EgyptAssetLoader.audioLeases.get(alias);
-    while (lease?.unloading) {
-      await lease.unloading;
-      if (this.disposed) throw new Error('Asset loader has been destroyed');
-      lease = EgyptAssetLoader.audioLeases.get(alias);
-    }
-
-    if (!lease) {
-      lease = { users: 0, promise: Assets.load<Sound>(alias), unloading: null };
-      EgyptAssetLoader.audioLeases.set(alias, lease);
-    }
-
-    if (!this.acquiredAudio.has(alias)) {
-      this.acquiredAudio.add(alias);
-      lease.users++;
-    }
-
-    try {
-      return await lease.promise;
-    } catch (error) {
-      this.releaseAudio(alias);
-      throw error;
-    }
-  }
-
-  private releaseAudio(alias: string): void {
-    if (!this.acquiredAudio.delete(alias)) return;
-
-    const lease = EgyptAssetLoader.audioLeases.get(alias);
-    if (!lease || --lease.users > 0) return;
-
-    lease.unloading = lease.promise
-      .then(
-        () => Assets.unload(alias),
-        () => undefined,
-      )
-      .catch((error: unknown) => {
-        console.warn(`Failed to unload audio asset ${alias}`, error);
-      })
-      .finally(() => {
-        if (EgyptAssetLoader.audioLeases.get(alias) === lease) {
-          EgyptAssetLoader.audioLeases.delete(alias);
-        }
-      });
-  }
-
-  private registerBundles(): void {
-    if (EgyptAssetLoader.registered) return;
-
-    for (const group of Object.keys(imageBundles) as EgyptImageBundle[]) {
-      const assets = Object.entries(imageBundles[group]).map(([asset, src]) => ({
-        alias: EgyptAssetLoader.alias(group, asset),
-        src,
-      }));
-
-      Assets.addBundle(`egypt-${group}`, assets);
-    }
-
-    Assets.addBundle(
-      'egypt-audio',
-      (Object.keys(EgyptAudioAssets) as (keyof typeof EgyptAudioAssets)[]).map((name) => ({
-        alias: EgyptAudioAssetKey[name],
-        src: EgyptAudioAssets[name],
-      })),
-    );
-
-    EgyptAssetLoader.registered = true;
+    this.images.destroy();
+    this.audio.destroy();
+    this.fonts.destroy();
   }
 }

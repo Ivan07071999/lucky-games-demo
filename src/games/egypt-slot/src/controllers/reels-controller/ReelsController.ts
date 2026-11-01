@@ -5,8 +5,6 @@ import type { ReelsMatrix } from '../../reels/reelsConfig';
 import type { ReelsStore } from '../../stores/ReelsStore';
 import type { RoundStore } from '../../stores/RoundStore';
 import {
-  LandReelsCommand,
-  PlayCascadeCommand,
   QuickStopCascadeCommand,
   QuickStopReelsCommand,
   SetReelsCommand,
@@ -17,6 +15,8 @@ import {
   StartCascadeCommand,
 } from '../../reelsMachine/commands';
 import type { MainSceneController } from '../main-scene-controller/MainSceneController';
+import { landRoundResult, restoreRoundReels } from './roundLanding';
+import type { RoundPlayback } from './roundPlayback';
 
 export class ReelsController {
   private readonly scene: MainSceneController;
@@ -25,10 +25,7 @@ export class ReelsController {
   private readonly round: RoundStore;
   private readonly isTurboEnabled: () => boolean;
   private readonly unsubscribeQuickStop: () => void;
-  private activeResult: RoundResult | null = null;
-  private activeSignal: AbortSignal | null = null;
-  private spinModeThisRound: SpinMode = 'CLASSIC';
-  private hybridCascadeActive = false;
+  private activeRound: RoundPlayback | null = null;
 
   constructor(
     scene: MainSceneController,
@@ -52,109 +49,94 @@ export class ReelsController {
   async playRound(
     request: (signal: AbortSignal) => Promise<RoundResult>,
     previousReels: ReelsMatrix,
-    onResultReceived: (result: RoundResult) => void,
+    onConfirmedResult: (result: RoundResult) => void,
     signal: AbortSignal,
     spinMode: SpinMode = 'CLASSIC',
   ): Promise<RoundResult> {
-    this.store.setSpinning(true);
-    this.activeResult = null;
-    this.activeSignal = signal;
-    this.spinModeThisRound = spinMode;
-    this.hybridCascadeActive = false;
-    const turboThisRound = this.isTurboEnabled();
-    let result: RoundResult | null = null;
+    const playback = this.beginRound(signal, spinMode);
+
     try {
-      this.scene.executeReels(
-        spinMode === 'CASCADE'
-          ? new StartCascadeCommand(previousReels, turboThisRound)
-          : new StartReelsCommand(turboThisRound),
-        signal,
+      const result = await this.startAndReceiveResult(
+        request,
+        previousReels,
+        onConfirmedResult,
+        playback,
       );
-      result = await request(signal);
-      signal.throwIfAborted();
-      this.activeResult = result;
-      onResultReceived(result);
+      await this.landWithFallback(result, playback);
+      return result;
+    } finally {
+      this.endRound(playback);
+    }
+  }
+
+  private beginRound(signal: AbortSignal, spinMode: SpinMode): RoundPlayback {
+    const turbo = this.isTurboEnabled();
+    this.store.setSpinning(true);
+    const playback: RoundPlayback = {
+      signal,
+      spinMode,
+      turbo,
+      result: null,
+      hybridCascadeActive: false,
+    };
+    this.activeRound = playback;
+    return playback;
+  }
+
+  private endRound(playback: RoundPlayback): void {
+    if (this.activeRound === playback) this.activeRound = null;
+    this.store.setSpinning(false);
+  }
+
+  private async startAndReceiveResult(
+    request: (signal: AbortSignal) => Promise<RoundResult>,
+    previousReels: ReelsMatrix,
+    onConfirmedResult: (result: RoundResult) => void,
+    playback: RoundPlayback,
+  ): Promise<RoundResult> {
+    try {
+      const command =
+        playback.spinMode === 'CASCADE'
+          ? new StartCascadeCommand(previousReels, playback.turbo)
+          : new StartReelsCommand(playback.turbo);
+      this.scene.executeReels(command, playback.signal);
+
+      const result = await request(playback.signal);
+      playback.signal.throwIfAborted();
+      playback.result = result;
+      onConfirmedResult(result);
       this.round.startLanding();
-      if (result.cascade) {
-        if (spinMode === 'HYBRID') {
-          await this.scene.executeReels(
-            new LandReelsCommand(
-              result.cascade.initialReels,
-              turboThisRound || this.round.quickStopRequested,
-              result.presentation?.anticipation ?? null,
-            ),
-            signal,
-          );
-        }
-        if (spinMode !== 'HYBRID' || result.cascade.steps.length > 0) {
-          this.hybridCascadeActive = spinMode === 'HYBRID';
-          try {
-            await this.scene.executeReels(
-              new PlayCascadeCommand(
-                result.cascade,
-                result.reels,
-                turboThisRound,
-                this.round.quickStopRequested,
-                spinMode === 'HYBRID',
-              ),
-              signal,
-            );
-          } finally {
-            this.hybridCascadeActive = false;
-          }
-        }
-      } else {
-        await this.scene.executeReels(
-          new LandReelsCommand(
-            result.reels,
-            turboThisRound || this.round.quickStopRequested,
-            result.presentation?.anticipation ?? null,
-          ),
-          signal,
-        );
-      }
-      this.emitter.emit('spin:landed', result);
       return result;
     } catch (error) {
-      if (signal.aborted) throw error;
-
-      if (result) {
-        this.scene.executeReels(new SetReelsCommand(result.reels), signal);
-        this.emitter.emit('reel:stopped', 0);
-        this.emitter.emit('spin:landed', result);
-        return result;
-      }
-
-      if (spinMode === 'CASCADE') {
-        this.scene.executeReels(new SetReelsCommand(previousReels), signal);
-      } else {
-        try {
-          await this.scene.executeReels(new LandReelsCommand(previousReels), signal);
-        } catch {
-          this.scene.executeReels(new SetReelsCommand(previousReels), signal);
-        }
+      if (!playback.signal.aborted) {
+        await restoreRoundReels(this.scene, previousReels, playback);
       }
       throw error;
-    } finally {
-      this.activeResult = null;
-      this.activeSignal = null;
-      this.spinModeThisRound = 'CLASSIC';
-      this.hybridCascadeActive = false;
-      this.store.setSpinning(false);
+    }
+  }
+
+  private async landWithFallback(result: RoundResult, playback: RoundPlayback): Promise<void> {
+    try {
+      await landRoundResult(this.scene, this.round, result, playback);
+    } catch (error) {
+      if (playback.signal.aborted) throw error;
+      this.scene.executeReels(new SetReelsCommand(result.reels), playback.signal);
+      this.emitter.emit('reel:stopped', 0);
     }
   }
 
   private readonly requestQuickStop = (): void => {
     if (!this.round.requestQuickStop()) return;
-    if (!this.activeResult || !this.activeSignal || this.activeSignal.aborted) return;
-    this.scene.executeReels(
-      this.spinModeThisRound === 'CASCADE' || this.hybridCascadeActive
-        ? new QuickStopCascadeCommand(this.activeResult.reels)
-        : new QuickStopReelsCommand(
-            this.activeResult.cascade?.initialReels ?? this.activeResult.reels,
-          ),
-      this.activeSignal,
-    );
+
+    const playback = this.activeRound;
+    if (!playback?.result || playback.signal.aborted) return;
+
+    const result = playback.result;
+    const command =
+      playback.spinMode === 'CASCADE' || playback.hybridCascadeActive
+        ? new QuickStopCascadeCommand(result.reels)
+        : new QuickStopReelsCommand(result.cascade?.initialReels ?? result.reels);
+    this.scene.executeReels(command, playback.signal);
   };
 
   async presentResult(result: RoundResult, signal: AbortSignal): Promise<void> {

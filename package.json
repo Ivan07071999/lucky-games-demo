@@ -23,7 +23,6 @@
     "server:check": "pnpm --filter @lucky-games/server typecheck"
   },
   "dependencies": {
-    "@esotericsoftware/spine-pixi-v8": "^4.3.13",
     "@fontsource-variable/manrope": "^5.3.0",
     "@lucky-games/contracts": "workspace:*",
     "@pixi/react": "^8.0.5",

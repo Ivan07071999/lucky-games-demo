@@ -14,6 +14,36 @@ export class ApplicationController {
     await Promise.resolve();
     if (this.cancelled) return null;
 
+    const application = await this.createApplication(canvas);
+    if (this.cancelled) {
+      application.destroy();
+      return null;
+    }
+
+    if (import.meta.env.DEV) await this.attachStats(application);
+    if (this.cancelled) {
+      application.destroy();
+      return null;
+    }
+
+    this.application = application;
+    return application;
+  }
+
+  destroy(): void {
+    this.cancelled = true;
+    if (this.statsUpdate && this.application) {
+      this.application.ticker.remove(this.statsUpdate);
+    }
+    this.stats?.hidePanel();
+    this.stats?.pixiHooks.release();
+    this.statsUpdate = null;
+    this.stats = null;
+    this.application?.destroy();
+    this.application = null;
+  }
+
+  private async createApplication(canvas: HTMLCanvasElement): Promise<Application> {
     const application = new Application();
 
     try {
@@ -33,55 +63,32 @@ export class ApplicationController {
       throw error;
     }
 
-    if (this.cancelled) {
-      application.destroy();
-      return null;
-    }
-
-    if (import.meta.env.DEV) {
-      try {
-        const { Stats } = await import('pixi-stats');
-        if (this.cancelled) {
-          application.destroy();
-          return null;
-        }
-
-        const renderer =
-          'gl' in application.renderer
-            ? { gl: application.renderer.gl, texture: { managedTextures: [] } }
-            : {};
-        const stats = new Stats(
-          renderer,
-          {
-            add: (update) => {
-              this.statsUpdate = update;
-              application.ticker.add(update);
-            },
-          },
-          document.body,
-        );
-        stats.domElement?.classList.add('pixi-stats-overlay');
-        this.stats = stats;
-      } catch (error) {
-        console.warn('Failed to initialize Pixi stats', error);
-      }
-    }
-
-    this.application = application;
-
     return application;
   }
 
-  destroy(): void {
-    this.cancelled = true;
-    if (this.statsUpdate && this.application) {
-      this.application.ticker.remove(this.statsUpdate);
+  private async attachStats(application: Application): Promise<void> {
+    try {
+      const { Stats } = await import('pixi-stats');
+      if (this.cancelled) return;
+
+      const renderer =
+        'gl' in application.renderer
+          ? { gl: application.renderer.gl, texture: { managedTextures: [] } }
+          : {};
+      const stats = new Stats(
+        renderer,
+        {
+          add: (update) => {
+            this.statsUpdate = update;
+            application.ticker.add(update);
+          },
+        },
+        document.body,
+      );
+      stats.domElement?.classList.add('pixi-stats-overlay');
+      this.stats = stats;
+    } catch (error) {
+      console.warn('Failed to initialize Pixi stats', error);
     }
-    this.stats?.hidePanel();
-    this.stats?.pixiHooks.release();
-    this.statsUpdate = null;
-    this.stats = null;
-    this.application?.destroy();
-    this.application = null;
   }
 }

@@ -66,6 +66,7 @@ export class MainScene extends Container {
       store: this.context.slotStore,
       onSpinRequested: this.handleSpinButtonPress,
       onBetRequested: this.openBetSelection,
+      onBetChanged: () => this.context.emitter.emit('ui:betChanged'),
       onMaxBetRequested: this.handleMaxBetButtonPress,
       onAutoPlayRequested: this.handleAutoPlayButtonPress,
     });
@@ -79,14 +80,8 @@ export class MainScene extends Container {
     const audioToggle = new AudioToggle(this.context.audio);
     const infoModal = new GameInfoModal(this.context.slotStore);
     const settingsModal = new GameSettingsModal(this.context.slotStore);
-    const infoButton = new InfoButton(() => {
-      infoModal.open();
-      this.context.audio.playMenuOpen();
-    });
-    const settingsButton = new SettingsButton(() => {
-      settingsModal.open();
-      this.context.audio.playMenuOpen();
-    });
+    const infoButton = new InfoButton(() => infoModal.open());
+    const settingsButton = new SettingsButton(() => settingsModal.open());
     betPanel.attachUtilityButtons(infoButton, settingsButton, audioToggle);
     const freeSpinsStatus = new FreeSpinsStatus(this.context.slotStore.round);
     const freeSpinsTransition = new FreeSpinsTransition();
@@ -231,7 +226,6 @@ export class MainScene extends Container {
     if (!store.panel.canEditBet) return;
 
     this.betSelectionModal?.open(store.panel.availableBets, store.panel.bet);
-    this.context.audio.playMenuOpen();
   };
 
   private readonly handleSpinButtonPress = (): void => {
@@ -249,7 +243,11 @@ export class MainScene extends Container {
 
   private readonly handleMaxBetButtonPress = (): void => {
     const { slotStore, emitter } = this.context;
+    const { bet, level } = slotStore.panel;
     const outcome = slotStore.requestMaxBetSpin();
+    if (outcome === 'started' && (slotStore.panel.bet !== bet || slotStore.panel.level !== level)) {
+      emitter.emit('ui:betChanged');
+    }
     if (outcome === 'started') emitter.emit('ui:spinRequested');
     if (outcome === 'insufficientBalance') emitter.emit('ui:maxBetInsufficientBalance');
   };
@@ -267,12 +265,14 @@ export class MainScene extends Container {
       !slotStore.round.errorMessage
     ) {
       this.autoPlayModal?.open();
-      this.context.audio.playMenuOpen();
     }
   };
 
   private readonly selectBet = (value: number): void => {
-    this.context.slotStore.panel.setBet(value);
+    const { panel } = this.context.slotStore;
+    const previousBet = panel.bet;
+    panel.setBet(value);
+    if (panel.bet !== previousBet) this.context.emitter.emit('ui:betChanged');
     this.closeBetSelection();
   };
 

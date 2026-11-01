@@ -22,6 +22,7 @@ export type BetPanelOptions = {
   store: SlotStore;
   onSpinRequested: () => void;
   onBetRequested: () => void;
+  onBetChanged: () => void;
   onMaxBetRequested: () => void;
   onAutoPlayRequested: () => void;
 };
@@ -42,6 +43,7 @@ export class BetPanel extends Container {
     store,
     onSpinRequested,
     onBetRequested,
+    onBetChanged,
     onMaxBetRequested,
     onAutoPlayRequested,
   }: BetPanelOptions) {
@@ -56,8 +58,16 @@ export class BetPanel extends Container {
       panel.level,
       panel.totalBetCoins,
       {
-        onDecrease: panel.decreaseLevel,
-        onIncrease: panel.increaseLevel,
+        onDecrease: () => {
+          const previousLevel = panel.level;
+          panel.decreaseLevel();
+          if (panel.level !== previousLevel) onBetChanged();
+        },
+        onIncrease: () => {
+          const previousLevel = panel.level;
+          panel.increaseLevel();
+          if (panel.level !== previousLevel) onBetChanged();
+        },
       },
       onBetRequested,
     );

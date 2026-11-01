@@ -8,8 +8,8 @@ export type GameEvents = {
   'ui:maxBetInsufficientBalance': void;
   'ui:quickStopRequested': void;
   'ui:skipWinRequested': void;
+  'ui:betChanged': void;
   'reels:cue': ReelsAnimationCue;
   'reel:stopped': number;
-  'spin:landed': RoundResult;
   'round:completed': RoundResult;
 };

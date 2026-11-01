@@ -16,11 +16,7 @@ export class EgyptImageAssets {
   static readonly scene = {
     background: egyptAssetUrl('PNG/background/background.webp'),
     backgroundFreeSpins: egyptAssetUrl('PNG/background/background_fs.png'),
-    anubis: egyptAssetUrl('PNG/characters/anubis.png'),
-    anubisFrame: egyptAssetUrl('PNG/characters/anubis_frame.png'),
     logoLong: egyptAssetUrl('PNG/logo/logo_long.png'),
-    logoShort: egyptAssetUrl('PNG/logo/logo_short.png'),
-    reelFrameEmpty: egyptAssetUrl('PNG/reel/reel_frame_empty.png'),
     reelFrameFilled: egyptAssetUrl('PNG/reel/reel_frame_filled.png'),
     reelFrameFreeSpins: egyptAssetUrl('PNG/reel/reel_frame_fs.png'),
   } as const;
@@ -36,19 +32,14 @@ export class EgyptImageAssets {
     defaultK: egyptAssetUrl('PNG/symbols/default/default_k.png'),
     defaultQ: egyptAssetUrl('PNG/symbols/default/default_q.png'),
     highAnkh: egyptAssetUrl('PNG/symbols/high/high_ankh.png'),
-    highAnkhNoFrame: egyptAssetUrl('PNG/symbols/high/high_ankh_no_frame.png'),
     highEye: egyptAssetUrl('PNG/symbols/high/high_eye.png'),
-    highEyeNoFrame: egyptAssetUrl('PNG/symbols/high/high_eye_no_frame.png'),
     highNecklace: egyptAssetUrl('PNG/symbols/high/high_necklace.png'),
-    highNecklaceNoFrame: egyptAssetUrl('PNG/symbols/high/high_necklace_no_frame.png'),
     highScarab: egyptAssetUrl('PNG/symbols/high/high_scarab.png'),
-    highScarabNoFrame: egyptAssetUrl('PNG/symbols/high/high_scarab_no_frame.png'),
     wild: egyptAssetUrl('PNG/symbols/wild/wild.png'),
   } as const;
 
   static readonly popups = {
     info: egyptAssetUrl('svg/info.svg'),
-    settingsBackground: egyptAssetUrl('PNG/popups/info.png'),
     scrollBackground: egyptAssetUrl('PNG/popups/scroll_bg.png'),
     freeSpinsTablet: egyptAssetUrl('PNG/popups/tablet_bg.png'),
     bigWin: egyptAssetUrl('PNG/popups/big-win/big_win.png'),

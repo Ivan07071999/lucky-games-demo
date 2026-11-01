@@ -5,16 +5,25 @@ import type { SpinOptions } from '../network/SlotApi';
 export const AUTO_PLAY_COUNTS = [10, 25, 50, 100] as const;
 
 export type AutoPlayState =
-  | 'inactive'
-  | 'configuring'
-  | 'running'
-  | 'stopRequested'
-  | 'pausedForBonus'
-  | 'recovering'
-  | 'completed';
+  'inactive' | 'configuring' | 'running' | 'stopRequested' | 'pausedForBonus' | 'completed';
+
+export type AutoPlayStopReason =
+  | 'manual'
+  | 'completed'
+  | 'freeSpins'
+  | 'win'
+  | 'netLossLimit'
+  | 'netWinLimit'
+  | 'insufficientBalance'
+  | 'betMismatch'
+  | 'roundError'
+  | 'unavailable';
+
+type BalanceLimitReason = 'netLossLimit' | 'netWinLimit';
 
 export class AutoPlayStore {
   state: AutoPlayState = 'inactive';
+  stopReason: AutoPlayStopReason | null = null;
   selectedSpins: (typeof AUTO_PLAY_COUNTS)[number] = 25;
   stopOnFreeSpins = true;
   stopOnWin = false;
@@ -36,10 +45,7 @@ export class AutoPlayStore {
 
   get isBetLocked(): boolean {
     return (
-      this.state === 'running' ||
-      this.state === 'stopRequested' ||
-      this.state === 'pausedForBonus' ||
-      this.state === 'recovering'
+      this.state === 'running' || this.state === 'stopRequested' || this.state === 'pausedForBonus'
     );
   }
 
@@ -89,8 +95,19 @@ export class AutoPlayStore {
     this.total = this.selectedSpins;
     this.completed = 0;
     this.activeRound = false;
+    this.stopReason = null;
     this.state = 'running';
     return true;
+  }
+
+  cancelStart(): void {
+    if (this.state !== 'running' || this.activeRound) return;
+    this.state = 'configuring';
+    this.stopReason = null;
+    this.total = 0;
+    this.completed = 0;
+    this.lockedBet = null;
+    this.initialBalanceCoins = 0;
   }
 
   markRoundStarted(): boolean {
@@ -100,40 +117,55 @@ export class AutoPlayStore {
   }
 
   requestStop(): void {
-    if (this.state === 'running') {
-      this.state = this.activeRound ? 'stopRequested' : 'inactive';
-    } else if (this.state === 'pausedForBonus' || this.state === 'recovering') {
-      this.state = 'inactive';
-    }
+    this.stop('manual');
+  }
+
+  stop(reason: AutoPlayStopReason): void {
+    if (this.state !== 'running' && this.state !== 'pausedForBonus') return;
+    this.stopReason = reason;
+    this.state = this.activeRound ? 'stopRequested' : 'inactive';
   }
 
   completeRound(result: RoundResult): void {
     if (!this.activeRound) return;
     this.activeRound = false;
     if (result.mode !== 'BASE_GAME') {
-      this.state = 'recovering';
+      this.finish('roundError');
       return;
     }
 
     this.completed += 1;
     const bet = this.lockedBet;
-    if (
-      this.state === 'stopRequested' ||
-      !bet ||
-      result.bet.bet !== bet.bet ||
-      result.bet.level !== bet.level
-    ) {
-      this.state = 'inactive';
-    } else if (this.remaining === 0) {
+    if (this.state === 'stopRequested') {
+      this.finish(this.stopReason ?? 'manual');
+      return;
+    }
+    if (!bet || result.bet.bet !== bet.bet || result.bet.level !== bet.level) {
+      this.finish('betMismatch');
+      return;
+    }
+    if (this.remaining === 0) {
       this.state = 'completed';
-    } else if (result.nextAction === 'FREE_SPIN') {
-      this.state = this.stopOnFreeSpins ? 'inactive' : 'pausedForBonus';
-    } else if (
-      (this.stopOnWin && result.totalWinCoins > 0) ||
-      this.reachedBalanceLimit(result.balance.afterWin) ||
-      result.balance.afterWin < bet.bet * bet.level
-    ) {
-      this.state = 'inactive';
+      this.stopReason = 'completed';
+      return;
+    }
+    if (this.stopOnWin && result.totalWinCoins > 0) {
+      this.finish('win');
+      return;
+    }
+
+    const balanceLimit = this.balanceLimitReason(result.balance.afterWin);
+    if (balanceLimit) {
+      this.finish(balanceLimit);
+      return;
+    }
+    if (result.nextAction === 'FREE_SPIN') {
+      if (this.stopOnFreeSpins) this.finish('freeSpins');
+      else this.state = 'pausedForBonus';
+      return;
+    }
+    if (result.balance.afterWin < bet.bet * bet.level) {
+      this.finish('insufficientBalance');
     }
   }
 
@@ -141,19 +173,26 @@ export class AutoPlayStore {
     if (this.state === 'pausedForBonus') this.state = 'running';
   }
 
-  reachedBalanceLimit(balanceCoins: number): boolean {
-    return (
-      (this.netLossLimitCoins !== null &&
-        this.initialBalanceCoins - balanceCoins >= this.netLossLimitCoins) ||
-      (this.netWinLimitCoins !== null &&
-        balanceCoins - this.initialBalanceCoins >= this.netWinLimitCoins)
-    );
+  balanceLimitReason(balanceCoins: number): BalanceLimitReason | null {
+    if (
+      this.netLossLimitCoins !== null &&
+      this.initialBalanceCoins - balanceCoins >= this.netLossLimitCoins
+    ) {
+      return 'netLossLimit';
+    }
+    if (
+      this.netWinLimitCoins !== null &&
+      balanceCoins - this.initialBalanceCoins >= this.netWinLimitCoins
+    ) {
+      return 'netWinLimit';
+    }
+    return null;
   }
 
   failRound(): void {
     if (!this.activeRound) return;
     this.activeRound = false;
-    this.state = 'recovering';
+    this.finish(this.state === 'stopRequested' ? (this.stopReason ?? 'manual') : 'roundError');
   }
 
   reset(): void {
@@ -162,6 +201,13 @@ export class AutoPlayStore {
     this.completed = 0;
     this.activeRound = false;
     this.lockedBet = null;
+    this.initialBalanceCoins = 0;
+    this.stopReason = null;
+  }
+
+  private finish(reason: AutoPlayStopReason): void {
+    this.state = 'inactive';
+    this.stopReason = reason;
   }
 
   private validLimit(limit: number | null): boolean {
