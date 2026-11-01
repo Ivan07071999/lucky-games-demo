@@ -1,6 +1,5 @@
-import type { RoundResult } from '@lucky-games/contracts';
+import type { RoundResult, SpinOptions } from '@lucky-games/contracts';
 import { makeAutoObservable, observableRef } from 'mobx';
-import type { SpinOptions } from '../network/SlotApi';
 
 export const AUTO_PLAY_COUNTS = [10, 25, 50, 100] as const;
 

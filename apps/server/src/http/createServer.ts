@@ -1,42 +1,14 @@
 import Fastify from 'fastify';
 import websocket from '@fastify/websocket';
-import { z } from 'zod';
 import {
-  SYMBOLS,
-  WIN_DEMO_TYPES,
+  slotCommandSchema,
+  slotRequestIdSchema,
+  slotSessionIdSchema,
   type SlotCommand,
   type SlotMessage,
 } from '@lucky-games/contracts';
 import { SlotService } from '../game/SlotService.js';
 import { SlotError } from '../storage/Database.js';
-
-const requestId = z
-  .string()
-  .min(1)
-  .max(100)
-  .regex(/^[a-zA-Z0-9_-]+$/);
-const sessionId = z.string().uuid();
-const commandSchema = z.discriminatedUnion('type', [
-  z.strictObject({
-    type: z.literal('SPIN'),
-    sessionId,
-    requestId,
-    bet: z.number().int(),
-    level: z.number().int(),
-    paylineCount: z.union([z.literal(5), z.literal(7), z.literal(9)]).optional(),
-    anticipationDemo: z.boolean().optional(),
-    winDemo: z
-      .strictObject({
-        symbol: z.enum(SYMBOLS),
-        count: z.union([z.literal(3), z.literal(4), z.literal(5)]),
-      })
-      .optional(),
-    winTypeDemo: z.enum(WIN_DEMO_TYPES).optional(),
-    spinMode: z.enum(['CLASSIC', 'CASCADE', 'HYBRID']).optional(),
-    cascade: z.boolean().optional(),
-  }),
-  z.strictObject({ type: z.literal('FREE_SPIN'), sessionId, requestId }),
-]);
 
 export async function createServer(service: SlotService, allowedOrigins: string[]) {
   const server = Fastify({ logger: true, bodyLimit: 4096 });
@@ -73,7 +45,7 @@ export async function createServer(service: SlotService, allowedOrigins: string[
         return reply
           .code(401)
           .send({ code: 'UNAUTHORIZED', message: 'Bearer session ID required' });
-      if (!requestId.safeParse(request.params.requestId).success) {
+      if (!slotRequestIdSchema.safeParse(request.params.requestId).success) {
         return reply.code(400).send({ code: 'INVALID_REQUEST', message: 'Invalid requestId' });
       }
       try {
@@ -104,7 +76,7 @@ export async function createServer(service: SlotService, allowedOrigins: string[
       busy = true;
       let id: string | null = null;
       try {
-        const parsed = commandSchema.safeParse(JSON.parse(raw.toString()));
+        const parsed = slotCommandSchema.safeParse(JSON.parse(raw.toString()));
         if (!parsed.success) throw new SlotError('INVALID_REQUEST', 'Invalid game command');
         const command: SlotCommand = parsed.data;
         id = command.requestId;
@@ -136,7 +108,7 @@ export async function createServer(service: SlotService, allowedOrigins: string[
 
 function getSessionId(authorization?: string): string | null {
   const match = /^Bearer ([\w-]+)$/i.exec(authorization ?? '');
-  return match && sessionId.safeParse(match[1]).success ? match[1] : null;
+  return match && slotSessionIdSchema.safeParse(match[1]).success ? match[1] : null;
 }
 
 function send(

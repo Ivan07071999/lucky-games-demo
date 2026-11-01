@@ -184,6 +184,53 @@ export type SlotCommand =
     }
   | { type: 'FREE_SPIN'; sessionId: string; requestId: string };
 
+export type SpinOptions = Pick<
+  Extract<SlotCommand, { type: 'SPIN' }>,
+  'bet' | 'level' | 'paylineCount' | 'anticipationDemo' | 'winDemo' | 'winTypeDemo' | 'spinMode'
+>;
+
+export const slotRequestIdSchema = z
+  .string()
+  .min(1)
+  .max(100)
+  .regex(/^[a-zA-Z0-9_-]+$/);
+export const slotSessionIdSchema = z.string().uuid();
+
+const spinCommandFields = {
+  type: z.literal('SPIN'),
+  sessionId: slotSessionIdSchema,
+  requestId: slotRequestIdSchema,
+  bet: z.number().int(),
+  level: z.number().int(),
+  paylineCount: z.union([z.literal(5), z.literal(7), z.literal(9)]).optional(),
+  anticipationDemo: z.boolean().optional(),
+  winDemo: z
+    .strictObject({
+      symbol: z.enum(SYMBOLS),
+      count: z.union([z.literal(3), z.literal(4), z.literal(5)]),
+    })
+    .optional(),
+  winTypeDemo: z.enum(WIN_DEMO_TYPES).optional(),
+  spinMode: z.enum(['CLASSIC', 'CASCADE', 'HYBRID']).optional(),
+  cascade: z.boolean().optional(),
+};
+const freeSpinCommandFields = {
+  type: z.literal('FREE_SPIN'),
+  sessionId: slotSessionIdSchema,
+  requestId: slotRequestIdSchema,
+};
+
+export const slotCommandSchema: z.ZodType<SlotCommand> = z.discriminatedUnion('type', [
+  z.strictObject(spinCommandFields),
+  z.strictObject(freeSpinCommandFields),
+]);
+
+// Stored commands may contain fields written by an older client. Keep the known fields only.
+export const storedSlotCommandSchema: z.ZodType<SlotCommand> = z.discriminatedUnion('type', [
+  z.object(spinCommandFields),
+  z.object(freeSpinCommandFields),
+]);
+
 export type SlotMessage =
   | { type: 'ROUND_RESULT'; requestId: string; result: RoundResult }
   | { type: 'ERROR'; requestId: string | null; code: SlotErrorCode; message: string };

@@ -1,21 +1,15 @@
 import type { RoundResult, SlotCommand } from '@lucky-games/contracts';
-import { SlotApiError, SlotContractError } from './SlotApiError';
-import { parseSlotMessage } from './slotResponseValidation';
+import { SlotApiError } from './SlotApiError';
+import { SocketRoundRequest } from './SocketRoundRequest';
 
 const CONNECTION_TIMEOUT_MS = 10_000;
-const ROUND_TIMEOUT_MS = 15_000;
-
-type PendingRequest = {
-  requestId: string;
-  resolve: (result: RoundResult) => void;
-  reject: (error: Error) => void;
-};
 
 export class SlotSocketClient {
   private readonly baseUrl: string;
   private socket: WebSocket | null = null;
   private connecting: Promise<WebSocket> | null = null;
-  private pending: PendingRequest | null = null;
+  private pending: SocketRoundRequest | null = null;
+  private sending = false;
   private destroyed = false;
 
   constructor(baseUrl: string) {
@@ -24,45 +18,23 @@ export class SlotSocketClient {
 
   async send(command: SlotCommand, signal?: AbortSignal): Promise<RoundResult> {
     if (this.destroyed) throw new SlotApiError('WebSocket client has been destroyed');
-    if (this.pending) throw new SlotApiError('A round is already in progress', 'SPIN_IN_PROGRESS');
+    if (this.sending) throw new SlotApiError('A round is already in progress', 'SPIN_IN_PROGRESS');
+    this.sending = true;
 
-    const socket = await this.connect(signal);
-    signal?.throwIfAborted();
-
-    return new Promise<RoundResult>((resolve, reject) => {
-      const timeoutId = window.setTimeout(() => {
-        this.rejectPending(new SlotApiError('WebSocket round timed out'));
-      }, ROUND_TIMEOUT_MS);
-      const cleanup = () => {
-        window.clearTimeout(timeoutId);
-        signal?.removeEventListener('abort', onAbort);
-      };
-      const onAbort = () => {
-        this.pending = null;
-        cleanup();
-        reject(signal?.reason ?? new SlotApiError('Round was cancelled'));
-      };
-      signal?.addEventListener('abort', onAbort, { once: true });
-      this.pending = {
-        requestId: command.requestId,
-        resolve: (result) => {
-          cleanup();
-          resolve(result);
-        },
-        reject: (error) => {
-          cleanup();
-          reject(error);
-        },
-      };
-
+    try {
+      const socket = await this.connect(signal);
+      if (this.destroyed) throw new SlotApiError('WebSocket client has been destroyed');
+      signal?.throwIfAborted();
+      const request = new SocketRoundRequest(command, signal);
+      this.pending = request;
       try {
-        socket.send(JSON.stringify(command));
-      } catch (error) {
-        this.rejectPending(
-          error instanceof Error ? error : new SlotApiError('WebSocket send failed'),
-        );
+        return await request.send(socket);
+      } finally {
+        if (this.pending === request) this.pending = null;
       }
-    });
+    } finally {
+      this.sending = false;
+    }
   }
 
   private async connect(signal?: AbortSignal): Promise<WebSocket> {
@@ -116,26 +88,7 @@ export class SlotSocketClient {
   }
 
   private readonly onMessage = (event: MessageEvent<string>): void => {
-    const pending = this.pending;
-    if (!pending) return;
-    let message: ReturnType<typeof parseSlotMessage>;
-    try {
-      message = parseSlotMessage(JSON.parse(event.data), pending.requestId);
-    } catch (error) {
-      this.rejectPending(
-        error instanceof SlotContractError
-          ? error
-          : new SlotContractError('WebSocket message', error),
-      );
-      return;
-    }
-    if (!message) return;
-    if (message.type === 'ERROR') {
-      this.rejectPending(new SlotApiError(message.message, message.code));
-      return;
-    }
-    this.pending = null;
-    pending.resolve(message.result);
+    this.pending?.handleMessage(event.data);
   };
 
   private readonly onClose = (): void => {
@@ -146,7 +99,7 @@ export class SlotSocketClient {
   private rejectPending(error: Error): void {
     const pending = this.pending;
     this.pending = null;
-    pending?.reject(error);
+    pending?.fail(error);
   }
 
   destroy(): void {
