@@ -1,7 +1,11 @@
 import type { ReelSymbol } from '../reelSymbol';
 import { CancelableTimeline } from '../animation/CancelableTimeline';
 import { addFall, addLanding, symbolDelay } from './cascadeMotion';
-import type { CascadeRefillPlan } from './cascadeRefill';
+
+export interface CascadeRefillAnimation {
+  incoming: { symbol: ReelSymbol; targetRow: number; delayOrder: number }[];
+  survivors: { symbol: ReelSymbol; targetRow: number }[];
+}
 
 export class CascadeColumnAnimator {
   private readonly rowHeight: number;
@@ -74,7 +78,7 @@ export class CascadeColumnAnimator {
   }
 
   refill(
-    plan: CascadeRefillPlan,
+    plan: CascadeRefillAnimation,
     signal: AbortSignal,
     turbo: boolean,
     startDelay = 0,

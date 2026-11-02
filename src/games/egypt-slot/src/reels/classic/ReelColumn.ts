@@ -36,6 +36,7 @@ export class ReelColumn extends Container {
   }
 
   spin(signal: AbortSignal, turbo = false): void {
+    this.spinSession.cancel();
     this.spinSession.spin(signal, turbo);
   }
 

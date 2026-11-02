@@ -37,6 +37,7 @@ export class CascadeStepPlayer {
         column.removeRows(removedRows[reelIndex], signal, turbo, reelDelay(reelIndex, turbo)),
       ),
     );
+    if (!isActive()) return;
     await Promise.all(
       this.columns.map((column, reelIndex) =>
         column.refill(

@@ -11,14 +11,18 @@ import {
   STEP_SECONDS,
 } from './classicTiming';
 
+interface SpinRun {
+  task: Promise<void> | null;
+  stopTarget: ReelColumnSymbols | null;
+  cancelled: boolean;
+  quickStopRequested: boolean;
+}
+
 export class ReelSpinSession {
   private readonly motion: ReelColumnMotion;
   private readonly applySymbols: (values: ReelColumnSymbols) => void;
   private readonly rowHeight: number;
-  private spinTask: Promise<void> | null = null;
-  private stopTarget: ReelColumnSymbols | null = null;
-  private cancelled = false;
-  private quickStopRequested = false;
+  private run: SpinRun | null = null;
 
   constructor(
     motion: ReelColumnMotion,
@@ -31,42 +35,51 @@ export class ReelSpinSession {
   }
 
   spin(signal: AbortSignal, turbo = false): void {
-    if (this.spinTask) return;
-    this.cancelled = false;
-    this.quickStopRequested = false;
-    this.stopTarget = null;
-    this.spinTask = this.runSpin(signal, turbo).finally(() => {
-      this.spinTask = null;
-      this.stopTarget = null;
+    signal.throwIfAborted();
+    if (this.run) return;
+
+    const run: SpinRun = {
+      task: null,
+      stopTarget: null,
+      cancelled: false,
+      quickStopRequested: false,
+    };
+    this.run = run;
+    run.task = this.runSpin(run, signal, turbo).finally(() => {
+      if (this.run === run) this.run = null;
     });
-    void this.spinTask.catch(() => undefined);
+    void run.task.catch(() => undefined);
   }
 
   quickLand(values: ReelColumnSymbols, signal: AbortSignal, turbo = false): void {
     signal.throwIfAborted();
     this.spin(signal, turbo);
-    this.stopTarget = values;
-    this.quickStopRequested = true;
+    const run = this.run;
+    if (!run) return;
+    run.stopTarget = values;
+    run.quickStopRequested = true;
     this.motion.speedUp();
   }
 
   async land(values: ReelColumnSymbols, signal: AbortSignal): Promise<void> {
     signal.throwIfAborted();
-    if (!this.spinTask) {
+    const run = this.run;
+    if (!run) {
       this.cancel();
       this.applySymbols(values);
       return;
     }
-    this.stopTarget = values;
-    await this.spinTask;
+    run.stopTarget = values;
+    await run.task;
   }
 
   cancel(): void {
-    if (this.spinTask) this.cancelled = true;
+    if (this.run) this.run.cancelled = true;
+    this.run = null;
     this.motion.cancel();
   }
 
-  private async runSpin(signal: AbortSignal, turbo: boolean): Promise<void> {
+  private async runSpin(run: SpinRun, signal: AbortSignal, turbo: boolean): Promise<void> {
     const anticipation = turbo ? 0 : Math.min(ANTICIPATION_PIXELS, this.rowHeight * 0.1);
     if (!turbo) {
       await this.motion.offset(0, -anticipation, signal, {
@@ -76,30 +89,31 @@ export class ReelSpinSession {
     }
 
     let steps = 0;
-    while (!this.stopTarget || (!this.quickStopRequested && steps < MINIMUM_SPIN_STEPS)) {
-      if (this.cancelled) throw new Error('Reel spin cancelled');
+    while (!run.stopTarget || (!run.quickStopRequested && steps < MINIMUM_SPIN_STEPS)) {
+      if (run.cancelled) throw new Error('Reel spin cancelled');
       const firstStep = steps === 0 && !turbo;
       await this.motion.advance(SYMBOLS[Math.floor(Math.random() * SYMBOLS.length)], signal, {
         from: firstStep ? -anticipation : 0,
-        duration: this.quickStopRequested
+        duration: run.quickStopRequested
           ? QUICK_STOP_STEP_SECONDS
           : firstStep
             ? FIRST_STEP_SECONDS
             : STEP_SECONDS,
         ease: firstStep ? 'power2.in' : 'none',
-        delay: firstStep && !this.quickStopRequested ? ANTICIPATION_HOLD_SECONDS : 0,
+        delay: firstStep && !run.quickStopRequested ? ANTICIPATION_HOLD_SECONDS : 0,
       });
       steps += 1;
     }
 
-    const target = this.stopTarget;
+    const target = run.stopTarget;
+    if (!target || run.cancelled) throw new Error('Reel spin cancelled');
     for (let row = VISIBLE_ROWS - 1; row >= 0; row -= 1) {
-      if (this.cancelled) throw new Error('Reel spin cancelled');
+      if (run.cancelled) throw new Error('Reel spin cancelled');
       await this.motion.advance(target[row], signal, {
-        duration: this.quickStopRequested ? QUICK_STOP_STEP_SECONDS : STEP_SECONDS,
+        duration: run.quickStopRequested ? QUICK_STOP_STEP_SECONDS : STEP_SECONDS,
       });
     }
-    if (this.cancelled) throw new Error('Reel spin cancelled');
+    if (run.cancelled) throw new Error('Reel spin cancelled');
     this.applySymbols(target);
   }
 }

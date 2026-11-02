@@ -1,55 +1,55 @@
-import type { ReelSymbol } from '../reelSymbol';
 import type { ReelColumnSymbols } from '../reelsConfig';
 
 type SymbolValue = ReelColumnSymbols[number];
 
 export interface CascadeRefillPlan {
   incoming: {
-    symbol: ReelSymbol;
+    sourceRow: number;
     value: SymbolValue;
     startRow: number;
     targetRow: number;
     delayOrder: number;
   }[];
   survivors: {
-    symbol: ReelSymbol;
+    sourceRow: number;
     value: SymbolValue;
     targetRow: number;
   }[];
-  finalSymbols: ReelSymbol[];
+  finalSourceRows: number[];
 }
 
-export function partitionCascadeSymbols(
-  symbols: readonly ReelSymbol[],
+export function partitionCascadeRows(
+  rowCount: number,
   removedRows: readonly number[],
-) {
+): { removed: number[]; survivors: number[] } {
   const removed = new Set(removedRows);
+  const rows = Array.from({ length: rowCount }, (_, row) => row);
   return {
-    incoming: symbols.filter((_, row) => removed.has(row)),
-    survivors: symbols.filter((_, row) => !removed.has(row)),
+    removed: rows.filter((row) => removed.has(row)),
+    survivors: rows.filter((row) => !removed.has(row)),
   };
 }
 
 export function planCascadeRefill(
-  symbols: readonly ReelSymbol[],
+  rowCount: number,
   removedRows: readonly number[],
   values: ReelColumnSymbols,
 ): CascadeRefillPlan {
-  const { incoming, survivors } = partitionCascadeSymbols(symbols, removedRows);
+  const { removed, survivors } = partitionCascadeRows(rowCount, removedRows);
 
   return {
-    incoming: incoming.map((symbol, row) => ({
-      symbol,
+    incoming: removed.map((sourceRow, row) => ({
+      sourceRow,
       value: values[row],
-      startRow: row - incoming.length,
+      startRow: row - removed.length,
       targetRow: row,
-      delayOrder: incoming.length - 1 - row,
+      delayOrder: removed.length - 1 - row,
     })),
-    survivors: survivors.map((symbol, index) => ({
-      symbol,
-      value: values[incoming.length + index],
-      targetRow: incoming.length + index,
+    survivors: survivors.map((sourceRow, index) => ({
+      sourceRow,
+      value: values[removed.length + index],
+      targetRow: removed.length + index,
     })),
-    finalSymbols: [...incoming, ...survivors],
+    finalSourceRows: [...removed, ...survivors],
   };
 }

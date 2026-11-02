@@ -1,13 +1,14 @@
 import { Container } from 'pixi.js';
 import { ReelSymbol } from '../reelSymbol';
 import type { ReelColumnSymbols } from '../reelsConfig';
-import { CascadeColumnAnimator } from './CascadeColumnAnimator';
-import { partitionCascadeSymbols, planCascadeRefill } from './cascadeRefill';
+import { CascadeColumnAnimator, type CascadeRefillAnimation } from './CascadeColumnAnimator';
+import { partitionCascadeRows, planCascadeRefill } from './cascadeRefill';
 
 export class CascadeColumn extends Container {
   private symbols: ReelSymbol[];
   private readonly rowHeight: number;
   private readonly animator: CascadeColumnAnimator;
+  private revision = 0;
 
   constructor(
     width: number,
@@ -65,8 +66,9 @@ export class CascadeColumn extends Container {
     startDelay = 0,
   ): Promise<void> {
     if (removedRows.length === 0) return Promise.resolve();
-    const { incoming } = partitionCascadeSymbols(this.symbols, removedRows);
-    return this.animator.removeRows(incoming, this.symbols.length, signal, turbo, startDelay);
+    const { removed } = partitionCascadeRows(this.symbols.length, removedRows);
+    const symbols = removed.map((row) => this.symbols[row]);
+    return this.animator.removeRows(symbols, this.symbols.length, signal, turbo, startDelay);
   }
 
   refill(
@@ -77,24 +79,41 @@ export class CascadeColumn extends Container {
     startDelay = 0,
   ): Promise<void> {
     if (removedRows.length === 0) return Promise.resolve();
-    const plan = planCascadeRefill(this.symbols, removedRows, values);
+    const plan = planCascadeRefill(this.symbols.length, removedRows, values);
+    const symbols = this.symbols;
+    const revision = this.revision;
 
-    plan.incoming.forEach(({ symbol, value, startRow }) => {
+    plan.incoming.forEach(({ sourceRow, value, startRow }) => {
+      const symbol = symbols[sourceRow];
       symbol.setValue(value);
       symbol.y = startRow * this.rowHeight;
       symbol.alpha = 1;
     });
-    plan.survivors.forEach(({ symbol, value }) => {
-      symbol.setValue(value);
+    plan.survivors.forEach(({ sourceRow, value }) => {
+      symbols[sourceRow].setValue(value);
     });
 
-    return this.animator.refill(plan, signal, turbo, startDelay).then(() => {
-      this.symbols = plan.finalSymbols;
+    const animation: CascadeRefillAnimation = {
+      incoming: plan.incoming.map(({ sourceRow, targetRow, delayOrder }) => ({
+        symbol: symbols[sourceRow],
+        targetRow,
+        delayOrder,
+      })),
+      survivors: plan.survivors.map(({ sourceRow, targetRow }) => ({
+        symbol: symbols[sourceRow],
+        targetRow,
+      })),
+    };
+
+    return this.animator.refill(animation, signal, turbo, startDelay).then(() => {
+      if (revision !== this.revision) return;
+      this.symbols = plan.finalSourceRows.map((row) => symbols[row]);
       this.setValues(values);
     });
   }
 
   cancel(): void {
+    this.revision += 1;
     this.animator.cancel();
   }
 

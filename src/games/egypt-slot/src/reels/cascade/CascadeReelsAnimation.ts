@@ -7,15 +7,18 @@ import { CascadeColumn } from './CascadeColumn';
 import { CascadeStepPlayer } from './CascadeStepPlayer';
 import { reelDelay } from './cascadeTiming';
 
+interface CascadePlayback {
+  quickStopped: boolean;
+  startTask: Promise<void> | null;
+}
+
 export class CascadeReelsAnimation {
   private readonly columns: ReelColumn[];
   private readonly cascadeColumns: CascadeColumn[];
   private readonly winPresentation: ReelWinPresentation;
   private readonly stepPlayer: CascadeStepPlayer;
   private readonly onAnimationCue?: (cue: ReelsAnimationCue) => void;
-  private active = false;
-  private quickStopped = false;
-  private startTask: Promise<void> | null = null;
+  private playback: CascadePlayback | null = null;
 
   constructor(
     columns: ReelColumn[],
@@ -33,8 +36,8 @@ export class CascadeReelsAnimation {
   start(reels: ReelsMatrix, signal: AbortSignal, turbo = false): void {
     signal.throwIfAborted();
     this.stop();
-    this.active = true;
-    this.quickStopped = false;
+    const playback: CascadePlayback = { quickStopped: false, startTask: null };
+    this.playback = playback;
     this.columns.forEach((column, index) => {
       column.setSymbols(reels[index]);
       column.visible = false;
@@ -43,12 +46,12 @@ export class CascadeReelsAnimation {
       column.setValues(reels[index]);
       column.visible = true;
     });
-    this.startTask = Promise.all(
+    playback.startTask = Promise.all(
       this.cascadeColumns.map((column, index) =>
         column.exit(signal, turbo, reelDelay(index, turbo)),
       ),
     ).then(() => undefined);
-    void this.startTask.catch(() => undefined);
+    void playback.startTask.catch(() => undefined);
   }
 
   async play(
@@ -62,22 +65,22 @@ export class CascadeReelsAnimation {
     signal.throwIfAborted();
     if (hybrid && !quickStop) {
       this.stop();
-      this.active = true;
-      this.quickStopped = false;
+      this.playback = { quickStopped: false, startTask: null };
       this.columns.forEach((column) => (column.visible = false));
       this.cascadeColumns.forEach((column, index) => {
         column.setValues(sequence.initialReels[index]);
         column.visible = true;
       });
     }
-    if (!this.active || quickStop) {
+    const playback = this.playback;
+    if (!playback || quickStop) {
       this.quickStop(finalReels);
       return;
     }
     try {
       if (!hybrid) {
-        await this.startTask;
-        if (!this.active) return;
+        await playback.startTask;
+        if (this.playback !== playback) return;
         await Promise.all(
           this.cascadeColumns.map((column, index) =>
             column.enter(sequence.initialReels[index], signal, turbo, reelDelay(index, turbo)),
@@ -85,18 +88,18 @@ export class CascadeReelsAnimation {
         );
       }
       for (const step of sequence.steps) {
-        if (!this.active) return;
-        await this.stepPlayer.play(step, signal, turbo, () => this.active);
+        if (this.playback !== playback) return;
+        await this.stepPlayer.play(step, signal, turbo, () => this.playback === playback);
       }
     } catch (error) {
-      if (!this.quickStopped || signal.aborted) throw error;
+      if (!playback.quickStopped || signal.aborted) throw error;
     } finally {
-      if (this.active) this.finish(finalReels);
+      if (this.playback === playback) this.finish(finalReels);
     }
   }
 
   quickStop(finalReels: ReelsMatrix): void {
-    this.quickStopped = true;
+    if (this.playback) this.playback.quickStopped = true;
     this.finish(finalReels);
   }
 
@@ -108,12 +111,11 @@ export class CascadeReelsAnimation {
     });
     this.columns.forEach((column) => (column.visible = true));
     this.winPresentation.clearLine();
-    this.active = false;
-    this.startTask = null;
+    this.playback = null;
   }
 
   private finish(finalReels: ReelsMatrix): void {
-    const quickStopped = this.quickStopped;
+    const quickStopped = this.playback?.quickStopped ?? false;
     this.stop();
     this.columns.forEach((column, index) => column.setSymbols(finalReels[index]));
     if (quickStopped) this.onAnimationCue?.('cascadeLand');

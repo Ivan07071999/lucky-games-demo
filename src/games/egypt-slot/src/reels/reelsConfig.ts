@@ -1,20 +1,16 @@
-import { EgyptImageAssetKey } from '../assets';
+import type { Reel, ReelGrid, SymbolKey } from '@lucky-games/contracts';
 
 export const REEL_COUNT = 5;
 export const VISIBLE_ROWS = 3;
 
-export type ReelSymbolKey = keyof typeof EgyptImageAssetKey.symbols;
+export type ReelSymbolKey = SymbolKey;
+export type ReelColumnSymbols = Readonly<Reel>;
 
-type FixedLengthTuple<
-  Item,
-  Length extends number,
-  Result extends readonly Item[] = readonly [],
-> = Result['length'] extends Length
-  ? Result
-  : FixedLengthTuple<Item, Length, readonly [...Result, Item]>;
+type ReadonlyGrid<Grid extends readonly (readonly SymbolKey[])[]> = {
+  readonly [Index in keyof Grid]: Readonly<Grid[Index]>;
+};
 
-export type ReelColumnSymbols = FixedLengthTuple<ReelSymbolKey, typeof VISIBLE_ROWS>;
-export type ReelsMatrix = FixedLengthTuple<ReelColumnSymbols, typeof REEL_COUNT>;
+export type ReelsMatrix = ReadonlyGrid<ReelGrid>;
 
 export const INITIAL_REELS = [
   ['highAnkh', 'highEye', 'highNecklace'],

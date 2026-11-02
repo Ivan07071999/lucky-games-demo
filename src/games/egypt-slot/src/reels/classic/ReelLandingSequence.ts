@@ -10,6 +10,7 @@ export class ReelLandingSequence {
   private readonly onReelStopped?: (index: number) => void;
   private readonly anticipation: AnticipationDelay;
   private landingSignal: AbortSignal | null = null;
+  private landingId = 0;
   private stoppedColumns = 0;
   private quickStopRequested = false;
   private turboSpin = false;
@@ -27,6 +28,8 @@ export class ReelLandingSequence {
   }
 
   reset(turbo: boolean): void {
+    this.landingId += 1;
+    this.anticipation.cancel();
     this.landingSignal = null;
     this.stoppedColumns = 0;
     this.quickStopRequested = false;
@@ -39,35 +42,41 @@ export class ReelLandingSequence {
     quickStop = false,
     anticipation: ReelAnticipationHint | null = null,
   ): Promise<void> {
+    const landingId = ++this.landingId;
     this.landingSignal = signal;
     if (quickStop) this.requestQuickStop(reels, signal);
     try {
       if (quickStop) {
         await Promise.all(this.columns.map((column, index) => column.land(reels[index], signal)));
+        this.assertActive(landingId, signal);
         await Promise.all(this.columns.map((column) => column.settle(signal)));
+        this.assertActive(landingId, signal);
         this.onReelStopped?.(0);
         return;
       }
       for (let index = 0; index < this.columns.length; index += 1) {
-        signal.throwIfAborted();
+        this.assertActive(landingId, signal);
         if (anticipation?.reelIndex === index && !this.quickStopRequested) {
           await this.anticipation.wait(anticipation.extraSpinMs, signal);
+          this.assertActive(landingId, signal);
         }
         await this.columns[index].land(reels[index], signal);
+        this.assertActive(landingId, signal);
         this.stoppedColumns = index + 1;
         if (this.quickStopRequested) {
-          await this.finishQuickStop(reels, signal, index, index + 1);
+          await this.finishQuickStop(reels, signal, landingId, index, index + 1);
           return;
         }
         await this.columns[index].settle(signal);
+        this.assertActive(landingId, signal);
         if (this.quickStopRequested) {
-          await this.finishQuickStop(reels, signal, index + 1);
+          await this.finishQuickStop(reels, signal, landingId, index + 1);
           return;
         }
         this.onReelStopped?.(index);
       }
     } finally {
-      this.landingSignal = null;
+      if (this.landingId === landingId) this.landingSignal = null;
     }
   }
 
@@ -82,12 +91,20 @@ export class ReelLandingSequence {
   }
 
   stop(): void {
+    this.landingId += 1;
+    this.landingSignal = null;
     this.anticipation.cancel();
+  }
+
+  private assertActive(landingId: number, signal: AbortSignal): void {
+    signal.throwIfAborted();
+    if (this.landingId !== landingId) throw new Error('Reel landing cancelled');
   }
 
   private async finishQuickStop(
     reels: ReelsMatrix,
     signal: AbortSignal,
+    landingId: number,
     firstUnsettledIndex: number,
     firstUnlandedIndex = firstUnsettledIndex,
   ): Promise<void> {
@@ -96,9 +113,11 @@ export class ReelLandingSequence {
         .slice(firstUnlandedIndex)
         .map((column, offset) => column.land(reels[firstUnlandedIndex + offset], signal)),
     );
+    this.assertActive(landingId, signal);
     await Promise.all(
       this.columns.slice(firstUnsettledIndex).map((column) => column.settle(signal)),
     );
+    this.assertActive(landingId, signal);
     this.onReelStopped?.(0);
   }
 }
