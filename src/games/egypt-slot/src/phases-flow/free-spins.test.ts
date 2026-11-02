@@ -83,19 +83,25 @@ describe('FreeSpinsPhase', () => {
       executeReels: (command: ReelsCommand, signal: AbortSignal) =>
         command.execute(machine as unknown as ReelsMachine, signal),
     } as unknown as MainSceneController;
-    const reels = new ReelsController(scene, emitter, store.reels, store.round);
+    const reels = new ReelsController(scene, emitter, store.round);
     let resolveRequest: (value: RoundResult) => void = () => undefined;
     const freeSpin = vi.fn(() => new Promise<RoundResult>((resolve) => (resolveRequest = resolve)));
     const spin = vi.fn();
     const api = { freeSpin, spin } as unknown as SlotApi;
-    const phase = new FreeSpinsPhase(api, store, scene, reels, new BalanceController(store.panel));
+    const phase = new FreeSpinsPhase(
+      api,
+      store,
+      scene,
+      reels,
+      new BalanceController(store.balance),
+    );
 
     const completion = phase.enter(new AbortController().signal);
     expect(machine.spin).toHaveBeenCalledOnce();
     expect(freeSpin).toHaveBeenCalledOnce();
     expect(spin).not.toHaveBeenCalled();
-    expect(store.panel.balanceCoins).toBe(100);
-    expect(store.panel.displayBalanceCoins).toBe(100);
+    expect(store.balance.balanceCoins).toBe(100);
+    expect(store.balance.displayBalanceCoins).toBe(100);
 
     resolveRequest(result);
     await expect(completion).resolves.toBe('result');

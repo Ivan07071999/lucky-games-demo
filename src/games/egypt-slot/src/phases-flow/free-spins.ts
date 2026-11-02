@@ -33,7 +33,7 @@ export class FreeSpinsPhase implements Phase<
 
   async enter(signal: AbortSignal): Promise<NextPhase<typeof PhaseName.freeSpins>> {
     signal.throwIfAborted();
-    if (!this.store.round.isFreeSpin) {
+    if (!this.store.session.isFreeSpin) {
       throw new Error('Free Spins phase entered without available spins');
     }
 
@@ -45,7 +45,7 @@ export class FreeSpinsPhase implements Phase<
       const result = await this.reels.playRound(
         (requestSignal) => this.api.freeSpin(requestSignal),
         previousReels,
-        (confirmedResult) => this.balance.showConfirmedBet(confirmedResult),
+        this.store.applyConfirmedBet,
         signal,
       );
       this.store.round.receiveRound(result);

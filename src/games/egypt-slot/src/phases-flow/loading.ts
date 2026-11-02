@@ -64,7 +64,7 @@ export class LoadingPhase implements Phase<
         }
         this.onLoadingChange(false);
         if (this.api.hasPendingRound) return PhaseName.recovering;
-        return this.store.round.isFreeSpin ? PhaseName.freeSpins : PhaseName.idle;
+        return this.store.session.isFreeSpin ? PhaseName.freeSpins : PhaseName.idle;
       } catch (error) {
         if (signal.aborted) throw error;
         console.error('Egypt slot loading failed', error);

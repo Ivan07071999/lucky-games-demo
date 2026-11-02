@@ -65,7 +65,7 @@ export class GameInfoModal extends Container {
     this.stopObserving = autorun(() => {
       const config = store.gameConfig;
       if (!config) return;
-      this.paytablePage.setData(config, store.panel.bet, store.panel.level);
+      this.paytablePage.setData(config, store.bet.bet, store.bet.level);
       this.rulesPage.setData(config);
       this.pageHost.layoutPages();
     });

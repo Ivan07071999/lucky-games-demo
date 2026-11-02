@@ -1,54 +1,94 @@
-import type { RoundResult, SlotState } from '@lucky-games/contracts';
+import type { RoundResult, SlotState, SpinMode } from '@lucky-games/contracts';
 import { makeAutoObservable } from 'mobx';
-import { PanelStore } from './PanelStore';
+import { BalanceStore } from './BalanceStore';
+import { BetStore } from './BetStore';
+import { DemoSettingsStore } from './DemoSettingsStore';
 import { AutoPlayStore } from './AutoPlayStore';
 import { ReelsStore } from './ReelsStore';
 import { RoundStore } from './RoundStore';
+import { SessionStore } from './SessionStore';
 import { SpinSettingsStore } from './SpinSettingsStore';
+import { getNextSpinStopReason, type AutoPlayStopReason } from './autoPlayPolicy';
 
 export class SlotStore {
-  readonly round = new RoundStore();
+  readonly session = new SessionStore();
+  readonly round = new RoundStore(this.session);
   readonly autoPlay = new AutoPlayStore();
-  readonly panel = new PanelStore(this.round, this.autoPlay);
+  readonly balance = new BalanceStore();
+  readonly bet = new BetStore(this.round, this.autoPlay);
   readonly reels = new ReelsStore();
   readonly spinSettings = new SpinSettingsStore();
+  readonly demoSettings = new DemoSettingsStore();
   gameConfig: SlotState['config'] | null = null;
 
   constructor() {
     makeAutoObservable(
       this,
-      { round: false, autoPlay: false, panel: false, reels: false, spinSettings: false },
+      {
+        session: false,
+        round: false,
+        autoPlay: false,
+        balance: false,
+        bet: false,
+        reels: false,
+        spinSettings: false,
+        demoSettings: false,
+      },
       { autoBind: true },
     );
   }
 
   get canSpin(): boolean {
-    if (!this.round.ready || !this.round.sessionId || this.round.isSpinning) return false;
-    if (this.round.isFreeSpin) return true;
+    if (!this.session.ready || !this.session.sessionId || this.round.isSpinning) return false;
+    if (this.session.isFreeSpin) return true;
     if (this.autoPlay.isBetLocked || this.autoPlay.state === 'configuring') return false;
-    return this.panel.canPlaceBet;
+    return this.canPlaceBet;
+  }
+
+  get canPlaceBet(): boolean {
+    return this.bet.isValidSelection && this.balance.balanceCoins >= this.bet.totalBetCoins;
   }
 
   get canToggleSpinSettings(): boolean {
     return (
-      this.round.ready &&
+      this.session.ready &&
       this.round.stage === 'idle' &&
-      !this.round.isFreeSpin &&
+      !this.session.isFreeSpin &&
       !this.autoPlay.isBetLocked
     );
   }
 
   get canRequestMaxBet(): boolean {
     return (
-      this.round.ready &&
-      !!this.round.sessionId &&
+      this.session.ready &&
+      !!this.session.sessionId &&
       this.round.stage === 'idle' &&
       !this.round.errorMessage &&
-      !this.round.isFreeSpin &&
+      !this.session.isFreeSpin &&
       this.autoPlay.canConfigure &&
       this.autoPlay.state !== 'configuring' &&
-      this.panel.maxBet !== null
+      this.bet.maxBet !== null
     );
+  }
+
+  get autoSpinStopReason(): AutoPlayStopReason | null {
+    return getNextSpinStopReason({
+      lockedBet: this.autoPlay.lockedBet,
+      currentBet: { bet: this.bet.bet, level: this.bet.level },
+      balanceCoins: this.balance.balanceCoins,
+      canPlaceBet: this.canPlaceBet,
+      hasRoundError: !!this.round.errorMessage,
+      initialBalanceCoins: this.autoPlay.initialBalanceCoins,
+      netLossLimitCoins: this.autoPlay.netLossLimitCoins,
+      netWinLimitCoins: this.autoPlay.netWinLimitCoins,
+    });
+  }
+
+  selectSpinMode(mode: SpinMode): void {
+    if (!this.canToggleSpinSettings) return;
+    const nextMode = mode !== 'CLASSIC' && this.spinSettings.spinMode === mode ? 'CLASSIC' : mode;
+    this.spinSettings.setSpinMode(nextMode);
+    if (mode === 'CLASSIC' || nextMode === 'CASCADE') this.demoSettings.clearAnticipation();
   }
 
   requestSpin(): boolean {
@@ -59,23 +99,22 @@ export class SlotStore {
 
   requestMaxBetSpin(): 'started' | 'insufficientBalance' | 'unavailable' {
     if (!this.canRequestMaxBet) return 'unavailable';
-    if (!this.panel.applyMaxBet()) return 'insufficientBalance';
+    const maxBet = this.bet.maxBet;
+    if (!maxBet) return 'unavailable';
+    if (this.balance.balanceCoins < maxBet.totalCoins) return 'insufficientBalance';
+    if (!this.bet.applyMaxBet()) return 'unavailable';
     this.round.startRound();
     return 'started';
   }
 
   requestAutoSpin(): boolean {
-    const bet = this.autoPlay.lockedBet;
     if (
-      !this.round.ready ||
-      !this.round.sessionId ||
+      !this.session.ready ||
+      !this.session.sessionId ||
       this.round.stage !== 'idle' ||
-      this.round.isFreeSpin ||
+      this.session.isFreeSpin ||
       this.autoPlay.state !== 'running' ||
-      !bet ||
-      !this.panel.canPlaceBet ||
-      this.panel.bet !== bet.bet ||
-      this.panel.level !== bet.level ||
+      this.autoSpinStopReason !== null ||
       !this.autoPlay.markRoundStarted()
     )
       return false;
@@ -92,18 +131,27 @@ export class SlotStore {
     this.autoPlay.reset();
     this.gameConfig = state.config;
     this.spinSettings.restorePaylineCount(state.lastBet?.paylineCount);
-    this.panel.applyInitialState(state);
-    this.round.applyInitialState(state);
+    this.bet.applyInitialState(state);
+    this.balance.applyInitialBalance(state.balanceCoins);
+    this.session.applyInitialState(state);
+    this.round.reset();
   }
 
   applyRoundResult(result: RoundResult): void {
-    this.panel.applyRoundResult(result);
+    this.bet.applyRoundResult(result);
+    this.balance.applyRoundResult(result);
     this.applyRoundOutcome(result);
+  }
+
+  applyConfirmedBet(result: RoundResult): void {
+    this.bet.applyRoundResult(result);
+    this.balance.applyConfirmedBet(result);
   }
 
   applyRoundOutcome(result: RoundResult): void {
     this.spinSettings.restorePaylineCount(result.bet.paylineCount);
-    this.round.applyRoundResult(result);
+    this.session.applyRoundResult(result);
+    this.round.clearError();
     this.reels.applyRoundResult(result);
   }
 }

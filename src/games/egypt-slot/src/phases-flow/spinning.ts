@@ -41,18 +41,16 @@ export class SpinningPhase implements Phase<
     this.scene.clearError();
 
     try {
-      this.balance.showPendingBet(this.store.panel.totalBetCoins);
+      this.balance.showPendingBet(this.store.bet.totalBetCoins);
 
       const bet = {
-        bet: this.store.panel.bet,
-        level: this.store.panel.level,
+        bet: this.store.bet.bet,
+        level: this.store.bet.level,
         paylineCount:
           this.store.spinSettings.paylineCount === 5
             ? undefined
             : this.store.spinSettings.paylineCount,
-        anticipationDemo: this.store.spinSettings.anticipationDemoEnabled || undefined,
-        winDemo: this.store.spinSettings.winDemoSelection,
-        winTypeDemo: this.store.spinSettings.winTypeDemo ?? undefined,
+        ...this.store.demoSettings.spinOptions,
         spinMode:
           this.store.spinSettings.spinMode === 'CLASSIC'
             ? undefined
@@ -61,7 +59,7 @@ export class SpinningPhase implements Phase<
       const result = await this.reels.playRound(
         (requestSignal) => this.api.spin(bet, requestSignal),
         previousReels,
-        (confirmedResult) => this.balance.showConfirmedBet(confirmedResult),
+        this.store.applyConfirmedBet,
         signal,
         this.store.spinSettings.spinMode,
       );

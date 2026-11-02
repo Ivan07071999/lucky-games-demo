@@ -29,11 +29,10 @@ export class EgyptSlotFlow extends PhaseManager<PhaseName, typeof phaseTransitio
     const reelsController = new ReelsController(
       sceneController,
       emitter,
-      slotStore.reels,
       slotStore.round,
       () => slotStore.spinSettings.turboEnabled,
     );
-    const balanceController = new BalanceController(slotStore.panel);
+    const balanceController = new BalanceController(slotStore.balance);
     const themeController = new FreeSpinsThemeController(sceneController, audio);
     const unsubscribeMaxBetError = emitter.on('ui:maxBetInsufficientBalance', () => {
       sceneController.showError(messages.insufficientBalance);

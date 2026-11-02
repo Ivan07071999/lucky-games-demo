@@ -10,7 +10,9 @@ export class DemoSettingsSection extends Container {
   private readonly store: SlotStore;
   private readonly heading = settingsText('DEMO SETTINGS', 15, SCROLL_MODAL_COLORS.heading);
   private readonly anticipation = new ScrollModalCheckbox('ANTICIPATION DEMO', () => {
-    if (this.store.canToggleSpinSettings) this.store.spinSettings.toggleAnticipationDemo();
+    if (this.store.canToggleSpinSettings) {
+      this.store.demoSettings.toggleAnticipation(this.store.spinSettings.spinMode);
+    }
   });
   private readonly anticipationDescription = settingsText(
     'Creates two visible Scarabs before a later reel. Changes demo odds.',
@@ -19,7 +21,7 @@ export class DemoSettingsSection extends Container {
     true,
   );
   private readonly winCombination = new ScrollModalCheckbox('WIN COMBINATION DEMO', () => {
-    if (this.store.canToggleSpinSettings) this.store.spinSettings.toggleWinDemo();
+    if (this.store.canToggleSpinSettings) this.store.demoSettings.toggleWinCombination();
   });
   private readonly winPicker: WinDemoPicker;
   private readonly winTypeHeading = settingsText(
@@ -39,15 +41,15 @@ export class DemoSettingsSection extends Container {
     super();
     this.store = store;
     this.winPicker = new WinDemoPicker({
-      previousSymbol: () => store.spinSettings.cycleWinDemoSymbol(-1),
-      nextSymbol: () => store.spinSettings.cycleWinDemoSymbol(1),
-      previousCount: () => store.spinSettings.cycleWinDemoCount(-1),
-      nextCount: () => store.spinSettings.cycleWinDemoCount(1),
+      previousSymbol: () => store.demoSettings.cycleWinDemoSymbol(-1),
+      nextSymbol: () => store.demoSettings.cycleWinDemoSymbol(1),
+      previousCount: () => store.demoSettings.cycleWinDemoCount(-1),
+      nextCount: () => store.demoSettings.cycleWinDemoCount(1),
     });
     this.winTypes = WIN_DEMO_TYPES.map(
       (winType) =>
         new ScrollModalCheckbox(winType.replaceAll('_', ' '), () => {
-          if (store.canToggleSpinSettings) store.spinSettings.selectWinTypeDemo(winType);
+          if (store.canToggleSpinSettings) store.demoSettings.selectWinType(winType);
         }),
     );
 
@@ -66,19 +68,19 @@ export class DemoSettingsSection extends Container {
   }
 
   update(): void {
-    const { spinSettings, canToggleSpinSettings } = this.store;
+    const { spinSettings, demoSettings, canToggleSpinSettings } = this.store;
     this.anticipation.setState(
-      spinSettings.anticipationDemoEnabled,
+      demoSettings.anticipationEnabled,
       canToggleSpinSettings && !spinSettings.cascadeEnabled,
     );
-    this.winCombination.setState(spinSettings.winDemoEnabled, canToggleSpinSettings);
+    this.winCombination.setState(demoSettings.winDemoEnabled, canToggleSpinSettings);
     this.winPicker.setState(
-      spinSettings.winDemoSymbol,
-      spinSettings.winDemoCount,
-      spinSettings.winDemoEnabled && canToggleSpinSettings,
+      demoSettings.winDemoSymbol,
+      demoSettings.winDemoCount,
+      demoSettings.winDemoEnabled && canToggleSpinSettings,
     );
     this.winTypes.forEach((option, index) => {
-      option.setState(spinSettings.winTypeDemo === WIN_DEMO_TYPES[index], canToggleSpinSettings);
+      option.setState(demoSettings.winTypeDemo === WIN_DEMO_TYPES[index], canToggleSpinSettings);
     });
   }
 

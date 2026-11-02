@@ -42,7 +42,7 @@ describe('ResultPhase', () => {
     const reels = {
       presentResult: vi.fn().mockResolvedValue(undefined),
     } as unknown as ReelsController;
-    const balance = new BalanceController(store.panel);
+    const balance = new BalanceController(store.balance);
     const phase = new ResultPhase(store, emitter, reels, balance);
     const bonusResult: RoundResult = {
       ...result,
@@ -60,7 +60,7 @@ describe('ResultPhase', () => {
     store.round.receiveRound(bonusResult);
 
     await expect(phase.enter(new AbortController().signal)).resolves.toBe('freeSpinsIntro');
-    expect(store.round.isFreeSpin).toBe(true);
+    expect(store.session.isFreeSpin).toBe(true);
   });
 
   it('skips a long win presentation and settles the server balance', async () => {
@@ -75,7 +75,7 @@ describe('ResultPhase', () => {
         }),
     );
     const reels = { presentResult } as unknown as ReelsController;
-    const balance = new BalanceController(store.panel);
+    const balance = new BalanceController(store.balance);
     const phase = new ResultPhase(store, emitter, reels, balance);
     store.round.startRound();
     store.round.receiveRound(result);
@@ -85,7 +85,7 @@ describe('ResultPhase', () => {
     emitter.emit('ui:skipWinRequested');
 
     await expect(completion).resolves.toBe('idle');
-    expect(store.panel.balanceCoins).toBe(result.balance.afterWin);
+    expect(store.balance.balanceCoins).toBe(result.balance.afterWin);
     expect(store.round.stage).toBe('idle');
     expect(presentResult).toHaveBeenCalledOnce();
   });

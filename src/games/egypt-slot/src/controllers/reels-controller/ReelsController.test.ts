@@ -6,8 +6,8 @@ import type { GameEvents } from '../../events/GameEvents';
 import { INITIAL_REELS } from '../../reels/reelsConfig';
 import type { ReelsMachine } from '../../reelsMachine/ReelsMachine';
 import type { ReelsCommand } from '../../reelsMachine/commands';
-import { ReelsStore } from '../../stores/ReelsStore';
 import { RoundStore } from '../../stores/RoundStore';
+import { SessionStore } from '../../stores/SessionStore';
 import type { MainSceneController } from '../main-scene-controller/MainSceneController';
 import { ReelsController } from './ReelsController';
 
@@ -17,15 +17,14 @@ function createController(
   machine: Pick<ReelsMachine, 'spin' | 'land' | 'setSymbols' | 'requestQuickStop'>,
 ) {
   const emitter = new GameEmitter<GameEvents>();
-  const round = new RoundStore();
-  const store = new ReelsStore();
+  const round = new RoundStore(new SessionStore());
   const scene = {
     executeReels: (command: ReelsCommand, signal: AbortSignal) =>
       command.execute(machine as ReelsMachine, signal),
   } as MainSceneController;
-  const controller = new ReelsController(scene, emitter, store, round);
+  const controller = new ReelsController(scene, emitter, round);
   round.startRound();
-  return { controller, emitter, round, store };
+  return { controller, emitter, round };
 }
 
 describe('ReelsController Quick Stop', () => {
@@ -36,7 +35,7 @@ describe('ReelsController Quick Stop', () => {
       setSymbols: vi.fn(),
       requestQuickStop: vi.fn(),
     };
-    const { controller, emitter, round, store } = createController(machine);
+    const { controller, emitter, round } = createController(machine);
     let resolveRequest: (value: RoundResult) => void = () => undefined;
     const request = vi.fn(() => new Promise<RoundResult>((resolve) => (resolveRequest = resolve)));
 
@@ -58,7 +57,6 @@ describe('ReelsController Quick Stop', () => {
     expect(request).toHaveBeenCalledOnce();
     expect(machine.land).toHaveBeenCalledWith(result.reels, expect.any(AbortSignal), true);
     expect(machine.setSymbols).not.toHaveBeenCalled();
-    expect(store.isSpinning).toBe(false);
     controller.destroy();
   });
 
@@ -92,9 +90,10 @@ describe('ReelsController Quick Stop', () => {
   });
 
   it('does not allow Quick Stop during free spins', () => {
-    const round = new RoundStore();
-    round.nextAction = 'FREE_SPIN';
-    round.freeSpins = { remaining: 1, totalWinCoins: 0, stickyReels: [] };
+    const session = new SessionStore();
+    const round = new RoundStore(session);
+    session.nextAction = 'FREE_SPIN';
+    session.freeSpins = { remaining: 1, totalWinCoins: 0, stickyReels: [] };
     round.startRound();
 
     expect(round.requestQuickStop()).toBe(false);

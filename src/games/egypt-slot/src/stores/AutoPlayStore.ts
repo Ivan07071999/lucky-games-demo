@@ -1,24 +1,13 @@
 import type { RoundResult, SpinOptions } from '@lucky-games/contracts';
 import { makeAutoObservable, observableRef } from 'mobx';
+import { getCompletedRoundDecision, type AutoPlayStopReason } from './autoPlayPolicy';
+
+export type { AutoPlayStopReason } from './autoPlayPolicy';
 
 export const AUTO_PLAY_COUNTS = [10, 25, 50, 100] as const;
 
 export type AutoPlayState =
   'inactive' | 'configuring' | 'running' | 'stopRequested' | 'pausedForBonus' | 'completed';
-
-export type AutoPlayStopReason =
-  | 'manual'
-  | 'completed'
-  | 'freeSpins'
-  | 'win'
-  | 'netLossLimit'
-  | 'netWinLimit'
-  | 'insufficientBalance'
-  | 'betMismatch'
-  | 'roundError'
-  | 'unavailable';
-
-type BalanceLimitReason = 'netLossLimit' | 'netWinLimit';
 
 export class AutoPlayStore {
   state: AutoPlayState = 'inactive';
@@ -128,64 +117,33 @@ export class AutoPlayStore {
   completeRound(result: RoundResult): void {
     if (!this.activeRound) return;
     this.activeRound = false;
-    if (result.mode !== 'BASE_GAME') {
-      this.finish('roundError');
-      return;
-    }
+    if (result.mode === 'BASE_GAME') this.completed += 1;
 
-    this.completed += 1;
-    const bet = this.lockedBet;
-    if (this.state === 'stopRequested') {
-      this.finish(this.stopReason ?? 'manual');
-      return;
-    }
-    if (!bet || result.bet.bet !== bet.bet || result.bet.level !== bet.level) {
-      this.finish('betMismatch');
-      return;
-    }
-    if (this.remaining === 0) {
+    const decision = getCompletedRoundDecision(result, {
+      lockedBet: this.lockedBet,
+      remainingSpins: this.remaining,
+      requestedStopReason: this.state === 'stopRequested' ? (this.stopReason ?? 'manual') : null,
+      stopOnWin: this.stopOnWin,
+      stopOnFreeSpins: this.stopOnFreeSpins,
+      initialBalanceCoins: this.initialBalanceCoins,
+      netLossLimitCoins: this.netLossLimitCoins,
+      netWinLimitCoins: this.netWinLimitCoins,
+    });
+
+    if (decision === 'completed') {
       this.state = 'completed';
       this.stopReason = 'completed';
       return;
     }
-    if (this.stopOnWin && result.totalWinCoins > 0) {
-      this.finish('win');
+    if (decision === 'pausedForBonus') {
+      this.state = 'pausedForBonus';
       return;
     }
-
-    const balanceLimit = this.balanceLimitReason(result.balance.afterWin);
-    if (balanceLimit) {
-      this.finish(balanceLimit);
-      return;
-    }
-    if (result.nextAction === 'FREE_SPIN') {
-      if (this.stopOnFreeSpins) this.finish('freeSpins');
-      else this.state = 'pausedForBonus';
-      return;
-    }
-    if (result.balance.afterWin < bet.bet * bet.level) {
-      this.finish('insufficientBalance');
-    }
+    if (decision) this.finish(decision);
   }
 
   resumeAfterBonus(): void {
     if (this.state === 'pausedForBonus') this.state = 'running';
-  }
-
-  balanceLimitReason(balanceCoins: number): BalanceLimitReason | null {
-    if (
-      this.netLossLimitCoins !== null &&
-      this.initialBalanceCoins - balanceCoins >= this.netLossLimitCoins
-    ) {
-      return 'netLossLimit';
-    }
-    if (
-      this.netWinLimitCoins !== null &&
-      balanceCoins - this.initialBalanceCoins >= this.netWinLimitCoins
-    ) {
-      return 'netWinLimit';
-    }
-    return null;
   }
 
   failRound(): void {

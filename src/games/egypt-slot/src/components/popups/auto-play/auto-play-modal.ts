@@ -59,7 +59,7 @@ export class AutoPlayModal extends Container {
     this.stopObserving = autorun(() => {
       this.spinChoices.updateSelection();
       this.conditions.update();
-      this.footer.updateSummary(store.panel.bet, store.panel.level);
+      this.footer.updateSummary(store.bet.bet, store.bet.level);
     });
   }
 

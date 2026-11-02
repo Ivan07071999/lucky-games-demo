@@ -15,24 +15,24 @@ export type BetPanelState = {
 };
 
 export function getBetPanelState(store: SlotStore): BetPanelState {
-  const { panel, round, autoPlay } = store;
+  const { bet, session, round, autoPlay } = store;
   const canPressSpin =
-    (store.canSpin && (!round.isFreeSpin || !!round.errorMessage)) ||
+    (store.canSpin && (!session.isFreeSpin || !!round.errorMessage)) ||
     round.canQuickStop ||
     round.canSkipWin;
   const canStopAutoPlay = autoPlay.isBetLocked && autoPlay.state !== 'stopRequested';
   const canOpenAutoPlay =
     autoPlay.canConfigure &&
-    round.ready &&
+    session.ready &&
     round.stage === 'idle' &&
-    !round.isFreeSpin &&
+    !session.isFreeSpin &&
     !round.errorMessage;
 
   return {
-    bet: panel.bet,
-    level: panel.level,
-    totalBetCoins: round.currentRound?.bet.totalCoins ?? panel.totalBetCoins,
-    canEditBet: panel.canEditBet,
+    bet: bet.bet,
+    level: bet.level,
+    totalBetCoins: round.currentRound?.bet.totalCoins ?? bet.totalBetCoins,
+    canEditBet: bet.canEditBet,
     isSpinning: round.isSpinning,
     canPressSpin,
     canPressMaxBet: store.canRequestMaxBet,

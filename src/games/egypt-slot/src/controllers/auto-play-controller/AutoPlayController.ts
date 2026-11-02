@@ -1,7 +1,6 @@
 import type { GameEvents } from '../../events';
 import type { GameEmitter } from '../../events/GameEmitter';
 import type { SlotStore } from '../../stores/SlotStore';
-import type { AutoPlayStopReason } from '../../stores/AutoPlayStore';
 
 export type AutoPlayStartResult = 'started' | 'insufficientBalance' | 'unavailable';
 
@@ -19,20 +18,20 @@ export class AutoPlayController {
   }
 
   start(): AutoPlayStartResult {
-    const { round, panel, autoPlay } = this.store;
+    const { session, round, balance, bet, autoPlay } = this.store;
     if (
       autoPlay.state !== 'configuring' ||
-      !round.ready ||
-      !round.sessionId ||
+      !session.ready ||
+      !session.sessionId ||
       round.stage !== 'idle' ||
       !!round.errorMessage ||
-      round.isFreeSpin
+      session.isFreeSpin
     )
       return 'unavailable';
-    if (!panel.canPlaceBet) {
-      return panel.balanceCoins < panel.totalBetCoins ? 'insufficientBalance' : 'unavailable';
+    if (!this.store.canPlaceBet) {
+      return balance.balanceCoins < bet.totalBetCoins ? 'insufficientBalance' : 'unavailable';
     }
-    if (!autoPlay.start({ bet: panel.bet, level: panel.level }, panel.balanceCoins))
+    if (!autoPlay.start({ bet: bet.bet, level: bet.level }, balance.balanceCoins))
       return 'unavailable';
     if (!this.store.requestAutoSpin()) {
       autoPlay.cancelStart();
@@ -43,23 +42,19 @@ export class AutoPlayController {
   }
 
   tryStartNext(): boolean {
-    const { round, panel, autoPlay } = this.store;
+    const { session, round, autoPlay } = this.store;
     if (autoPlay.state === 'pausedForBonus') {
       if (round.errorMessage) autoPlay.stop('roundError');
-      else if (!round.isFreeSpin) autoPlay.resumeAfterBonus();
+      else if (!session.isFreeSpin) autoPlay.resumeAfterBonus();
     }
     if (autoPlay.state !== 'running') return false;
-    if (round.errorMessage) {
-      autoPlay.stop('roundError');
-      return false;
-    }
-    const balanceLimit = autoPlay.balanceLimitReason(panel.balanceCoins);
-    if (balanceLimit) {
-      autoPlay.stop(balanceLimit);
+    const stopReason = this.store.autoSpinStopReason;
+    if (stopReason) {
+      autoPlay.stop(stopReason);
       return false;
     }
     if (this.store.requestAutoSpin()) return true;
-    autoPlay.stop(this.nextSpinFailureReason());
+    autoPlay.stop('unavailable');
     return false;
   }
 
@@ -73,13 +68,5 @@ export class AutoPlayController {
 
   destroy(): void {
     this.unsubscribeRoundCompleted();
-  }
-
-  private nextSpinFailureReason(): AutoPlayStopReason {
-    const { panel, autoPlay } = this.store;
-    const bet = autoPlay.lockedBet;
-    if (!bet || panel.bet !== bet.bet || panel.level !== bet.level) return 'betMismatch';
-    if (panel.balanceCoins < bet.bet * bet.level) return 'insufficientBalance';
-    return 'unavailable';
   }
 }

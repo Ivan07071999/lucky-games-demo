@@ -20,9 +20,9 @@ export class IdlePhase implements Phase<typeof PhaseName.idle, NextPhase<typeof 
   async enter(signal: AbortSignal): Promise<NextPhase<typeof PhaseName.idle>> {
     signal.throwIfAborted();
     if (this.store.round.stage === 'waitingResult') {
-      return this.store.round.isFreeSpin ? PhaseName.freeSpins : PhaseName.spinning;
+      return this.store.session.isFreeSpin ? PhaseName.freeSpins : PhaseName.spinning;
     }
-    if (this.store.round.isFreeSpin && !this.store.round.errorMessage) {
+    if (this.store.session.isFreeSpin && !this.store.round.errorMessage) {
       return PhaseName.freeSpins;
     }
     if (this.autoPlay.tryStartNext()) return PhaseName.spinning;
@@ -31,6 +31,6 @@ export class IdlePhase implements Phase<typeof PhaseName.idle, NextPhase<typeof 
       signal,
       filter: () => this.store.round.stage === 'waitingResult',
     });
-    return this.store.round.isFreeSpin ? PhaseName.freeSpins : PhaseName.spinning;
+    return this.store.session.isFreeSpin ? PhaseName.freeSpins : PhaseName.spinning;
   }
 }

@@ -21,10 +21,10 @@ export class SpinSettingsSection extends Container {
   private readonly paylines: ScrollModalCheckbox[];
   private readonly modeHeading = settingsText('REEL MODE', 15, SCROLL_MODAL_COLORS.heading);
   private readonly classic = new ScrollModalCheckbox('CLASSIC SPIN', () => {
-    if (this.store.canToggleSpinSettings) this.store.spinSettings.selectClassic();
+    this.store.selectSpinMode('CLASSIC');
   });
   private readonly cascade = new ScrollModalCheckbox('CASCADE', () => {
-    if (this.store.canToggleSpinSettings) this.store.spinSettings.toggleCascade();
+    this.store.selectSpinMode('CASCADE');
   });
   private readonly cascadeDescription = settingsText(
     'Winning symbols disappear and new symbols fall in. Changes payout math.',
@@ -33,7 +33,7 @@ export class SpinSettingsSection extends Container {
     true,
   );
   private readonly hybrid = new ScrollModalCheckbox('HYBRID SPIN', () => {
-    if (this.store.canToggleSpinSettings) this.store.spinSettings.toggleHybrid();
+    this.store.selectSpinMode('HYBRID');
   });
   private readonly hybridDescription = settingsText(
     'Reels spin normally; winning symbols then disappear and refill from above.',

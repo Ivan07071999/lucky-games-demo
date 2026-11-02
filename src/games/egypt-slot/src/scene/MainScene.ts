@@ -83,7 +83,7 @@ export class MainScene extends Container {
     const infoButton = new InfoButton(() => infoModal.open());
     const settingsButton = new SettingsButton(() => settingsModal.open());
     betPanel.attachUtilityButtons(infoButton, settingsButton, audioToggle);
-    const freeSpinsStatus = new FreeSpinsStatus(this.context.slotStore.round);
+    const freeSpinsStatus = new FreeSpinsStatus(this.context.slotStore.session);
     const freeSpinsTransition = new FreeSpinsTransition();
     const winPopup = new WinPopup();
 
@@ -130,7 +130,7 @@ export class MainScene extends Container {
         target = target.parent;
       }
     });
-    if (this.context.slotStore.round.isFreeSpin) this.setTheme('freeSpins');
+    if (this.context.slotStore.session.isFreeSpin) this.setTheme('freeSpins');
   }
 
   resize(width: number, height: number): void {
@@ -223,9 +223,9 @@ export class MainScene extends Container {
 
   private readonly openBetSelection = (): void => {
     const store = this.context.slotStore;
-    if (!store.panel.canEditBet) return;
+    if (!store.bet.canEditBet) return;
 
-    this.betSelectionModal?.open(store.panel.availableBets, store.panel.bet);
+    this.betSelectionModal?.open(store.bet.availableBets, store.bet.bet);
   };
 
   private readonly handleSpinButtonPress = (): void => {
@@ -236,16 +236,16 @@ export class MainScene extends Container {
       emitter.emit('ui:quickStopRequested');
     } else if (round.canSkipWin) {
       emitter.emit('ui:skipWinRequested');
-    } else if ((!round.isFreeSpin || round.errorMessage) && slotStore.requestSpin()) {
+    } else if ((!slotStore.session.isFreeSpin || round.errorMessage) && slotStore.requestSpin()) {
       emitter.emit('ui:spinRequested');
     }
   };
 
   private readonly handleMaxBetButtonPress = (): void => {
     const { slotStore, emitter } = this.context;
-    const { bet, level } = slotStore.panel;
+    const { bet, level } = slotStore.bet;
     const outcome = slotStore.requestMaxBetSpin();
-    if (outcome === 'started' && (slotStore.panel.bet !== bet || slotStore.panel.level !== level)) {
+    if (outcome === 'started' && (slotStore.bet.bet !== bet || slotStore.bet.level !== level)) {
       emitter.emit('ui:betChanged');
     }
     if (outcome === 'started') emitter.emit('ui:spinRequested');
@@ -259,9 +259,9 @@ export class MainScene extends Container {
       return;
     }
     if (
-      slotStore.round.ready &&
+      slotStore.session.ready &&
       slotStore.round.stage === 'idle' &&
-      !slotStore.round.isFreeSpin &&
+      !slotStore.session.isFreeSpin &&
       !slotStore.round.errorMessage
     ) {
       this.autoPlayModal?.open();
@@ -269,10 +269,10 @@ export class MainScene extends Container {
   };
 
   private readonly selectBet = (value: number): void => {
-    const { panel } = this.context.slotStore;
-    const previousBet = panel.bet;
-    panel.setBet(value);
-    if (panel.bet !== previousBet) this.context.emitter.emit('ui:betChanged');
+    const { bet } = this.context.slotStore;
+    const previousBet = bet.bet;
+    bet.setBet(value);
+    if (bet.bet !== previousBet) this.context.emitter.emit('ui:betChanged');
     this.closeBetSelection();
   };
 

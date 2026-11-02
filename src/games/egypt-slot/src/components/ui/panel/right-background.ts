@@ -27,9 +27,9 @@ export class RightBackground extends Container {
     this.addChild(this.background, this.win, this.coins);
 
     this.stopObserving = autorun(() => {
-      const { round, panel } = store;
+      const { round, balance } = store;
       const completed = round.currentRound;
-      this.coins.setValue(panel.displayBalanceCoins);
+      this.coins.setValue(balance.displayBalanceCoins);
 
       if (round.winDisplayReady && completed && this.displayedRoundId !== completed.roundId) {
         this.displayedRoundId = completed.roundId;

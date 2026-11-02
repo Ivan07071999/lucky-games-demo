@@ -96,7 +96,7 @@ export class ResultPhase implements Phase<
       this.store.round.revealWin();
       this.balance.settle(result);
       try {
-        if (!signal.aborted && result.mode === 'BASE_GAME' && this.store.round.isFreeSpin) {
+        if (!signal.aborted && result.mode === 'BASE_GAME' && this.store.session.isFreeSpin) {
           await this.reels.presentFreeSpinsTrigger(result, signal);
         }
       } catch (error) {
@@ -107,12 +107,12 @@ export class ResultPhase implements Phase<
 
     signal.throwIfAborted();
     this.emitter.emit('round:completed', result);
-    if (result.mode === 'BASE_GAME' && this.store.round.isFreeSpin) {
+    if (result.mode === 'BASE_GAME' && this.store.session.isFreeSpin) {
       return PhaseName.freeSpinsIntro;
     }
-    if (result.mode === 'FREE_SPINS' && !this.store.round.isFreeSpin) {
+    if (result.mode === 'FREE_SPINS' && !this.store.session.isFreeSpin) {
       return PhaseName.freeSpinsOutro;
     }
-    return this.store.round.isFreeSpin ? PhaseName.freeSpins : PhaseName.idle;
+    return this.store.session.isFreeSpin ? PhaseName.freeSpins : PhaseName.idle;
   }
 }

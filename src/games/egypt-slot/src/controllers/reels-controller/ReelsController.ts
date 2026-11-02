@@ -2,7 +2,6 @@ import type { RoundResult, SpinMode } from '@lucky-games/contracts';
 import type { GameEvents } from '../../events';
 import type { GameEmitter } from '../../events/GameEmitter';
 import type { ReelsMatrix } from '../../reels/reelsConfig';
-import type { ReelsStore } from '../../stores/ReelsStore';
 import type { RoundStore } from '../../stores/RoundStore';
 import {
   QuickStopCascadeCommand,
@@ -21,7 +20,6 @@ import type { RoundPlayback } from './roundPlayback';
 export class ReelsController {
   private readonly scene: MainSceneController;
   private readonly emitter: GameEmitter<GameEvents>;
-  private readonly store: ReelsStore;
   private readonly round: RoundStore;
   private readonly isTurboEnabled: () => boolean;
   private readonly unsubscribeQuickStop: () => void;
@@ -30,13 +28,11 @@ export class ReelsController {
   constructor(
     scene: MainSceneController,
     emitter: GameEmitter<GameEvents>,
-    store: ReelsStore,
     round: RoundStore,
     isTurboEnabled: () => boolean = () => false,
   ) {
     this.scene = scene;
     this.emitter = emitter;
-    this.store = store;
     this.round = round;
     this.isTurboEnabled = isTurboEnabled;
     this.unsubscribeQuickStop = emitter.on('ui:quickStopRequested', this.requestQuickStop);
@@ -71,7 +67,6 @@ export class ReelsController {
 
   private beginRound(signal: AbortSignal, spinMode: SpinMode): RoundPlayback {
     const turbo = this.isTurboEnabled();
-    this.store.setSpinning(true);
     const playback: RoundPlayback = {
       signal,
       spinMode,
@@ -85,7 +80,6 @@ export class ReelsController {
 
   private endRound(playback: RoundPlayback): void {
     if (this.activeRound === playback) this.activeRound = null;
-    this.store.setSpinning(false);
   }
 
   private async startAndReceiveResult(

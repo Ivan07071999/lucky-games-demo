@@ -12,8 +12,8 @@ describe('IdlePhase', () => {
     const emitter = new GameEmitter<GameEvents>();
     const autoPlay = new AutoPlayController(store, emitter);
     const phase = new IdlePhase(store, emitter, autoPlay);
-    store.round.nextAction = 'FREE_SPIN';
-    store.round.freeSpins = { remaining: 3, totalWinCoins: 0, stickyReels: [] };
+    store.session.nextAction = 'FREE_SPIN';
+    store.session.freeSpins = { remaining: 3, totalWinCoins: 0, stickyReels: [] };
 
     await expect(phase.enter(new AbortController().signal)).resolves.toBe('freeSpins');
     expect(store.round.stage).toBe('idle');

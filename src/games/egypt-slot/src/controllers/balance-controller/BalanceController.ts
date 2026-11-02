@@ -1,25 +1,21 @@
 import type { RoundResult } from '@lucky-games/contracts';
-import type { PanelStore } from '../../stores/PanelStore';
+import type { BalanceStore } from '../../stores/BalanceStore';
 
 const WIN_COUNT_DURATION_MS = 900;
 
 export class BalanceController {
-  private readonly panel: PanelStore;
+  private readonly balance: BalanceStore;
 
-  constructor(panel: PanelStore) {
-    this.panel = panel;
+  constructor(balance: BalanceStore) {
+    this.balance = balance;
   }
 
   showPendingBet(totalBetCoins: number): void {
-    this.panel.setDisplayBalanceCoins(this.panel.balanceCoins - totalBetCoins);
-  }
-
-  showConfirmedBet(result: RoundResult): void {
-    this.panel.applyConfirmedBet(result);
+    this.balance.setDisplayBalanceCoins(this.balance.balanceCoins - totalBetCoins);
   }
 
   rollbackPendingBet(): void {
-    this.panel.setDisplayBalanceCoins(this.panel.balanceCoins);
+    this.balance.setDisplayBalanceCoins(this.balance.balanceCoins);
   }
 
   async showWin(result: RoundResult, signal: AbortSignal): Promise<void> {
@@ -27,16 +23,16 @@ export class BalanceController {
 
     const { afterBet, afterWin } = result.balance;
     if (afterWin <= afterBet) {
-      this.panel.setDisplayBalanceCoins(afterWin);
+      this.balance.setDisplayBalanceCoins(afterWin);
       return;
     }
 
-    this.panel.setDisplayBalanceCoins(afterBet);
+    this.balance.setDisplayBalanceCoins(afterBet);
     await this.animateBalance(afterBet, afterWin, signal);
   }
 
   settle(result: RoundResult): void {
-    this.panel.applyRoundResult(result);
+    this.balance.applyRoundResult(result);
   }
 
   private animateBalance(from: number, to: number, signal: AbortSignal): Promise<void> {
@@ -59,7 +55,7 @@ export class BalanceController {
         const easedProgress = 1 - Math.pow(1 - progress, 3);
         const balance = Math.floor(from + (to - from) * easedProgress);
 
-        this.panel.setDisplayBalanceCoins(balance);
+        this.balance.setDisplayBalanceCoins(balance);
 
         if (progress < 1) {
           frameId = requestAnimationFrame(update);
@@ -67,7 +63,7 @@ export class BalanceController {
         }
 
         cleanup();
-        this.panel.setDisplayBalanceCoins(to);
+        this.balance.setDisplayBalanceCoins(to);
         resolve();
       };
 

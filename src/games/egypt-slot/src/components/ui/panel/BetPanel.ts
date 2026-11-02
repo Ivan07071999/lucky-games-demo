@@ -49,24 +49,24 @@ export class BetPanel extends Container {
   }: BetPanelOptions) {
     super();
 
-    const panel = store.panel;
+    const bet = store.bet;
     this.label = 'bet-panel';
     this.spinButton = new SpinButton(SPIN_DIAMETER / 2, onSpinRequested);
     this.leftBackground = new LeftBackground(
       height,
-      panel.bet,
-      panel.level,
-      panel.totalBetCoins,
+      bet.bet,
+      bet.level,
+      bet.totalBetCoins,
       {
         onDecrease: () => {
-          const previousLevel = panel.level;
-          panel.decreaseLevel();
-          if (panel.level !== previousLevel) onBetChanged();
+          const previousLevel = bet.level;
+          bet.decreaseLevel();
+          if (bet.level !== previousLevel) onBetChanged();
         },
         onIncrease: () => {
-          const previousLevel = panel.level;
-          panel.increaseLevel();
-          if (panel.level !== previousLevel) onBetChanged();
+          const previousLevel = bet.level;
+          bet.increaseLevel();
+          if (bet.level !== previousLevel) onBetChanged();
         },
       },
       onBetRequested,

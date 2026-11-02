@@ -2,7 +2,7 @@ import 'pixi.js/text-bitmap';
 import { BitmapText, Container, Sprite, Texture } from 'pixi.js';
 import { autorun, type IReactionDisposer } from 'mobx';
 import { EgyptImageAssetKey } from '../../../assets';
-import type { RoundStore } from '../../../stores/RoundStore';
+import type { SessionStore } from '../../../stores/SessionStore';
 import type { SceneTheme } from '../../../scene/sceneTheme';
 
 const TABLET_WIDTH = 300;
@@ -12,16 +12,16 @@ const TITLE_COLOR = 0xffdda0;
 export class FreeSpinsStatus extends Container {
   private readonly background: Sprite;
   private readonly title: BitmapText;
-  private readonly round: RoundStore;
+  private readonly session: SessionStore;
   private readonly stopObserving: IReactionDisposer;
   private theme: SceneTheme = 'base';
   private viewportWidth = 0;
   private viewportHeight = 0;
 
-  constructor(round: RoundStore) {
+  constructor(session: SessionStore) {
     super();
 
-    this.round = round;
+    this.session = session;
     this.label = 'free-spins-status';
     this.eventMode = 'none';
     this.visible = false;
@@ -46,7 +46,7 @@ export class FreeSpinsStatus extends Container {
     this.addChild(this.background, this.title);
 
     this.stopObserving = autorun(() => {
-      const remaining = round.freeSpins.remaining;
+      const remaining = session.freeSpins.remaining;
       this.title.text = `FREE SPINS ${remaining}`;
       this.updateVisibility();
       this.layout();
@@ -65,7 +65,7 @@ export class FreeSpinsStatus extends Container {
   }
 
   private updateVisibility(): void {
-    this.visible = this.theme === 'freeSpins' && this.round.isFreeSpin;
+    this.visible = this.theme === 'freeSpins' && this.session.isFreeSpin;
   }
 
   private layout(): void {

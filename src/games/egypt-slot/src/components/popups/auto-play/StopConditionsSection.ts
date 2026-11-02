@@ -147,8 +147,8 @@ export class StopConditionsSection extends Container {
   }
 
   private toggleLimit(type: LimitType): void {
-    const { autoPlay, panel } = this.store;
-    const step = Math.max(1, panel.totalBetCoins);
+    const { autoPlay, bet } = this.store;
+    const step = Math.max(1, bet.totalBetCoins);
     if (type === 'loss') {
       autoPlay.setNetLossLimitCoins(autoPlay.netLossLimitCoins === null ? step * 10 : null);
     } else {
@@ -157,8 +157,8 @@ export class StopConditionsSection extends Container {
   }
 
   private adjustLimit(type: LimitType, direction: number): void {
-    const { autoPlay, panel } = this.store;
-    const step = Math.max(1, panel.totalBetCoins);
+    const { autoPlay, bet } = this.store;
+    const step = Math.max(1, bet.totalBetCoins);
     const current = type === 'loss' ? autoPlay.netLossLimitCoins : autoPlay.netWinLimitCoins;
     const next = Math.max(step, (current ?? step * 10) + step * direction);
     if (type === 'loss') autoPlay.setNetLossLimitCoins(next);

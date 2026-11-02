@@ -55,17 +55,17 @@ export class RecoveringPhase implements Phase<
             const state = await this.api.getState(signal);
             signal.throwIfAborted();
             this.store.reconcileState(state);
-            this.scene.setTheme(this.store.round.isFreeSpin ? 'freeSpins' : 'base');
-            if (knownFailure && !this.store.round.isFreeSpin) {
+            this.scene.setTheme(this.store.session.isFreeSpin ? 'freeSpins' : 'base');
+            if (knownFailure && !this.store.session.isFreeSpin) {
               this.store.round.failRound(knownFailure);
             }
-            return this.store.round.isFreeSpin ? PhaseName.freeSpins : PhaseName.idle;
+            return this.store.session.isFreeSpin ? PhaseName.freeSpins : PhaseName.idle;
           }
 
           const result = await this.reels.playRound(
             (requestSignal) => this.api.recoverPendingRound(requestSignal),
             previousReels,
-            (confirmedResult) => this.balance.showConfirmedBet(confirmedResult),
+            this.store.applyConfirmedBet,
             signal,
             this.api.pendingSpinMode,
           );
@@ -88,7 +88,7 @@ export class RecoveringPhase implements Phase<
       if (
         knownFailure &&
         !this.api.hasPendingRound &&
-        !this.store.round.isFreeSpin &&
+        !this.store.session.isFreeSpin &&
         !signal.aborted
       ) {
         this.scene.showError(knownFailure);
