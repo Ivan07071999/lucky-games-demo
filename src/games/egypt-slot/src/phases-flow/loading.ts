@@ -1,13 +1,14 @@
+import type { RoundResult } from '@lucky-games/contracts';
 import type { ApplicationController } from '../controllers/application-controller/ApplicationController';
 import type { AssetsController } from '../controllers/assets-controller/AssetsController';
+import { LoadingController } from '../controllers/loading-controller/LoadingController';
 import type { MainSceneController } from '../controllers/main-scene-controller/MainSceneController';
 import type { SlotApi } from '../network/SlotApi';
-import { SlotContractError } from '../network/SlotApiError';
-import { StatusScene } from '../scene/StatusScene';
 import type { SlotStore } from '../stores/SlotStore';
 import type { GameMessages } from '../runtime/GameContext';
-import type { Phase } from './PhaseManager';
-import { PhaseName, type NextPhase } from './types';
+import type { Phase } from '../fsm/PhaseManager';
+import { GameBootstrap } from '../runtime/GameBootstrap';
+import { PhaseName, type NextPhase } from '../fsm/transitions';
 
 export class LoadingPhase implements Phase<
   typeof PhaseName.loading,
@@ -16,13 +17,11 @@ export class LoadingPhase implements Phase<
   readonly name = PhaseName.loading;
 
   private readonly application: ApplicationController;
-  private readonly assets: AssetsController;
   private readonly api: SlotApi;
   private readonly store: SlotStore;
-  private readonly scene: MainSceneController;
-  private readonly messages: GameMessages;
+  private readonly bootstrap: GameBootstrap;
+  private readonly loader: LoadingController;
   private readonly onLoadingChange: (loading: boolean) => void;
-  private status: StatusScene | null = null;
 
   constructor(
     application: ApplicationController,
@@ -34,11 +33,10 @@ export class LoadingPhase implements Phase<
     onLoadingChange: (loading: boolean) => void,
   ) {
     this.application = application;
-    this.assets = assets;
     this.api = api;
     this.store = store;
-    this.scene = scene;
-    this.messages = messages;
+    this.bootstrap = new GameBootstrap(store, scene);
+    this.loader = new LoadingController(api, assets, messages, onLoadingChange);
     this.onLoadingChange = onLoadingChange;
   }
 
@@ -47,59 +45,20 @@ export class LoadingPhase implements Phase<
     const application = this.application.current;
     if (!application) throw new Error('PixiJS application is not initialized');
 
-    while (true) {
-      this.status?.dispose();
-      this.status = null;
-      this.onLoadingChange(true);
-      try {
-        const { state, recoveredRound } = await this.api.initialize(signal);
-        await this.assets.loadAll();
-        signal.throwIfAborted();
-        this.store.applyInitialState(state);
-        if (recoveredRound) this.store.applyRoundResult(recoveredRound);
-        this.scene.mount();
-        if (this.api.hasPendingRound) {
-          this.store.round.startRecovery(this.api.pendingAction === 'FREE_SPIN');
-          this.scene.setTheme(this.api.pendingAction === 'FREE_SPIN' ? 'freeSpins' : 'base');
-        }
-        this.onLoadingChange(false);
-        if (this.api.hasPendingRound) return PhaseName.recovering;
-        return this.store.session.isFreeSpin ? PhaseName.freeSpins : PhaseName.idle;
-      } catch (error) {
-        if (signal.aborted) throw error;
-        console.error('Egypt slot loading failed', error);
-        this.onLoadingChange(false);
-        await this.waitForRetry(
-          application,
-          signal,
-          error instanceof SlotContractError
-            ? this.messages.incompatibleServer
-            : this.messages.loadError,
-        );
-      }
-    }
+    const game = await this.loader.loadWithRetry(application, signal);
+    signal.throwIfAborted();
+    this.bootstrap.prepare(game, this.api.pendingAction);
+    this.onLoadingChange(false);
+    return this.chooseNextPhase(game.recoveredRound);
   }
 
-  private waitForRetry(
-    application: NonNullable<ApplicationController['current']>,
-    signal: AbortSignal,
-    message: string,
-  ): Promise<void> {
-    this.status?.dispose();
-    return new Promise((resolve, reject) => {
-      const onRetry = () => {
-        signal.removeEventListener('abort', onAbort);
-        resolve();
-      };
-      const onAbort = () => reject(signal.reason);
-      this.status = new StatusScene(message, this.messages.retry, onRetry).show(application);
-      signal.addEventListener('abort', onAbort, { once: true });
-      if (signal.aborted) onAbort();
-    });
+  private chooseNextPhase(recoveredRound: RoundResult | null): NextPhase<typeof PhaseName.loading> {
+    if (recoveredRound) return PhaseName.result;
+    if (this.api.hasPendingRound) return PhaseName.recovering;
+    return this.store.session.isFreeSpin ? PhaseName.freeSpins : PhaseName.idle;
   }
 
   exit(): void {
-    this.status?.dispose();
-    this.status = null;
+    this.loader.dispose();
   }
 }

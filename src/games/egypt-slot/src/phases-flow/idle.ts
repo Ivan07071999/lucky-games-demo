@@ -2,8 +2,8 @@ import type { GameEvents } from '../events';
 import type { AutoPlayController } from '../controllers/auto-play-controller/AutoPlayController';
 import type { GameEmitter } from '../events/GameEmitter';
 import type { SlotStore } from '../stores/SlotStore';
-import type { Phase } from './PhaseManager';
-import { PhaseName, type NextPhase } from './types';
+import type { Phase } from '../fsm/PhaseManager';
+import { PhaseName, type NextPhase } from '../fsm/transitions';
 
 export class IdlePhase implements Phase<typeof PhaseName.idle, NextPhase<typeof PhaseName.idle>> {
   readonly name = PhaseName.idle;

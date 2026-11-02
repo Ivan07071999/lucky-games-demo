@@ -4,17 +4,17 @@ import { ReelsController } from '../controllers/reels-controller/ReelsController
 import { BalanceController } from '../controllers/balance-controller/BalanceController';
 import { FreeSpinsThemeController } from '../controllers/free-spins-theme-controller/FreeSpinsThemeController';
 import { MainScene } from '../scene/MainScene';
-import { FreeSpinsPhase } from './free-spins';
-import { FreeSpinsIntroPhase } from './free-spins-intro';
-import { FreeSpinsOutroPhase } from './free-spins-outro';
-import { IdlePhase } from './idle';
-import { InitPhase } from './init';
-import { LoadingPhase } from './loading';
+import { FreeSpinsPhase } from '../phases-flow/free-spins';
+import { FreeSpinsIntroPhase } from '../phases-flow/free-spins-intro';
+import { FreeSpinsOutroPhase } from '../phases-flow/free-spins-outro';
+import { IdlePhase } from '../phases-flow/idle';
+import { InitPhase } from '../phases-flow/init';
+import { LoadingPhase } from '../phases-flow/loading';
 import { PhaseManager, type PhaseRegistry } from './PhaseManager';
-import { RecoveringPhase } from './recovering';
-import { ResultPhase } from './result';
-import { SpinningPhase } from './spinning';
-import { PhaseName, phaseTransitions } from './types';
+import { RecoveringPhase } from '../phases-flow/recovering';
+import { ResultPhase } from '../phases-flow/result';
+import { SpinningPhase } from '../phases-flow/spinning';
+import { PhaseName, phaseTransitions } from './transitions';
 
 export class EgyptSlotFlow extends PhaseManager<PhaseName, typeof phaseTransitions> {
   constructor(
@@ -57,13 +57,7 @@ export class EgyptSlotFlow extends PhaseManager<PhaseName, typeof phaseTransitio
         balanceController,
         autoPlayController,
       ),
-      [PhaseName.freeSpins]: new FreeSpinsPhase(
-        api,
-        slotStore,
-        sceneController,
-        reelsController,
-        balanceController,
-      ),
+      [PhaseName.freeSpins]: new FreeSpinsPhase(api, slotStore, sceneController, reelsController),
       [PhaseName.recovering]: new RecoveringPhase(
         api,
         slotStore,
@@ -84,11 +78,17 @@ export class EgyptSlotFlow extends PhaseManager<PhaseName, typeof phaseTransitio
       ),
     } satisfies PhaseRegistry<PhaseName, typeof phaseTransitions>;
 
-    super(PhaseName.init, phases, phaseTransitions, () => {
-      unsubscribeMaxBetError();
-      reelsController.destroy();
-      sceneController.destroy();
-      scene.context.destroy();
-    });
+    super(
+      PhaseName.init,
+      phases,
+      phaseTransitions,
+      () => {
+        unsubscribeMaxBetError();
+        reelsController.destroy();
+        sceneController.destroy();
+        scene.context.destroy();
+      },
+      slotStore,
+    );
   }
 }

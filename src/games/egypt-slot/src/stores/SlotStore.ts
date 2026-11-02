@@ -1,5 +1,6 @@
 import type { RoundResult, SlotState, SpinMode } from '@lucky-games/contracts';
 import { makeAutoObservable } from 'mobx';
+import type { PhaseName } from '../fsm/transitions';
 import { BalanceStore } from './BalanceStore';
 import { BetStore } from './BetStore';
 import { DemoSettingsStore } from './DemoSettingsStore';
@@ -20,6 +21,7 @@ export class SlotStore {
   readonly spinSettings = new SpinSettingsStore();
   readonly demoSettings = new DemoSettingsStore();
   gameConfig: SlotState['config'] | null = null;
+  private phaseName: PhaseName | null = null;
 
   constructor() {
     makeAutoObservable(
@@ -36,6 +38,14 @@ export class SlotStore {
       },
       { autoBind: true },
     );
+  }
+
+  get currentPhase(): PhaseName | null {
+    return this.phaseName;
+  }
+
+  setPhase(phase: PhaseName | null): void {
+    this.phaseName = phase;
   }
 
   get canSpin(): boolean {

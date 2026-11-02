@@ -1,32 +1,14 @@
+import type { RoundResult } from '@lucky-games/contracts';
 import type { GameEvents } from '../events';
 import type { GameEmitter } from '../events/GameEmitter';
 import type { ReelsController } from '../controllers/reels-controller/ReelsController';
 import type { BalanceController } from '../controllers/balance-controller/BalanceController';
 import type { AudioController } from '../controllers/audio-controller/AudioController';
 import type { MainSceneController } from '../controllers/main-scene-controller/MainSceneController';
+import { ResultPresentationController } from '../controllers/result-presentation-controller/ResultPresentationController';
 import type { SlotStore } from '../stores/SlotStore';
-import type { Phase } from './PhaseManager';
-import { PhaseName, type NextPhase } from './types';
-
-const WIN_REVEAL_PAUSE_MS = 300;
-const POPUP_WIN_HOLD_MS = 1200;
-
-function waitForWinReveal(signal: AbortSignal, durationMs: number): Promise<void> {
-  signal.throwIfAborted();
-  return new Promise((resolve, reject) => {
-    const timeout = setTimeout(() => {
-      signal.removeEventListener('abort', onAbort);
-      resolve();
-    }, durationMs);
-    const onAbort = (): void => {
-      clearTimeout(timeout);
-      signal.removeEventListener('abort', onAbort);
-      reject(signal.reason ?? new Error('Win presentation skipped'));
-    };
-    signal.addEventListener('abort', onAbort, { once: true });
-    if (signal.aborted) onAbort();
-  });
-}
+import type { Phase } from '../fsm/PhaseManager';
+import { getResultNextPhase, PhaseName, type NextPhase } from '../fsm/transitions';
 
 export class ResultPhase implements Phase<
   typeof PhaseName.result,
@@ -35,84 +17,68 @@ export class ResultPhase implements Phase<
   readonly name = PhaseName.result;
   private readonly store: SlotStore;
   private readonly emitter: GameEmitter<GameEvents>;
-  private readonly reels: ReelsController;
   private readonly balance: BalanceController;
-  private readonly audio?: AudioController;
-  private readonly scene?: MainSceneController;
+  private readonly presentation: ResultPresentationController;
 
   constructor(
     store: SlotStore,
     emitter: GameEmitter<GameEvents>,
     reels: ReelsController,
     balance: BalanceController,
-    audio?: AudioController,
-    scene?: MainSceneController,
+    audio: AudioController,
+    scene: MainSceneController,
   ) {
     this.store = store;
     this.emitter = emitter;
-    this.reels = reels;
     this.balance = balance;
-    this.audio = audio;
-    this.scene = scene;
+    this.presentation = new ResultPresentationController(
+      store.round,
+      emitter,
+      reels,
+      balance,
+      audio,
+      scene,
+    );
   }
 
   async enter(signal: AbortSignal): Promise<NextPhase<typeof PhaseName.result>> {
-    const result = this.store.round.currentRound;
-    if (!result) throw new Error('Round result is missing');
+    const result = this.requireRound();
+    signal.throwIfAborted();
+    this.store.applyRoundOutcome(result);
+    this.store.round.startShowingWin();
 
-    const presentation = new AbortController();
-    const abortPresentation = (): void => presentation.abort(signal.reason);
-    signal.addEventListener('abort', abortPresentation, { once: true });
-    const unsubscribeSkipWin = this.emitter.on('ui:skipWinRequested', () => {
-      if (this.store.round.requestSkipWin()) presentation.abort();
-    });
-
-    try {
-      signal.throwIfAborted();
-      this.store.applyRoundOutcome(result);
-      this.store.round.startShowingWin();
-      await this.reels.presentResult(result, presentation.signal);
-      this.store.round.revealWin();
-      const presentedWin = result.features.freeSpins.completion ?? result;
-      this.audio?.playWin(presentedWin.winType ?? 'NO_WIN');
-      const popupShown = this.scene?.showWinPopup(presentedWin.winType, presentedWin.totalWinCoins);
-      if (result.totalWinCoins > 0 || popupShown) {
-        await waitForWinReveal(
-          presentation.signal,
-          popupShown ? POPUP_WIN_HOLD_MS : WIN_REVEAL_PAUSE_MS,
-        );
-      }
-      await this.balance.showWin(result, presentation.signal);
-    } catch (error) {
-      if (signal.aborted) throw error;
-      if (!this.store.round.skipWinRequested) {
-        console.error('Egypt slot result presentation failed', error);
-      }
-    } finally {
-      this.scene?.hideWinPopup();
-      presentation.abort();
-      unsubscribeSkipWin();
-      signal.removeEventListener('abort', abortPresentation);
-      this.store.round.revealWin();
-      this.balance.settle(result);
-      try {
-        if (!signal.aborted && result.mode === 'BASE_GAME' && this.store.session.isFreeSpin) {
-          await this.reels.presentFreeSpinsTrigger(result, signal);
-        }
-      } catch (error) {
-        if (!signal.aborted) console.error('Free Spins trigger presentation failed', error);
-      }
-      this.store.round.finishRound();
-    }
+    await this.presentAndFinishRound(result, signal);
 
     signal.throwIfAborted();
-    this.emitter.emit('round:completed', result);
-    if (result.mode === 'BASE_GAME' && this.store.session.isFreeSpin) {
-      return PhaseName.freeSpinsIntro;
+    this.notifyRoundCompleted(result);
+    return getResultNextPhase(result.mode, this.store.session.isFreeSpin);
+  }
+
+  private requireRound(): RoundResult {
+    const result = this.store.round.currentRound;
+    if (!result) throw new Error('Round result is missing');
+    return result;
+  }
+
+  private async presentAndFinishRound(result: RoundResult, signal: AbortSignal): Promise<void> {
+    try {
+      try {
+        await this.presentation.presentWin(result, signal);
+      } finally {
+        this.store.round.revealWin();
+        this.balance.settle(result);
+      }
+      await this.presentation.presentFreeSpinsTrigger(result, signal);
+    } finally {
+      this.store.round.finishRound();
     }
-    if (result.mode === 'FREE_SPINS' && !this.store.session.isFreeSpin) {
-      return PhaseName.freeSpinsOutro;
+  }
+
+  private notifyRoundCompleted(result: RoundResult): void {
+    try {
+      this.emitter.emit('round:completed', result);
+    } catch (error) {
+      console.error('Egypt slot round completion listener failed', error);
     }
-    return this.store.session.isFreeSpin ? PhaseName.freeSpins : PhaseName.idle;
   }
 }

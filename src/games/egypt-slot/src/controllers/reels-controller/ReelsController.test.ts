@@ -55,7 +55,7 @@ describe('ReelsController Quick Stop', () => {
     resolveRequest(result);
     await expect(playing).resolves.toBe(result);
     expect(request).toHaveBeenCalledOnce();
-    expect(machine.land).toHaveBeenCalledWith(result.reels, expect.any(AbortSignal), true);
+    expect(machine.land).toHaveBeenCalledWith(result.reels, expect.any(AbortSignal), true, null);
     expect(machine.setSymbols).not.toHaveBeenCalled();
     controller.destroy();
   });

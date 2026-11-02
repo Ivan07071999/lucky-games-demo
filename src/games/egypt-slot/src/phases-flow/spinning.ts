@@ -4,8 +4,10 @@ import type { ReelsController } from '../controllers/reels-controller/ReelsContr
 import type { BalanceController } from '../controllers/balance-controller/BalanceController';
 import type { AutoPlayController } from '../controllers/auto-play-controller/AutoPlayController';
 import type { SlotStore } from '../stores/SlotStore';
-import type { Phase } from './PhaseManager';
-import { PhaseName, type NextPhase } from './types';
+import { ConfirmedRound } from '../controllers/round-controller/ConfirmedRound';
+import type { Phase } from '../fsm/PhaseManager';
+import { buildSpinOptions } from '../runtime/buildSpinOptions';
+import { PhaseName, type NextPhase } from '../fsm/transitions';
 
 export class SpinningPhase implements Phase<
   typeof PhaseName.spinning,
@@ -38,46 +40,46 @@ export class SpinningPhase implements Phase<
   async enter(signal: AbortSignal): Promise<NextPhase<typeof PhaseName.spinning>> {
     signal.throwIfAborted();
     const previousReels = this.store.reels.reels;
+    const spinMode = this.store.spinSettings.spinMode;
+    const bet = buildSpinOptions(this.store, spinMode);
+    const confirmation = new ConfirmedRound(this.store, this.reels);
     this.scene.clearError();
+    this.balance.showPendingBet(bet.bet * bet.level);
 
     try {
-      this.balance.showPendingBet(this.store.bet.totalBetCoins);
-
-      const bet = {
-        bet: this.store.bet.bet,
-        level: this.store.bet.level,
-        paylineCount:
-          this.store.spinSettings.paylineCount === 5
-            ? undefined
-            : this.store.spinSettings.paylineCount,
-        ...this.store.demoSettings.getSpinOptions(this.store.spinSettings.spinMode),
-        spinMode:
-          this.store.spinSettings.spinMode === 'CLASSIC'
-            ? undefined
-            : this.store.spinSettings.spinMode,
-      };
       const result = await this.reels.playRound(
         (requestSignal) => this.api.spin(bet, requestSignal),
         previousReels,
-        this.store.applyConfirmedBet,
+        confirmation.confirm,
         signal,
-        this.store.spinSettings.spinMode,
+        spinMode,
       );
       this.store.round.receiveRound(result);
       return PhaseName.result;
     } catch (error) {
-      this.balance.rollbackPendingBet();
-      if (signal.aborted) throw error;
-      if (this.api.hasPendingRound) {
-        this.store.round.startRecovery();
-        return PhaseName.recovering;
-      }
-      this.autoPlay.onRoundFailed();
-      const message = error instanceof Error ? error.message : 'Round failed';
-      this.store.round.failRound(message);
-      this.store.round.finishRound();
-      this.scene.showError(message);
-      return PhaseName.idle;
+      return this.handleFailedRound(error, confirmation, signal);
     }
+  }
+
+  private async handleFailedRound(
+    error: unknown,
+    confirmation: ConfirmedRound,
+    signal: AbortSignal,
+  ): Promise<NextPhase<typeof PhaseName.spinning>> {
+    if (signal.aborted) throw error;
+    if (await confirmation.recoverPlayback(error, signal)) return PhaseName.result;
+
+    this.balance.rollbackPendingBet();
+    if (this.api.hasPendingRound) {
+      this.store.round.startRecovery();
+      return PhaseName.recovering;
+    }
+
+    this.autoPlay.onRoundFailed();
+    const message = error instanceof Error ? error.message : 'Round failed';
+    this.store.round.failRound(message);
+    this.store.round.finishRound();
+    this.scene.showError(message);
+    return PhaseName.idle;
   }
 }

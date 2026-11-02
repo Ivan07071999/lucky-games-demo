@@ -1,6 +1,6 @@
 import type { FreeSpinsThemeController } from '../controllers/free-spins-theme-controller/FreeSpinsThemeController';
-import type { Phase } from './PhaseManager';
-import { PhaseName, type NextPhase } from './types';
+import type { Phase } from '../fsm/PhaseManager';
+import { PhaseName, type NextPhase } from '../fsm/transitions';
 
 export class FreeSpinsOutroPhase implements Phase<
   typeof PhaseName.freeSpinsOutro,

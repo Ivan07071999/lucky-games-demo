@@ -33,19 +33,19 @@ export async function restoreRoundReels(
   playback.result = null;
 
   if (receivedResult) {
-    scene.executeReels(new SetReelsCommand(receivedResult.reels), playback.signal);
+    await scene.executeReels(new SetReelsCommand(receivedResult.reels), playback.signal);
     return;
   }
 
   if (playback.spinMode === 'CASCADE') {
-    scene.executeReels(new SetReelsCommand(previousReels), playback.signal);
+    await scene.executeReels(new SetReelsCommand(previousReels), playback.signal);
     return;
   }
 
   try {
     await scene.executeReels(new LandReelsCommand(previousReels), playback.signal);
   } catch {
-    scene.executeReels(new SetReelsCommand(previousReels), playback.signal);
+    await scene.executeReels(new SetReelsCommand(previousReels), playback.signal);
   }
 }
 

@@ -1,6 +1,6 @@
 import type { ApplicationController } from '../controllers/application-controller/ApplicationController';
-import type { Phase } from './PhaseManager';
-import { PhaseName, type NextPhase } from './types';
+import type { Phase } from '../fsm/PhaseManager';
+import { PhaseName, type NextPhase } from '../fsm/transitions';
 
 export class InitPhase implements Phase<typeof PhaseName.init, NextPhase<typeof PhaseName.init>> {
   readonly name = PhaseName.init;

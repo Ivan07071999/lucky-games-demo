@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { EgyptSlotFlow } from '../../../games/egypt-slot/src/phases-flow/EgyptSlotFlow';
+import { EgyptSlotFlow } from '../../../games/egypt-slot/src/fsm/EgyptSlotFlow';
 
 function LoadingSpinner({ label }: { label: string }) {
   return (
@@ -17,10 +17,38 @@ function LoadingSpinner({ label }: { label: string }) {
   );
 }
 
+function GameError({
+  message,
+  retry,
+  onRetry,
+}: {
+  message: string;
+  retry: string;
+  onRetry: () => void;
+}) {
+  return (
+    <div
+      role="alert"
+      className="fixed inset-0 z-10 flex flex-col items-center justify-center gap-5 bg-[#1b1621] px-6 text-center text-[#f4dfaf]"
+    >
+      <p>{message}</p>
+      <button
+        type="button"
+        onClick={onRetry}
+        className="min-h-11 rounded-md border border-[#a9874a] px-6 py-2 text-[#f4dfaf] transition-colors hover:bg-[#a9874a]/20 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#f4dfaf]"
+      >
+        {retry}
+      </button>
+    </div>
+  );
+}
+
 export function EgyptSlotCanvas() {
   const { t } = useTranslation();
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const [isLoading, setIsLoading] = useState(true);
+  const [hasFatalError, setHasFatalError] = useState(false);
+  const [restartCount, setRestartCount] = useState(0);
   const loading = t('game.loading');
   const loadError = t('game.loadError');
   const recoveringRound = t('game.recoveringRound');
@@ -34,6 +62,7 @@ export function EgyptSlotCanvas() {
     if (!canvas) return;
 
     let active = true;
+    setHasFatalError(false);
     setIsLoading(true);
     const flow = new EgyptSlotFlow(
       canvas,
@@ -51,8 +80,10 @@ export function EgyptSlotCanvas() {
       },
     );
     void flow.start().catch((error: unknown) => {
+      if (!active) return;
       console.error('Failed to initialize Egypt slot', error);
-      if (active) setIsLoading(false);
+      setIsLoading(false);
+      setHasFatalError(true);
     });
 
     return () => {
@@ -67,17 +98,26 @@ export function EgyptSlotCanvas() {
     incompatibleServer,
     retry,
     insufficientBalance,
+    restartCount,
   ]);
+
+  const retryGame = (): void => {
+    setHasFatalError(false);
+    setIsLoading(true);
+    setRestartCount((count) => count + 1);
+  };
 
   return (
     <>
       <canvas
+        key={restartCount}
         ref={canvasRef}
         role="img"
         aria-label={t('game.canvasLabel')}
         className="fixed inset-0 block h-dvh w-dvw bg-[#1b1621]"
       />
-      {isLoading && <LoadingSpinner label={loading} />}
+      {isLoading && !hasFatalError && <LoadingSpinner label={loading} />}
+      {hasFatalError && <GameError message={loadError} retry={retry} onRetry={retryGame} />}
     </>
   );
 }

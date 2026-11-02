@@ -103,7 +103,12 @@ export class ReelsController {
       return result;
     } catch (error) {
       if (!playback.signal.aborted) {
-        await restoreRoundReels(this.scene, previousReels, playback);
+        try {
+          await restoreRoundReels(this.scene, previousReels, playback);
+        } catch (restoreError) {
+          if (playback.signal.aborted) throw restoreError;
+          console.error('Failed to restore reels after round request error', restoreError);
+        }
       }
       throw error;
     }
@@ -114,9 +119,13 @@ export class ReelsController {
       await landRoundResult(this.scene, this.round, result, playback);
     } catch (error) {
       if (playback.signal.aborted) throw error;
-      this.scene.executeReels(new SetReelsCommand(result.reels), playback.signal);
+      await this.restoreFinalReels(result, playback.signal);
       this.emitter.emit('reel:stopped', 0);
     }
+  }
+
+  async restoreFinalReels(result: RoundResult, signal: AbortSignal): Promise<void> {
+    await this.scene.executeReels(new SetReelsCommand(result.reels), signal);
   }
 
   private readonly requestQuickStop = (): void => {

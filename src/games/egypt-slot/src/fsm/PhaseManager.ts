@@ -8,12 +8,17 @@ export type PhaseRegistry<State extends string, Graph extends Record<State, read
   [Name in State]: Phase<Name, Graph[Name][number]>;
 };
 
+export interface PhaseSink<State extends string> {
+  setPhase(phase: State | null): void;
+}
+
 export class PhaseManager<State extends string, Graph extends Record<State, readonly State[]>> {
   private readonly abortController = new AbortController();
   private readonly initial: State;
   private readonly phases: PhaseRegistry<State, Graph>;
   private readonly transitions: Graph;
   private readonly cleanup: () => void;
+  private readonly phaseSink?: PhaseSink<State>;
   private activePhase: Phase<State, State> | null = null;
   private activeState: State | null = null;
   private started = false;
@@ -24,11 +29,13 @@ export class PhaseManager<State extends string, Graph extends Record<State, read
     phases: PhaseRegistry<State, Graph>,
     transitions: Graph,
     cleanup: () => void,
+    phaseSink?: PhaseSink<State>,
   ) {
     this.initial = initial;
     this.phases = phases;
     this.transitions = transitions;
     this.cleanup = cleanup;
+    this.phaseSink = phaseSink;
   }
 
   get currentState(): State | null {
@@ -54,6 +61,7 @@ export class PhaseManager<State extends string, Graph extends Record<State, read
 
         this.activePhase = phase;
         this.activeState = next;
+        this.phaseSink?.setPhase(next);
 
         next = await phase.enter(this.abortController.signal);
       }
@@ -79,7 +87,11 @@ export class PhaseManager<State extends string, Graph extends Record<State, read
     try {
       this.leaveActive();
     } finally {
-      this.cleanup();
+      try {
+        this.phaseSink?.setPhase(null);
+      } finally {
+        this.cleanup();
+      }
     }
   }
 }
