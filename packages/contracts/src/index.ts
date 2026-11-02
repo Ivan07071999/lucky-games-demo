@@ -20,6 +20,10 @@ export type Position = [reelIndex: number, rowIndex: number];
 export type GameAction = 'SPIN' | 'FREE_SPIN';
 export type NextAction = GameAction;
 export type SpinMode = 'CLASSIC' | 'CASCADE' | 'HYBRID';
+
+export function supportsAnticipationDemo(spinMode: SpinMode): boolean {
+  return spinMode === 'CLASSIC' || spinMode === 'HYBRID';
+}
 export const PAYLINE_COUNTS = [5, 7, 9] as const;
 export type PaylineCount = (typeof PAYLINE_COUNTS)[number];
 export const DEFAULT_PAYLINE_COUNT: PaylineCount = 5;

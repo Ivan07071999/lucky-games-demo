@@ -1,4 +1,4 @@
-import { WIN_DEMO_TYPES } from '@lucky-games/contracts';
+import { supportsAnticipationDemo, WIN_DEMO_TYPES } from '@lucky-games/contracts';
 import { Container } from 'pixi.js';
 import type { SlotStore } from '../../../stores/SlotStore';
 import { SCROLL_MODAL_COLORS } from '../shared/scroll-modal-theme';
@@ -71,7 +71,7 @@ export class DemoSettingsSection extends Container {
     const { spinSettings, demoSettings, canToggleSpinSettings } = this.store;
     this.anticipation.setState(
       demoSettings.anticipationEnabled,
-      canToggleSpinSettings && !spinSettings.cascadeEnabled,
+      canToggleSpinSettings && supportsAnticipationDemo(spinSettings.spinMode),
     );
     this.winCombination.setState(demoSettings.winDemoEnabled, canToggleSpinSettings);
     this.winPicker.setState(

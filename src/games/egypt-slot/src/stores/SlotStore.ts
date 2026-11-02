@@ -88,7 +88,7 @@ export class SlotStore {
     if (!this.canToggleSpinSettings) return;
     const nextMode = mode !== 'CLASSIC' && this.spinSettings.spinMode === mode ? 'CLASSIC' : mode;
     this.spinSettings.setSpinMode(nextMode);
-    if (mode === 'CLASSIC' || nextMode === 'CASCADE') this.demoSettings.clearAnticipation();
+    this.demoSettings.reconcileSpinMode(nextMode);
   }
 
   requestSpin(): boolean {

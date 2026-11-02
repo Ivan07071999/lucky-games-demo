@@ -1,6 +1,10 @@
-import type { RoundResult, SpinOptions } from '@lucky-games/contracts';
+import type { RoundResult } from '@lucky-games/contracts';
 import { makeAutoObservable, observableRef } from 'mobx';
-import { getCompletedRoundDecision, type AutoPlayStopReason } from './autoPlayPolicy';
+import {
+  getCompletedRoundDecision,
+  type AutoPlayStopReason,
+  type LockedBet,
+} from './autoPlayPolicy';
 
 export type { AutoPlayStopReason } from './autoPlayPolicy';
 
@@ -20,7 +24,7 @@ export class AutoPlayStore {
   total = 0;
   completed = 0;
   activeRound = false;
-  lockedBet: SpinOptions | null = null;
+  lockedBet: LockedBet | null = null;
   initialBalanceCoins = 0;
 
   constructor() {
@@ -73,12 +77,12 @@ export class AutoPlayStore {
     if (this.state === 'configuring' && this.validLimit(limit)) this.netWinLimitCoins = limit;
   }
 
-  start(bet: SpinOptions, balanceCoins: number): boolean {
+  start(bet: LockedBet, balanceCoins: number): boolean {
     if (this.state !== 'configuring') return false;
     const totalBetCoins = bet.bet * bet.level;
     if (balanceCoins < totalBetCoins) return false;
 
-    this.lockedBet = { ...bet };
+    this.lockedBet = { bet: bet.bet, level: bet.level };
     this.initialBalanceCoins = balanceCoins;
     this.total = this.selectedSpins;
     this.completed = 0;

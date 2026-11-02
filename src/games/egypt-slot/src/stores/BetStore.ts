@@ -34,9 +34,9 @@ export class BetStore {
   }
 
   get maxBet(): { bet: number; level: number; totalCoins: number } | null {
-    const bet = Math.max(...this.bets);
-    const level = Math.max(...this.levels);
-    if (!Number.isFinite(bet) || !Number.isFinite(level)) return null;
+    const bet = this.bets.at(-1);
+    const level = this.levels.at(-1);
+    if (bet === undefined || level === undefined) return null;
     return { bet, level, totalCoins: bet * level };
   }
 
@@ -66,10 +66,10 @@ export class BetStore {
   }
 
   applyInitialState(state: SlotState): void {
-    this.bets = [...state.config.bets];
-    this.levels = [...state.config.levels];
-    this.bet = state.lastBet?.bet ?? this.chooseValue(this.bets, this.bet);
-    this.level = state.lastBet?.level ?? this.chooseValue(this.levels, this.level);
+    this.bets = this.normalizeValues(state.config.bets);
+    this.levels = this.normalizeValues(state.config.levels);
+    this.bet = this.chooseValue(this.bets, state.lastBet?.bet, this.bet);
+    this.level = this.chooseValue(this.levels, state.lastBet?.level, this.level);
   }
 
   applyRoundResult(result: RoundResult): void {
@@ -77,7 +77,17 @@ export class BetStore {
     this.level = result.bet.level;
   }
 
-  private chooseValue(values: number[], preferred: number): number {
-    return values.includes(preferred) ? preferred : (values[0] ?? preferred);
+  private normalizeValues(values: readonly number[]): number[] {
+    return [...new Set(values)].sort((left, right) => left - right);
+  }
+
+  private chooseValue(
+    values: readonly number[],
+    restored: number | undefined,
+    current: number,
+  ): number {
+    if (restored !== undefined && values.includes(restored)) return restored;
+    if (values.includes(current)) return current;
+    return values[0] ?? current;
   }
 }

@@ -1,5 +1,7 @@
 import type { RoundResult, SpinOptions } from '@lucky-games/contracts';
 
+export type LockedBet = Readonly<Pick<SpinOptions, 'bet' | 'level'>>;
+
 export type AutoPlayStopReason =
   | 'manual'
   | 'completed'
@@ -21,7 +23,7 @@ interface BalanceLimits {
 }
 
 interface CompletedRoundOptions extends BalanceLimits {
-  lockedBet: SpinOptions | null;
+  lockedBet: LockedBet | null;
   remainingSpins: number;
   requestedStopReason: AutoPlayStopReason | null;
   stopOnWin: boolean;
@@ -29,8 +31,8 @@ interface CompletedRoundOptions extends BalanceLimits {
 }
 
 interface NextSpinOptions extends BalanceLimits {
-  lockedBet: SpinOptions | null;
-  currentBet: Pick<SpinOptions, 'bet' | 'level'>;
+  lockedBet: LockedBet | null;
+  currentBet: LockedBet;
   balanceCoins: number;
   canPlaceBet: boolean;
   hasRoundError: boolean;

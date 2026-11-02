@@ -50,7 +50,7 @@ export class SpinningPhase implements Phase<
           this.store.spinSettings.paylineCount === 5
             ? undefined
             : this.store.spinSettings.paylineCount,
-        ...this.store.demoSettings.spinOptions,
+        ...this.store.demoSettings.getSpinOptions(this.store.spinSettings.spinMode),
         spinMode:
           this.store.spinSettings.spinMode === 'CLASSIC'
             ? undefined

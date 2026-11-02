@@ -1,4 +1,5 @@
 import {
+  supportsAnticipationDemo,
   type SpinMode,
   type SpinOptions,
   type SymbolKey,
@@ -46,10 +47,10 @@ export class DemoSettingsStore {
     return this.choice.kind === 'winType' ? this.choice.winType : null;
   }
 
-  get spinOptions(): DemoSpinOptions {
+  getSpinOptions(spinMode: SpinMode): DemoSpinOptions {
     switch (this.choice.kind) {
       case 'anticipation':
-        return { anticipationDemo: true };
+        return supportsAnticipationDemo(spinMode) ? { anticipationDemo: true } : {};
       case 'combination':
         return { winDemo: { symbol: this.winDemoSymbol, count: this.winDemoCount } };
       case 'winType':
@@ -60,7 +61,7 @@ export class DemoSettingsStore {
   }
 
   toggleAnticipation(spinMode: SpinMode): void {
-    if (spinMode === 'CASCADE') return;
+    if (!supportsAnticipationDemo(spinMode)) return;
     this.choice = this.anticipationEnabled ? { kind: 'none' } : { kind: 'anticipation' };
   }
 
@@ -72,8 +73,10 @@ export class DemoSettingsStore {
     this.choice = this.winTypeDemo === winType ? { kind: 'none' } : { kind: 'winType', winType };
   }
 
-  clearAnticipation(): void {
-    if (this.anticipationEnabled) this.choice = { kind: 'none' };
+  reconcileSpinMode(spinMode: SpinMode): void {
+    if (this.anticipationEnabled && !supportsAnticipationDemo(spinMode)) {
+      this.choice = { kind: 'none' };
+    }
   }
 
   cycleWinDemoSymbol(direction: -1 | 1): void {

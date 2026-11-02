@@ -3,6 +3,7 @@ import {
   DEFAULT_PAYLINE_COUNT,
   PAYLINE_COUNTS,
   SYMBOLS,
+  supportsAnticipationDemo,
   WIN_DEMO_TYPES,
   type Bet,
   type RoundResult,
@@ -65,7 +66,7 @@ export class SlotService {
       if (command.cascade && spinMode !== 'CASCADE') {
         throw new SlotError('INVALID_REQUEST', 'Conflicting spin modes');
       }
-      if (command.anticipationDemo && spinMode === 'CASCADE') {
+      if (command.anticipationDemo && !supportsAnticipationDemo(spinMode)) {
         throw new SlotError('INVALID_REQUEST', 'Cascade and anticipation demo cannot be combined');
       }
       if (command.winDemo) {
