@@ -60,7 +60,6 @@ export class ReelsMachine extends Container {
     this.positionBaseFrame();
     this.logo = this.addLogo();
 
-    // Координаты игрового поля рассчитаны по исходному PNG; обрезанный спрайт начинается после левого отступа.
     const boardWidth = frameTexture.width * FRAME_SCALE * 0.65;
     const windowCenterX =
       ((REELS_WINDOW_LEFT + REELS_WINDOW_RIGHT) / 2 - FRAME_TRANSPARENT_LEFT) * FRAME_SCALE;

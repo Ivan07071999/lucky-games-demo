@@ -2,6 +2,7 @@ import { makeAutoObservable } from 'mobx';
 
 const STORAGE_KEY = 'egypt-slot.audio';
 export const DEFAULT_AUDIO_VOLUME = 0.35;
+let saveWarningShown = false;
 
 function readVolume(): number {
   try {
@@ -15,7 +16,8 @@ function readVolume(): number {
         }
       }
     }
-  } catch {
+  } catch (error) {
+    console.warn('Could not read saved audio volume. Using the default volume.', error);
     return DEFAULT_AUDIO_VOLUME;
   }
   return DEFAULT_AUDIO_VOLUME;
@@ -38,8 +40,10 @@ export class AudioStore {
     this.volume = Math.max(0, Math.min(1, volume));
     try {
       window.localStorage.setItem(STORAGE_KEY, JSON.stringify({ volume: this.volume }));
-    } catch {
-      // При недоступном хранилище громкость сохраняется только на время игры.
+    } catch (error) {
+      if (saveWarningShown) return;
+      saveWarningShown = true;
+      console.warn('Could not save audio volume. The new volume will last until reload.', error);
     }
   }
 }
