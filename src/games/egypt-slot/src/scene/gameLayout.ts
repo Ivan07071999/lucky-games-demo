@@ -1,3 +1,5 @@
+import { PANEL_OVERLAP_RATIO, REELS_OVERLAP_RATIO, REELS_WIDTH_ALLOWANCE } from './layoutConfig';
+
 export type LayoutBounds = {
   x: number;
   y: number;
@@ -21,9 +23,6 @@ type GameLayoutOptions = {
   panelHeightForReels: number;
 };
 
-const REELS_OVERLAP_RATIO = 0.15;
-const PANEL_OVERLAP_RATIO = 0.82;
-
 export function calculateGameLayout(
   width: number,
   height: number,
@@ -32,9 +31,7 @@ export function calculateGameLayout(
   { compactPanel, panelHeightForReels }: GameLayoutOptions,
 ): GameLayout {
   const margin = Math.min(28, Math.max(12, Math.min(width, height) * 0.035));
-  console.log(margin);
-  //const gap = Math.min(22, Math.max(10, Math.min(width, height) * 0.02));
-  const availableWidth = width - margin + 130;
+  const availableWidth = width - margin + REELS_WIDTH_ALLOWANCE;
   const panelAvailableWidth = width - margin * 0.5;
   const availableHeight = height - margin * 2;
 

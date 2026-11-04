@@ -58,7 +58,7 @@ export class ReelsMachine extends Container {
 
   execute(command: ReelsCommand, signal: AbortSignal): void | Promise<void> {
     signal.throwIfAborted();
-    return command.execute(this, signal);
+    return command(this, signal);
   }
 
   spin(signal: AbortSignal, turbo = false): void {

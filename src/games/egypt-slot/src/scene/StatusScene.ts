@@ -21,19 +21,18 @@ export class StatusScene extends Container {
     });
     this.addChild(this.title);
 
-    this.action = actionLabel
-      ? new Text({
-          text: actionLabel,
-          style: { fontFamily: 'Manrope Variable, sans-serif', fontSize: 21, fill: 0xc7f36b },
-          anchor: 0.5,
-        })
-      : null;
-
-    if (this.action && onAction) {
+    if (actionLabel && onAction) {
+      this.action = new Text({
+        text: actionLabel,
+        style: { fontFamily: 'Manrope Variable, sans-serif', fontSize: 21, fill: 0xc7f36b },
+        anchor: 0.5,
+      });
       this.action.eventMode = 'static';
       this.action.cursor = 'pointer';
       this.action.on('pointertap', onAction);
       this.addChild(this.action);
+    } else {
+      this.action = null;
     }
   }
 

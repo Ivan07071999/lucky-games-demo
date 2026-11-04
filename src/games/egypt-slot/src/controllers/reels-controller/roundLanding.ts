@@ -1,6 +1,6 @@
 import type { CascadeSequence, RoundResult } from '@lucky-games/contracts';
 import type { ReelsMatrix } from '../../reels/reelsConfig';
-import { LandReelsCommand, PlayCascadeCommand, SetReelsCommand } from '../../reelsMachine/commands';
+import { reelsCommands } from '../../reelsMachine/commands';
 import type { RoundStore } from '../../stores/RoundStore';
 import type { MainSceneController } from '../main-scene-controller/MainSceneController';
 import type { RoundPlayback } from './roundPlayback';
@@ -33,19 +33,19 @@ export async function restoreRoundReels(
   playback.result = null;
 
   if (receivedResult) {
-    await scene.executeReels(new SetReelsCommand(receivedResult.reels), playback.signal);
+    await scene.executeReels(reelsCommands.setReels(receivedResult.reels), playback.signal);
     return;
   }
 
   if (playback.spinMode === 'CASCADE') {
-    await scene.executeReels(new SetReelsCommand(previousReels), playback.signal);
+    await scene.executeReels(reelsCommands.setReels(previousReels), playback.signal);
     return;
   }
 
   try {
-    await scene.executeReels(new LandReelsCommand(previousReels), playback.signal);
+    await scene.executeReels(reelsCommands.landReels(previousReels), playback.signal);
   } catch {
-    await scene.executeReels(new SetReelsCommand(previousReels), playback.signal);
+    await scene.executeReels(reelsCommands.setReels(previousReels), playback.signal);
   }
 }
 
@@ -75,7 +75,7 @@ async function landReels(
   playback: RoundPlayback,
 ): Promise<void> {
   await scene.executeReels(
-    new LandReelsCommand(
+    reelsCommands.landReels(
       reels,
       playback.turbo || round.quickStopRequested,
       result.presentation?.anticipation ?? null,
@@ -93,7 +93,7 @@ async function playCascade(
   hybrid: boolean,
 ): Promise<void> {
   await scene.executeReels(
-    new PlayCascadeCommand(sequence, finalReels, {
+    reelsCommands.playCascade(sequence, finalReels, {
       turbo: playback.turbo,
       quickStop: round.quickStopRequested,
       hybrid,

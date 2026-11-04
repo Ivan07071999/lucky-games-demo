@@ -31,10 +31,15 @@ export const REELS_FRAME_LAYOUT = {
   freeSpinsY: 42,
   windowLeft: 320,
   windowRight: 1705,
+  boardWidthRatio: 0.65,
+  boardHeightRatio: 0.57,
+  boardTopRatio: 0.23,
+  pivotYDivisor: 2.2,
+  logoScale: 0.25,
 } as const;
 
 export function getReelsBoardLayout(frame: FrameSize): ReelsBoardLayout {
-  const width = frame.width * REELS_FRAME_LAYOUT.scale * 0.65;
+  const width = frame.width * REELS_FRAME_LAYOUT.scale * REELS_FRAME_LAYOUT.boardWidthRatio;
   const windowCenterX =
     ((REELS_FRAME_LAYOUT.windowLeft + REELS_FRAME_LAYOUT.windowRight) / 2 -
       REELS_FRAME_LAYOUT.transparentLeft) *
@@ -42,9 +47,9 @@ export function getReelsBoardLayout(frame: FrameSize): ReelsBoardLayout {
 
   return {
     width,
-    height: frame.height * REELS_FRAME_LAYOUT.scale * 0.57,
+    height: frame.height * REELS_FRAME_LAYOUT.scale * REELS_FRAME_LAYOUT.boardHeightRatio,
     x: windowCenterX - width / 2,
-    y: frame.height * REELS_FRAME_LAYOUT.scale * 0.23,
+    y: frame.height * REELS_FRAME_LAYOUT.scale * REELS_FRAME_LAYOUT.boardTopRatio,
   };
 }
 
@@ -61,5 +66,8 @@ export function getReelsMachineBounds(bounds: LayoutBounds, baseFrame: FrameSize
 }
 
 export function getReelsMachinePivot(bounds: LayoutBounds): Point {
-  return new Point(bounds.x + bounds.width / 2, bounds.y + bounds.height / 2.2);
+  return new Point(
+    bounds.x + bounds.width / 2,
+    bounds.y + bounds.height / REELS_FRAME_LAYOUT.pivotYDivisor,
+  );
 }

@@ -28,7 +28,7 @@ export class ReelsFrameView {
 
     this.logo = new Sprite(Texture.from(EgyptImageAssetKey.scene.logoLong));
     this.logo.label = 'logo-frame';
-    this.logo.scale.set(0.25);
+    this.logo.scale.set(REELS_FRAME_LAYOUT.logoScale);
     this.logo.anchor.set(0.5, 0);
     this.logo.position.set(
       (baseSource.width / 2 - REELS_FRAME_LAYOUT.transparentLeft) * REELS_FRAME_LAYOUT.scale,

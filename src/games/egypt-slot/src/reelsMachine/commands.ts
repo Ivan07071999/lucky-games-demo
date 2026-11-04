@@ -2,153 +2,68 @@ import type { CascadeSequence, ReelAnticipationHint, Win } from '@lucky-games/co
 import type { ReelsMatrix } from '../reels/reelsConfig';
 import type { ReelsMachine } from './ReelsMachine';
 
-export interface ReelsCommand {
-  execute(machine: ReelsMachine, signal: AbortSignal): void | Promise<void>;
-}
+export type ReelsCommand = (machine: ReelsMachine, signal: AbortSignal) => void | Promise<void>;
 
-export class StartReelsCommand implements ReelsCommand {
-  private readonly turbo: boolean;
-
-  constructor(turbo = false) {
-    this.turbo = turbo;
-  }
-
-  execute(machine: ReelsMachine, signal: AbortSignal): void {
-    machine.spin(signal, this.turbo);
-  }
-}
-
-export class StartCascadeCommand implements ReelsCommand {
-  private readonly reels: ReelsMatrix;
-  private readonly turbo: boolean;
-
-  constructor(reels: ReelsMatrix, turbo = false) {
-    this.reels = reels;
-    this.turbo = turbo;
-  }
-
-  execute(machine: ReelsMachine, signal: AbortSignal): void {
-    machine.startCascade(this.reels, signal, this.turbo);
-  }
-}
-
-interface CascadePlaybackOptions {
+type CascadePlaybackOptions = {
   turbo: boolean;
   quickStop: boolean;
   hybrid: boolean;
-}
+};
 
-export class PlayCascadeCommand implements ReelsCommand {
-  private readonly sequence: CascadeSequence;
-  private readonly finalReels: ReelsMatrix;
-  private readonly options: CascadePlaybackOptions;
+export const reelsCommands = {
+  startReels(turbo = false): ReelsCommand {
+    return (machine, signal) => machine.spin(signal, turbo);
+  },
 
-  constructor(sequence: CascadeSequence, finalReels: ReelsMatrix, options: CascadePlaybackOptions) {
-    this.sequence = sequence;
-    this.finalReels = finalReels;
-    this.options = options;
-  }
+  startCascade(reels: ReelsMatrix, turbo = false): ReelsCommand {
+    return (machine, signal) => machine.startCascade(reels, signal, turbo);
+  },
 
-  execute(machine: ReelsMachine, signal: AbortSignal): Promise<void> {
-    return machine.playCascade(
-      this.sequence,
-      this.finalReels,
-      signal,
-      this.options.turbo,
-      this.options.quickStop,
-      this.options.hybrid,
-    );
-  }
-}
+  playCascade(
+    sequence: CascadeSequence,
+    finalReels: ReelsMatrix,
+    options: CascadePlaybackOptions,
+  ): ReelsCommand {
+    return (machine, signal) =>
+      machine.playCascade(
+        sequence,
+        finalReels,
+        signal,
+        options.turbo,
+        options.quickStop,
+        options.hybrid,
+      );
+  },
 
-export class QuickStopCascadeCommand implements ReelsCommand {
-  private readonly finalReels: ReelsMatrix;
+  quickStopCascade(finalReels: ReelsMatrix): ReelsCommand {
+    return (machine) => machine.quickStopCascade(finalReels);
+  },
 
-  constructor(finalReels: ReelsMatrix) {
-    this.finalReels = finalReels;
-  }
-
-  execute(machine: ReelsMachine): void {
-    machine.quickStopCascade(this.finalReels);
-  }
-}
-
-export class LandReelsCommand implements ReelsCommand {
-  private readonly reels: ReelsMatrix;
-  private readonly quickStop: boolean;
-  private readonly anticipation: ReelAnticipationHint | null;
-
-  constructor(
+  landReels(
     reels: ReelsMatrix,
     quickStop = false,
     anticipation: ReelAnticipationHint | null = null,
-  ) {
-    this.reels = reels;
-    this.quickStop = quickStop;
-    this.anticipation = anticipation;
-  }
+  ): ReelsCommand {
+    return (machine, signal) => machine.land(reels, signal, quickStop, anticipation);
+  },
 
-  execute(machine: ReelsMachine, signal: AbortSignal): Promise<void> {
-    return machine.land(this.reels, signal, this.quickStop, this.anticipation);
-  }
-}
+  quickStopReels(reels: ReelsMatrix): ReelsCommand {
+    return (machine, signal) => machine.requestQuickStop(reels, signal);
+  },
 
-export class QuickStopReelsCommand implements ReelsCommand {
-  private readonly reels: ReelsMatrix;
+  setReels(reels: ReelsMatrix): ReelsCommand {
+    return (machine) => machine.setSymbols(reels);
+  },
 
-  constructor(reels: ReelsMatrix) {
-    this.reels = reels;
-  }
+  showWild(expandedReels: readonly number[]): ReelsCommand {
+    return (machine, signal) => machine.showWild(expandedReels, signal);
+  },
 
-  execute(machine: ReelsMachine, signal: AbortSignal): void {
-    machine.requestQuickStop(this.reels, signal);
-  }
-}
+  showWinLines(wins: readonly Win[]): ReelsCommand {
+    return (machine, signal) => machine.showWins(wins, signal);
+  },
 
-export class SetReelsCommand implements ReelsCommand {
-  private readonly reels: ReelsMatrix;
-
-  constructor(reels: ReelsMatrix) {
-    this.reels = reels;
-  }
-
-  execute(machine: ReelsMachine): void {
-    machine.setSymbols(this.reels);
-  }
-}
-
-export class ShowWildCommand implements ReelsCommand {
-  private readonly expandedReels: readonly number[];
-
-  constructor(expandedReels: readonly number[]) {
-    this.expandedReels = expandedReels;
-  }
-
-  execute(machine: ReelsMachine, signal: AbortSignal): Promise<void> {
-    return machine.showWild(this.expandedReels, signal);
-  }
-}
-
-export class ShowWinLinesCommand implements ReelsCommand {
-  private readonly wins: readonly Win[];
-
-  constructor(wins: readonly Win[]) {
-    this.wins = wins;
-  }
-
-  execute(machine: ReelsMachine, signal: AbortSignal): Promise<void> {
-    return machine.showWins(this.wins, signal);
-  }
-}
-
-export class ShowFreeSpinsTriggerCommand implements ReelsCommand {
-  private readonly reels: ReelsMatrix;
-
-  constructor(reels: ReelsMatrix) {
-    this.reels = reels;
-  }
-
-  execute(machine: ReelsMachine, signal: AbortSignal): Promise<void> {
-    return machine.showFreeSpinsTrigger(this.reels, signal);
-  }
-}
+  showFreeSpinsTrigger(reels: ReelsMatrix): ReelsCommand {
+    return (machine, signal) => machine.showFreeSpinsTrigger(reels, signal);
+  },
+};

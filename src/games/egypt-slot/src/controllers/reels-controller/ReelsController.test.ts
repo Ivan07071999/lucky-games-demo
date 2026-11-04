@@ -1,5 +1,5 @@
 // @vitest-environment node
-import type { RoundResult } from '@lucky-games/contracts';
+import type { ReelGrid, RoundResult } from '@lucky-games/contracts';
 import { describe, expect, it, vi } from 'vitest';
 import { GameEmitter } from '../../events/GameEmitter';
 import type { GameEvents } from '../../events/GameEvents';
@@ -20,7 +20,7 @@ function createController(
   const round = new RoundStore(new SessionStore());
   const scene = {
     executeReels: (command: ReelsCommand, signal: AbortSignal) =>
-      command.execute(machine as ReelsMachine, signal),
+      command(machine as ReelsMachine, signal),
   } as MainSceneController;
   const controller = new ReelsController(scene, emitter, round);
   round.startRound();
@@ -97,5 +97,55 @@ describe('ReelsController Quick Stop', () => {
     round.startRound();
 
     expect(round.requestQuickStop()).toBe(false);
+  });
+});
+
+describe('ReelsController hybrid landing', () => {
+  it('lands the initial reels before playing the cascade', async () => {
+    const signal = new AbortController().signal;
+    const initialReels = INITIAL_REELS.map((column) => [...column]) as ReelGrid;
+    const cascade = {
+      initialReels,
+      steps: [
+        {
+          reels: initialReels,
+          wins: [],
+          removedPositions: [],
+          after: initialReels,
+          payoutCoins: 0,
+        },
+      ],
+    };
+    const hybridResult: RoundResult = { ...result, cascade };
+    const machine = {
+      spin: vi.fn(),
+      land: vi.fn().mockResolvedValue(undefined),
+      playCascade: vi.fn().mockResolvedValue(undefined),
+      setSymbols: vi.fn(),
+      requestQuickStop: vi.fn(),
+    };
+    const { controller } = createController(machine);
+
+    await controller.playRound(
+      vi.fn().mockResolvedValue(hybridResult),
+      INITIAL_REELS,
+      vi.fn(),
+      signal,
+      'HYBRID',
+    );
+
+    expect(machine.land).toHaveBeenCalledWith(initialReels, signal, false, null);
+    expect(machine.playCascade).toHaveBeenCalledWith(
+      cascade,
+      INITIAL_REELS,
+      signal,
+      false,
+      false,
+      true,
+    );
+    expect(machine.land.mock.invocationCallOrder[0]).toBeLessThan(
+      machine.playCascade.mock.invocationCallOrder[0],
+    );
+    controller.destroy();
   });
 });

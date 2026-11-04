@@ -2,6 +2,11 @@ import { Container } from 'pixi.js';
 import { autorun, type IReactionDisposer } from 'mobx';
 import type { SlotStore } from '../../../stores/SlotStore';
 import type { SceneTheme } from '../../../scene/sceneTheme';
+import {
+  BET_PANEL_COMPACT_WIDTH,
+  PANEL_MIN_SCALE,
+  PANEL_SCALE_START_WIDTH,
+} from '../../../scene/layoutConfig';
 import { AutoPlayButton } from '../actions/auto-play';
 import type { AudioToggle } from '../actions/audio-toggle';
 import type { InfoButton } from '../actions/info-button';
@@ -15,10 +20,6 @@ import { calculateBetPanelPositions, SPIN_DIAMETER, type BetPanelLayout } from '
 import { getBetPanelState, type BetPanelState } from './bet-panel-state';
 
 export type { BetPanelLayout } from './bet-panel-layout';
-
-const PANEL_SCALE_START_WIDTH = 1120;
-const PANEL_MIN_SCALE = 0.7;
-export const BET_PANEL_COMPACT_WIDTH = 540;
 
 function getResponsivePanelScale(width: number): number {
   const progress = Math.max(

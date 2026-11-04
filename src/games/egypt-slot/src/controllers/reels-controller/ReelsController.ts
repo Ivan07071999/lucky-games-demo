@@ -3,16 +3,7 @@ import type { GameEvents } from '../../events';
 import type { GameEmitter } from '../../events/GameEmitter';
 import type { ReelsMatrix } from '../../reels/reelsConfig';
 import type { RoundStore } from '../../stores/RoundStore';
-import {
-  QuickStopCascadeCommand,
-  QuickStopReelsCommand,
-  SetReelsCommand,
-  ShowFreeSpinsTriggerCommand,
-  ShowWildCommand,
-  ShowWinLinesCommand,
-  StartReelsCommand,
-  StartCascadeCommand,
-} from '../../reelsMachine/commands';
+import { reelsCommands } from '../../reelsMachine/commands';
 import type { MainSceneController } from '../main-scene-controller/MainSceneController';
 import { landRoundResult, restoreRoundReels } from './roundLanding';
 import type { RoundPlayback } from './roundPlayback';
@@ -91,8 +82,8 @@ export class ReelsController {
     try {
       const command =
         playback.spinMode === 'CASCADE'
-          ? new StartCascadeCommand(previousReels, playback.turbo)
-          : new StartReelsCommand(playback.turbo);
+          ? reelsCommands.startCascade(previousReels, playback.turbo)
+          : reelsCommands.startReels(playback.turbo);
       this.scene.executeReels(command, playback.signal);
 
       const result = await request(playback.signal);
@@ -125,7 +116,7 @@ export class ReelsController {
   }
 
   async restoreFinalReels(result: RoundResult, signal: AbortSignal): Promise<void> {
-    await this.scene.executeReels(new SetReelsCommand(result.reels), signal);
+    await this.scene.executeReels(reelsCommands.setReels(result.reels), signal);
   }
 
   private readonly requestQuickStop = (): void => {
@@ -137,8 +128,8 @@ export class ReelsController {
     const result = playback.result;
     const command =
       playback.spinMode === 'CASCADE' || playback.hybridCascadeActive
-        ? new QuickStopCascadeCommand(result.reels)
-        : new QuickStopReelsCommand(result.cascade?.initialReels ?? result.reels);
+        ? reelsCommands.quickStopCascade(result.reels)
+        : reelsCommands.quickStopReels(result.cascade?.initialReels ?? result.reels);
     this.scene.executeReels(command, playback.signal);
   };
 
@@ -146,17 +137,17 @@ export class ReelsController {
     if (result.cascade) return;
     if (result.features.wild.triggered && result.features.wild.expandedReels.length > 0) {
       await this.scene.executeReels(
-        new ShowWildCommand(result.features.wild.expandedReels),
+        reelsCommands.showWild(result.features.wild.expandedReels),
         signal,
       );
     }
     signal.throwIfAborted();
     if (result.wins.length > 0) {
-      await this.scene.executeReels(new ShowWinLinesCommand(result.wins), signal);
+      await this.scene.executeReels(reelsCommands.showWinLines(result.wins), signal);
     }
   }
 
   async presentFreeSpinsTrigger(result: RoundResult, signal: AbortSignal): Promise<void> {
-    await this.scene.executeReels(new ShowFreeSpinsTriggerCommand(result.reels), signal);
+    await this.scene.executeReels(reelsCommands.showFreeSpinsTrigger(result.reels), signal);
   }
 }

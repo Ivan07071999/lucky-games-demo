@@ -1,7 +1,8 @@
 import { Container, Sprite } from 'pixi.js';
-import { BET_PANEL_COMPACT_WIDTH, BetPanel } from '../components/ui/panel/BetPanel';
+import { BetPanel } from '../components/ui/panel/BetPanel';
 import { ReelsMachine } from '../reelsMachine/ReelsMachine';
 import { calculateGameLayout, type LayoutBounds } from './gameLayout';
+import { BET_PANEL_COMPACT_WIDTH } from './layoutConfig';
 
 export type ViewportResizable = {
   resize(width: number, height: number): void;

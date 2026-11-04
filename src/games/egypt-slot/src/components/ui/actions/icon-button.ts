@@ -30,9 +30,11 @@ export class IconButton extends Container {
       event.stopPropagation();
       onPress();
     });
+
     this.on('pointerover', () => {
       gsap.to(this.highlight, { alpha: 1, duration: 0.2, overwrite: true });
     });
+
     this.on('pointerout', () => {
       gsap.to(this.highlight, { alpha: 0, duration: 0.2, overwrite: true });
     });
