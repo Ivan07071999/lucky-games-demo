@@ -1,282 +1,121 @@
-import { Container, Sprite, Texture } from 'pixi.js';
-import { EgyptImageAssetKey } from '../assets';
-import { BetPanel } from '../components/ui/panel/BetPanel';
-import { BetSelectionModal } from '../components/popups/bet-selection/bet-selection-modal';
-import { AutoPlayModal } from '../components/popups/auto-play/auto-play-modal';
-import { AudioToggle } from '../components/ui/actions/audio-toggle';
-import { GameInfoModal } from '../components/popups/game-info/game-info-modal';
-import { GameSettingsModal } from '../components/popups/game-settings/game-settings-modal';
-import { InfoButton } from '../components/ui/actions/info-button';
-import { SettingsButton } from '../components/ui/actions/settings-button';
-import { FreeSpinsStatus } from '../components/ui/status/free-spins-status';
-import { WinPopup } from '../components/popups/win-popup/WinPopup';
+import { Container, Texture } from 'pixi.js';
 import type { WinType } from '@lucky-games/contracts';
-import {
-  FreeSpinsTransition,
-  type FreeSpinsTransitionKind,
-} from '../components/free-spins-transition/FreeSpinsTransition';
-import { ReelsMachine } from '../reelsMachine/ReelsMachine';
+import { EgyptImageAssetKey } from '../assets';
+import type { FreeSpinsTransitionKind } from '../components/free-spins-transition/FreeSpinsTransition';
 import type { ReelsCommand } from '../reelsMachine/commands';
 import { GameContext, type GameMessages } from '../runtime/GameContext';
 import type { SceneTheme } from './sceneTheme';
-import {
-  calculateGameLayout,
-  getGameLayoutMode,
-  type LayoutBounds,
-  type LayoutPlacement,
-} from './gameLayout';
+import { MainSceneActions } from './MainSceneActions';
+import { MainSceneLayout, type MainSceneLayoutTargets } from './MainSceneLayout';
+import { createMainSceneComponents, type MainSceneComponents } from './createMainSceneComponents';
 
 export class MainScene extends Container {
   readonly context: GameContext;
-  private background: Sprite | null = null;
-  private reelsMachine: ReelsMachine | null = null;
-  private betPanel: BetPanel | null = null;
-  private betSelectionModal: BetSelectionModal | null = null;
-  private autoPlayModal: AutoPlayModal | null = null;
-  private infoModal: GameInfoModal | null = null;
-  private settingsModal: GameSettingsModal | null = null;
-  private freeSpinsStatus: FreeSpinsStatus | null = null;
-  private freeSpinsTransition: FreeSpinsTransition | null = null;
-  private winPopup: WinPopup | null = null;
+  private readonly actions: MainSceneActions;
+  private readonly layout = new MainSceneLayout();
+  private components: MainSceneComponents | null = null;
   private theme: SceneTheme = 'base';
-  private viewportWidth = 0;
-  private viewportHeight = 0;
 
   constructor(canvas: HTMLCanvasElement, messages: GameMessages) {
     super();
     this.eventMode = 'static';
     this.context = new GameContext(canvas, messages);
+    this.actions = new MainSceneActions(this.context);
   }
 
   initialize(): void {
-    if (this.background) return;
+    if (this.components) return;
 
-    const background = new Sprite(Texture.from(EgyptImageAssetKey.scene.background));
-    background.anchor.set(0.5);
+    const components = createMainSceneComponents(this.context, this.actions);
+    this.components = components;
+    this.addChild(...components.children);
+    this.bindAudioFeedback();
 
-    const reelsMachine = new ReelsMachine(
-      this.context.slotStore.reels.reels,
-      (index) => this.context.emitter.emit('reel:stopped', index),
-      (cue) => this.context.emitter.emit('reels:cue', cue),
-    );
-    const reelsBounds = reelsMachine.getLayoutBounds();
-    const betPanel = new BetPanel({
-      width: reelsBounds.width,
-      height: reelsBounds.height,
-      store: this.context.slotStore,
-      onSpinRequested: this.handleSpinButtonPress,
-      onBetRequested: this.openBetSelection,
-      onBetChanged: () => this.context.emitter.emit('ui:betChanged'),
-      onMaxBetRequested: this.handleMaxBetButtonPress,
-      onAutoPlayRequested: this.handleAutoPlayButtonPress,
-    });
-    const betSelectionModal = new BetSelectionModal({
-      onSelect: this.selectBet,
-      onClose: this.closeBetSelection,
-    });
-    const autoPlayModal = new AutoPlayModal(this.context.slotStore, () =>
-      this.context.autoPlayController.start(),
-    );
-    const audioToggle = new AudioToggle(this.context.audio);
-    const infoModal = new GameInfoModal(this.context.slotStore);
-    const settingsModal = new GameSettingsModal(this.context.slotStore);
-    const infoButton = new InfoButton(() => infoModal.open());
-    const settingsButton = new SettingsButton(() => settingsModal.open());
-    betPanel.attachUtilityButtons(infoButton, settingsButton, audioToggle);
-    const freeSpinsStatus = new FreeSpinsStatus(this.context.slotStore.session);
-    const freeSpinsTransition = new FreeSpinsTransition();
-    const winPopup = new WinPopup();
-
-    this.background = background;
-    this.reelsMachine = reelsMachine;
-    this.betPanel = betPanel;
-    this.betSelectionModal = betSelectionModal;
-    this.autoPlayModal = autoPlayModal;
-    this.infoModal = infoModal;
-    this.settingsModal = settingsModal;
-    this.freeSpinsStatus = freeSpinsStatus;
-    this.freeSpinsTransition = freeSpinsTransition;
-    this.winPopup = winPopup;
-
-    this.addChild(
-      background,
-      reelsMachine,
-      betPanel,
-      freeSpinsStatus,
-      betSelectionModal,
-      autoPlayModal,
-      infoModal,
-      settingsModal,
-      winPopup,
-      freeSpinsTransition,
-    );
-    this.on('pointerover', (event) => {
-      let target: Container | null = event.target as Container;
-      while (target && target !== this) {
-        if (target.cursor === 'pointer') {
-          this.context.audio.playHover();
-          break;
-        }
-        target = target.parent;
-      }
-    });
-    this.on('pointertapcapture', (event) => {
-      let target: Container | null = event.target as Container;
-      while (target && target !== this) {
-        if (target.cursor === 'pointer') {
-          this.context.audio.playClick();
-          break;
-        }
-        target = target.parent;
-      }
-    });
     if (this.context.slotStore.session.isFreeSpin) this.setTheme('freeSpins');
   }
 
   resize(width: number, height: number): void {
-    if (!this.background) throw new Error('MainScene has not been initialized');
-    if (width <= 0 || height <= 0) return;
-    this.viewportWidth = width;
-    this.viewportHeight = height;
-
-    const texture = this.background.texture;
-    const backgroundScale = Math.max(width / texture.width, height / texture.height);
-    this.background.scale.set(backgroundScale);
-    this.background.position.set(width / 2, height / 2);
-    this.betSelectionModal?.resize(width, height);
-    this.autoPlayModal?.resize(width, height);
-    this.freeSpinsStatus?.resize(width, height);
-    this.infoModal?.resize(width, height);
-    this.settingsModal?.resize(width, height);
-    this.freeSpinsTransition?.resize(width, height);
-    this.winPopup?.resize(width, height);
-
-    const panel = this.betPanel;
-    const reelsMachine = this.reelsMachine;
-    if (!panel || !reelsMachine) return;
-
-    const mode = getGameLayoutMode(width, height);
-    panel.setLayout(mode === 'wide' ? 'wide' : 'compact');
-    const reelsBounds = reelsMachine.getLayoutBounds();
-    const panelBounds = panel.getLocalBounds();
-    const layout = calculateGameLayout(width, height, reelsBounds, panelBounds, mode);
-
-    this.place(reelsMachine, reelsBounds, layout.reels);
-    this.place(panel, panelBounds, layout.panel);
+    this.layout.resize(width, height, this.getLayoutTargets());
   }
 
   executeReels(command: ReelsCommand, signal: AbortSignal): void | Promise<void> {
-    if (!this.reelsMachine) throw new Error('ReelsMachine has not been initialized');
-    return this.reelsMachine.execute(command, signal);
+    return this.getComponents().reelsMachine.execute(command, signal);
   }
 
   setTheme(theme: SceneTheme): void {
+    const components = this.getComponents();
     if (this.theme === theme) return;
-    if (!this.background || !this.reelsMachine || !this.betPanel) {
-      throw new Error('MainScene has not been initialized');
-    }
+
     this.theme = theme;
-    this.background.texture = Texture.from(
+    components.background.texture = Texture.from(
       theme === 'freeSpins'
         ? EgyptImageAssetKey.scene.backgroundFreeSpins
         : EgyptImageAssetKey.scene.background,
     );
-    this.reelsMachine.setTheme(theme);
-    this.betPanel.setTheme(theme);
-    this.freeSpinsStatus?.setTheme(theme);
-    if (this.viewportWidth && this.viewportHeight) {
-      this.resize(this.viewportWidth, this.viewportHeight);
-    }
+    components.reelsMachine.setTheme(theme);
+    components.betPanel.setTheme(theme);
+    components.freeSpinsStatus.setTheme(theme);
+    this.layout.resizeToCurrentViewport(this.getLayoutTargets(components));
   }
 
   showFreeSpinsTransition(kind: FreeSpinsTransitionKind): void {
-    if (!this.freeSpinsTransition) throw new Error('MainScene has not been initialized');
-    this.freeSpinsTransition.show(kind);
+    this.getComponents().freeSpinsTransition.show(kind);
   }
 
   fadeFreeSpinsTransition(alpha: number, duration: number, signal: AbortSignal): Promise<void> {
-    if (!this.freeSpinsTransition) throw new Error('MainScene has not been initialized');
-    return this.freeSpinsTransition.fadeTo(alpha, duration, signal);
+    return this.getComponents().freeSpinsTransition.fadeTo(alpha, duration, signal);
   }
 
   hideFreeSpinsTransition(): void {
-    this.freeSpinsTransition?.hide();
+    this.components?.freeSpinsTransition.hide();
   }
 
   showWinPopup(winType: WinType | undefined, totalWinCoins: number): boolean {
-    if (!this.winPopup || !winType) return false;
-    this.winPopup.show(winType, totalWinCoins);
-    return this.winPopup.visible;
+    if (!this.components || !winType) return false;
+
+    this.components.winPopup.show(winType, totalWinCoins);
+    return this.components.winPopup.visible;
   }
 
   hideWinPopup(): void {
-    this.winPopup?.hide();
+    this.components?.winPopup.hide();
   }
 
-  private place(container: Container, bounds: LayoutBounds, placement: LayoutPlacement): void {
-    container.scale.set(placement.scale);
-    container.position.set(
-      placement.left + (container.pivot.x - bounds.x) * placement.scale,
-      placement.top + (container.pivot.y - bounds.y) * placement.scale,
-    );
+  private getComponents(): MainSceneComponents {
+    if (!this.components) throw new Error('MainScene has not been initialized');
+    return this.components;
   }
 
-  private readonly openBetSelection = (): void => {
-    const store = this.context.slotStore;
-    if (!store.bet.canEditBet) return;
+  private getLayoutTargets(components = this.getComponents()): MainSceneLayoutTargets {
+    return {
+      background: components.background,
+      reelsMachine: components.reelsMachine,
+      betPanel: components.betPanel,
+      resizable: components.resizable,
+    };
+  }
 
-    this.betSelectionModal?.open(store.bet.availableBets, store.bet.bet);
-  };
+  private bindAudioFeedback(): void {
+    this.on('pointerover', (event) => {
+      this.playSoundForInteractiveTarget(event.target as Container, () =>
+        this.context.audio.playHover(),
+      );
+    });
+    this.on('pointertapcapture', (event) => {
+      this.playSoundForInteractiveTarget(event.target as Container, () =>
+        this.context.audio.playClick(),
+      );
+    });
+  }
 
-  private readonly handleSpinButtonPress = (): void => {
-    const { slotStore, emitter } = this.context;
-    const { round } = slotStore;
+  private playSoundForInteractiveTarget(target: Container | null, playSound: () => void): void {
+    while (target && target !== this) {
+      if (target.cursor === 'pointer') {
+        playSound();
+        return;
+      }
 
-    if (round.canQuickStop) {
-      emitter.emit('ui:quickStopRequested');
-    } else if (round.canSkipWin) {
-      emitter.emit('ui:skipWinRequested');
-    } else if ((!slotStore.session.isFreeSpin || round.errorMessage) && slotStore.requestSpin()) {
-      emitter.emit('ui:spinRequested');
+      target = target.parent;
     }
-  };
-
-  private readonly handleMaxBetButtonPress = (): void => {
-    const { slotStore, emitter } = this.context;
-    const { bet, level } = slotStore.bet;
-    const outcome = slotStore.requestMaxBetSpin();
-    if (outcome === 'started' && (slotStore.bet.bet !== bet || slotStore.bet.level !== level)) {
-      emitter.emit('ui:betChanged');
-    }
-    if (outcome === 'started') emitter.emit('ui:spinRequested');
-    if (outcome === 'insufficientBalance') emitter.emit('ui:maxBetInsufficientBalance');
-  };
-
-  private readonly handleAutoPlayButtonPress = (): void => {
-    const { slotStore, autoPlayController } = this.context;
-    if (slotStore.autoPlay.isBetLocked) {
-      autoPlayController.requestStop();
-      return;
-    }
-    if (
-      slotStore.session.ready &&
-      slotStore.round.stage === 'idle' &&
-      !slotStore.session.isFreeSpin &&
-      !slotStore.round.errorMessage
-    ) {
-      this.autoPlayModal?.open();
-    }
-  };
-
-  private readonly selectBet = (value: number): void => {
-    const { bet } = this.context.slotStore;
-    const previousBet = bet.bet;
-    bet.setBet(value);
-    if (bet.bet !== previousBet) this.context.emitter.emit('ui:betChanged');
-    this.closeBetSelection();
-  };
-
-  private readonly closeBetSelection = (): void => {
-    this.betSelectionModal?.close();
-  };
+  }
 }
