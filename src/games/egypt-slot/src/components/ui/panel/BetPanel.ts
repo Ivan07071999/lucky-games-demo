@@ -16,6 +16,22 @@ import { getBetPanelState, type BetPanelState } from './bet-panel-state';
 
 export type { BetPanelLayout } from './bet-panel-layout';
 
+const PANEL_SCALE_START_WIDTH = 1120;
+const PANEL_MIN_SCALE = 0.7;
+export const BET_PANEL_COMPACT_WIDTH = 540;
+
+function getResponsivePanelScale(width: number): number {
+  const progress = Math.max(
+    0,
+    Math.min(
+      1,
+      (width - BET_PANEL_COMPACT_WIDTH) / (PANEL_SCALE_START_WIDTH - BET_PANEL_COMPACT_WIDTH),
+    ),
+  );
+
+  return PANEL_MIN_SCALE + (1 - PANEL_MIN_SCALE) * progress;
+}
+
 export type BetPanelOptions = {
   width: number;
   height: number;
@@ -34,6 +50,8 @@ export class BetPanel extends Container {
   readonly autoPlayButton: AutoPlayButton;
   readonly maxBetButton: MaxBetButton;
   private readonly stopObserving: IReactionDisposer;
+  private readonly baseBackgroundWidth: number;
+  private readonly controls = new Container();
   private utilityButtons: UtilityButtonRow | null = null;
   private layout: BetPanelLayout = 'wide';
 
@@ -71,16 +89,20 @@ export class BetPanel extends Container {
       },
       onBetRequested,
     );
+
     this.rightBackground = new RightBackground(height, store);
+    this.baseBackgroundWidth = this.leftBackground.background.width;
     this.autoPlayButton = new AutoPlayButton(width, height, onAutoPlayRequested);
     this.maxBetButton = new MaxBetButton(width, height, onMaxBetRequested);
-    this.addChild(
+    this.controls.addChild(
       this.leftBackground,
       this.autoPlayButton,
       this.spinButton,
       this.maxBetButton,
       this.rightBackground,
     );
+
+    this.addChild(this.controls);
     this.setLayout('wide');
 
     this.stopObserving = autorun(() => this.applyState(getBetPanelState(store)));
@@ -89,6 +111,19 @@ export class BetPanel extends Container {
   setTheme(theme: SceneTheme): void {
     this.leftBackground.setTheme(theme);
     this.rightBackground.setTheme(theme);
+  }
+
+  resize(width: number): void {
+    const compact = this.layout === 'compact';
+    const scale = compact ? 1 : getResponsivePanelScale(width);
+    const widthScale = compact ? Math.max(1, width / this.baseBackgroundWidth) : 1;
+    this.leftBackground.setResponsiveScale(scale, widthScale);
+    this.rightBackground.setResponsiveScale(scale, widthScale);
+    this.setLayout(this.layout);
+  }
+
+  getControlsHeight(): number {
+    return this.controls.getLocalBounds().height;
   }
 
   attachUtilityButtons(info: InfoButton, settings: SettingsButton, audio: AudioToggle): void {

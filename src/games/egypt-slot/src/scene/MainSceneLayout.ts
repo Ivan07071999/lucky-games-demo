@@ -1,7 +1,7 @@
 import { Container, Sprite } from 'pixi.js';
-import { BetPanel } from '../components/ui/panel/BetPanel';
+import { BET_PANEL_COMPACT_WIDTH, BetPanel } from '../components/ui/panel/BetPanel';
 import { ReelsMachine } from '../reelsMachine/ReelsMachine';
-import { calculateGameLayout, getGameLayoutMode, type LayoutBounds } from './gameLayout';
+import { calculateGameLayout, type LayoutBounds } from './gameLayout';
 
 export type ViewportResizable = {
   resize(width: number, height: number): void;
@@ -44,12 +44,17 @@ export class MainSceneLayout {
     height: number,
     { reelsMachine, betPanel }: MainSceneLayoutTargets,
   ): void {
-    const mode = getGameLayoutMode(width, height);
-    betPanel.setLayout(mode === 'wide' ? 'wide' : 'compact');
+    const compactPanel = width <= BET_PANEL_COMPACT_WIDTH;
+    betPanel.setLayout(compactPanel ? 'compact' : 'wide');
+    betPanel.resize(width);
 
     const reelsBounds = reelsMachine.getLayoutBounds();
     const panelBounds = betPanel.getLocalBounds();
-    const layout = calculateGameLayout(width, height, reelsBounds, panelBounds, mode);
+    const panelHeightForReels = compactPanel ? betPanel.getControlsHeight() : panelBounds.height;
+    const layout = calculateGameLayout(width, height, reelsBounds, panelBounds, {
+      compactPanel,
+      panelHeightForReels,
+    });
 
     this.place(reelsMachine, reelsBounds, layout.reels);
     this.place(betPanel, panelBounds, layout.panel);

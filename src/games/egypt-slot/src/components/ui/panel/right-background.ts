@@ -11,6 +11,7 @@ export class RightBackground extends Container {
   readonly win: PanelAmount;
   private readonly stopObserving: IReactionDisposer;
   private displayedRoundId: string | null = null;
+  private readonly content = new Container();
 
   constructor(height: number, store: SlotStore) {
     super();
@@ -24,7 +25,8 @@ export class RightBackground extends Container {
     this.win = new PanelAmount('WIN', amountWidth, this.background.height, 0);
     this.win.position.set(-amountOffset, -10);
     this.coins.position.set(amountOffset, -10);
-    this.addChild(this.background, this.win, this.coins);
+    this.content.addChild(this.win, this.coins);
+    this.addChild(this.background, this.content);
 
     this.stopObserving = autorun(() => {
       const { round, balance } = store;
@@ -45,5 +47,13 @@ export class RightBackground extends Container {
 
   setTheme(theme: SceneTheme): void {
     this.background.setTheme(theme);
+  }
+
+  setResponsiveScale(scale: number, widthScale = 1): void {
+    this.background.setResponsiveScale(scale, widthScale);
+    this.content.scale.set(scale);
+    const amountOffset = this.background.width / (4 * scale);
+    this.win.position.x = -amountOffset;
+    this.coins.position.x = amountOffset;
   }
 }

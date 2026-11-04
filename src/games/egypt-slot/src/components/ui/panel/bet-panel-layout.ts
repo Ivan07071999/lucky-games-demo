@@ -1,9 +1,11 @@
 export const SPIN_DIAMETER = 104;
+export const UTILITY_ICON_SPACING = 44;
 
 const TOOL_ICON_SIZE = 28;
 const TOOL_ROW_OFFSET = TOOL_ICON_SIZE / 2 + 4;
-const COMPACT_PANEL_GAP = 48;
-const COMPACT_ACTION_GAP = 16;
+const COMPACT_PANEL_GAP = -32;
+const COMPACT_ACTION_GAP = 32;
+const COMPACT_UTILITIES_GAP = 36;
 const BUTTON_GAP = 8;
 
 export type BetPanelLayout = 'wide' | 'compact';
@@ -38,6 +40,7 @@ export function calculateBetPanelPositions(
   let autoPlay: Point;
   let spin: Point;
   let maxBet: Point;
+  let utilities: Point;
 
   if (layout === 'compact') {
     const rightY = leftHeight + COMPACT_PANEL_GAP;
@@ -47,6 +50,10 @@ export function calculateBetPanelPositions(
     autoPlay = { x: -sideButtonOffset, y: actionY + 7 };
     spin = { x: 0, y: actionY };
     maxBet = { x: sideButtonOffset, y: actionY + 7 };
+    utilities = {
+      x: -UTILITY_ICON_SPACING,
+      y: actionY + SPIN_DIAMETER / 2 + COMPACT_UTILITIES_GAP + TOOL_ICON_SIZE / 2,
+    };
   } else {
     const backgroundInnerEdge = sideButtonOffset + actionWidth / 2 + BUTTON_GAP;
     left = { x: -backgroundInnerEdge - leftWidth / 2, y: 10 };
@@ -54,6 +61,10 @@ export function calculateBetPanelPositions(
     autoPlay = { x: -sideButtonOffset, y: 0 };
     spin = { x: 0, y: -20 };
     maxBet = { x: sideButtonOffset, y: 0 };
+    utilities = {
+      x: left.x - leftWidth / 2 + TOOL_ICON_SIZE / 2,
+      y: left.y + leftHeight / 2 + TOOL_ROW_OFFSET,
+    };
   }
 
   return {
@@ -62,9 +73,6 @@ export function calculateBetPanelPositions(
     autoPlay,
     spin,
     maxBet,
-    utilities: {
-      x: left.x - leftWidth / 2 + TOOL_ICON_SIZE / 2,
-      y: left.y + leftHeight / 2 + TOOL_ROW_OFFSET,
-    },
+    utilities,
   };
 }

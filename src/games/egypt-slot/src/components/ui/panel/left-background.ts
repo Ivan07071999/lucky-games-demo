@@ -11,6 +11,7 @@ export class LeftBackground extends Container {
   readonly bet: Bet;
   readonly levelSwitcher: LevelSwitcher;
   readonly totalBet: PanelAmount;
+  private readonly content = new Container();
 
   constructor(
     height: number,
@@ -43,7 +44,16 @@ export class LeftBackground extends Container {
       totalBetCoins,
     );
     this.totalBet.position.set(columnWidth, -10);
-    this.addChild(this.background, this.bet, this.levelSwitcher, this.totalBet);
+    this.content.addChild(this.bet, this.levelSwitcher, this.totalBet);
+    this.addChild(this.background, this.content);
+  }
+
+  setResponsiveScale(scale: number, widthScale = 1): void {
+    this.background.setResponsiveScale(scale, widthScale);
+    this.content.scale.set(scale);
+    const columnOffset = this.background.width / (3 * scale);
+    this.bet.position.x = -columnOffset;
+    this.totalBet.position.x = columnOffset;
   }
 
   setTheme(theme: SceneTheme): void {
