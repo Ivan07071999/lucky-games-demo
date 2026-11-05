@@ -1,5 +1,7 @@
 import { randomUUID } from 'node:crypto';
-import pg from 'pg';
+import { mkdirSync } from 'node:fs';
+import { dirname } from 'node:path';
+import Sqlite from 'better-sqlite3';
 import type { Bet, GameAction, RoundResult, SlotErrorCode } from '@lucky-games/contracts';
 import { INITIAL_BALANCE } from '../game/rules.js';
 
@@ -12,6 +14,16 @@ export interface SessionRow {
   last_bet: Bet | null;
 }
 
+interface StoredSessionRow extends Omit<SessionRow, 'sticky_reels' | 'last_bet'> {
+  sticky_reels: string;
+  last_bet: string | null;
+}
+
+interface StoredRoundRow {
+  action: GameAction;
+  result: string;
+}
+
 export class SlotError extends Error {
   constructor(
     readonly code: SlotErrorCode,
@@ -22,30 +34,32 @@ export class SlotError extends Error {
 }
 
 export class Database {
-  private readonly pool: pg.Pool;
+  private readonly connection: Sqlite.Database;
 
-  constructor(connectionString: string) {
-    this.pool = new pg.Pool({ connectionString });
+  constructor(path: string) {
+    if (path !== ':memory:') mkdirSync(dirname(path), { recursive: true });
+    this.connection = new Sqlite(path, { timeout: 5000 });
+    this.connection.pragma('foreign_keys = ON');
   }
 
   async initialize(): Promise<void> {
-    await this.pool.query(`
+    this.connection.exec(`
       CREATE TABLE IF NOT EXISTS slot_sessions (
-        id uuid PRIMARY KEY,
-        balance_coins bigint NOT NULL CHECK (balance_coins >= 0),
-        free_spins_remaining integer NOT NULL DEFAULT 0 CHECK (free_spins_remaining >= 0),
-        free_spins_total_win bigint NOT NULL DEFAULT 0,
-        sticky_reels jsonb NOT NULL DEFAULT '[]',
-        last_bet jsonb,
-        created_at timestamptz NOT NULL DEFAULT now()
+        id TEXT PRIMARY KEY,
+        balance_coins INTEGER NOT NULL CHECK (balance_coins >= 0),
+        free_spins_remaining INTEGER NOT NULL DEFAULT 0 CHECK (free_spins_remaining >= 0),
+        free_spins_total_win INTEGER NOT NULL DEFAULT 0,
+        sticky_reels TEXT NOT NULL DEFAULT '[]',
+        last_bet TEXT,
+        created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
       );
       CREATE TABLE IF NOT EXISTS slot_rounds (
-        id uuid PRIMARY KEY,
-        session_id uuid NOT NULL REFERENCES slot_sessions(id),
-        request_id text NOT NULL,
-        action text NOT NULL,
-        result jsonb NOT NULL,
-        created_at timestamptz NOT NULL DEFAULT now(),
+        id TEXT PRIMARY KEY,
+        session_id TEXT NOT NULL REFERENCES slot_sessions(id),
+        request_id TEXT NOT NULL,
+        action TEXT NOT NULL,
+        result TEXT NOT NULL,
+        created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
         UNIQUE (session_id, request_id)
       );
     `);
@@ -53,26 +67,21 @@ export class Database {
 
   async createSession(): Promise<SessionRow> {
     const id = randomUUID();
-    const result = await this.pool.query<SessionRow>(
-      'INSERT INTO slot_sessions (id, balance_coins) VALUES ($1, $2) RETURNING *',
-      [id, INITIAL_BALANCE],
-    );
-    return normalizeSession(result.rows[0]);
+    this.connection
+      .prepare('INSERT INTO slot_sessions (id, balance_coins) VALUES (?, ?)')
+      .run(id, INITIAL_BALANCE);
+    return this.readSession(id)!;
   }
 
   async getSession(id: string): Promise<SessionRow | null> {
-    const result = await this.pool.query<SessionRow>('SELECT * FROM slot_sessions WHERE id = $1', [
-      id,
-    ]);
-    return result.rows[0] ? normalizeSession(result.rows[0]) : null;
+    return this.readSession(id);
   }
 
   async getRound(sessionId: string, requestId: string): Promise<RoundResult | null> {
-    const result = await this.pool.query<{ result: RoundResult }>(
-      'SELECT result FROM slot_rounds WHERE session_id = $1 AND request_id = $2',
-      [sessionId, requestId],
-    );
-    return result.rows[0] ? normalizeRound(result.rows[0].result) : null;
+    const row = this.connection
+      .prepare('SELECT result FROM slot_rounds WHERE session_id = ? AND request_id = ?')
+      .get(sessionId, requestId) as Pick<StoredRoundRow, 'result'> | undefined;
+    return row ? normalizeRound(JSON.parse(row.result) as RoundResult) : null;
   }
 
   async executeRound(
@@ -81,70 +90,76 @@ export class Database {
     action: GameAction,
     calculate: (session: SessionRow) => RoundResult,
   ): Promise<RoundResult> {
-    const client = await this.pool.connect();
-    try {
-      await client.query('BEGIN');
-      const sessionResult = await client.query<SessionRow>(
-        'SELECT * FROM slot_sessions WHERE id = $1 FOR UPDATE',
-        [sessionId],
-      );
-      const session = sessionResult.rows[0];
+    const transaction = this.connection.transaction(() => {
+      const session = this.readSession(sessionId);
       if (!session) throw new SlotError('SESSION_NOT_FOUND', 'Session was not found');
 
-      const existing = await client.query<{ action: GameAction; result: RoundResult }>(
-        'SELECT action, result FROM slot_rounds WHERE session_id = $1 AND request_id = $2',
-        [sessionId, requestId],
-      );
-      if (existing.rows[0]) {
-        if (existing.rows[0].action !== action) {
+      const existing = this.connection
+        .prepare('SELECT action, result FROM slot_rounds WHERE session_id = ? AND request_id = ?')
+        .get(sessionId, requestId) as StoredRoundRow | undefined;
+      if (existing) {
+        if (existing.action !== action) {
           throw new SlotError(
             'REQUEST_ID_CONFLICT',
             'Request ID already belongs to another action',
           );
         }
-        await client.query('COMMIT');
-        return normalizeRound(existing.rows[0].result);
+        return normalizeRound(JSON.parse(existing.result) as RoundResult);
       }
 
-      const result = calculate(normalizeSession(session));
-      await client.query(
-        `UPDATE slot_sessions SET balance_coins = $2, free_spins_remaining = $3,
-         free_spins_total_win = $4, sticky_reels = $5, last_bet = $6 WHERE id = $1`,
-        [
-          sessionId,
+      const result = calculate(session);
+      this.connection
+        .prepare(
+          `
+          UPDATE slot_sessions
+          SET balance_coins = ?, free_spins_remaining = ?, free_spins_total_win = ?,
+              sticky_reels = ?, last_bet = ?
+          WHERE id = ?
+        `,
+        )
+        .run(
           result.balance.afterWin,
           result.features.freeSpins.remaining,
           result.features.freeSpins.totalWinCoins,
           JSON.stringify(result.features.wild.stickyReels),
           JSON.stringify(result.bet),
-        ],
-      );
-      await client.query(
-        'INSERT INTO slot_rounds (id, session_id, request_id, action, result) VALUES ($1, $2, $3, $4, $5)',
-        [result.roundId, sessionId, requestId, action, JSON.stringify(result)],
-      );
-      await client.query('COMMIT');
+          sessionId,
+        );
+      this.connection
+        .prepare(
+          `
+          INSERT INTO slot_rounds (id, session_id, request_id, action, result)
+          VALUES (?, ?, ?, ?, ?)
+        `,
+        )
+        .run(result.roundId, sessionId, requestId, action, JSON.stringify(result));
       return result;
-    } catch (error) {
-      await client.query('ROLLBACK');
-      throw error;
-    } finally {
-      client.release();
-    }
+    });
+
+    return transaction.immediate();
   }
 
   async close(): Promise<void> {
-    await this.pool.end();
+    this.connection.close();
   }
-}
 
-function normalizeSession(row: SessionRow): SessionRow {
-  return {
-    ...row,
-    balance_coins: Number(row.balance_coins),
-    free_spins_total_win: Number(row.free_spins_total_win),
-    last_bet: row.last_bet ? normalizeBet(row.last_bet) : null,
-  };
+  private readSession(id: string): SessionRow | null {
+    const row = this.connection
+      .prepare(
+        `
+        SELECT id, balance_coins, free_spins_remaining, free_spins_total_win,
+               sticky_reels, last_bet
+        FROM slot_sessions WHERE id = ?
+      `,
+      )
+      .get(id) as StoredSessionRow | undefined;
+    if (!row) return null;
+    return {
+      ...row,
+      sticky_reels: JSON.parse(row.sticky_reels) as number[],
+      last_bet: row.last_bet ? normalizeBet(JSON.parse(row.last_bet) as Bet) : null,
+    };
+  }
 }
 
 function normalizeRound(result: RoundResult): RoundResult {

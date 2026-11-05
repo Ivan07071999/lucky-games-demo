@@ -17,6 +17,7 @@ blob-report/
 .env
 .env.*
 !.env.example
+apps/server/data/
 
 # Editor directories and files
 .vscode/*
