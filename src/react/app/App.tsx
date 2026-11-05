@@ -1,15 +1,16 @@
 import { lazy, Suspense } from 'react';
 import { useTranslation } from 'react-i18next';
-import { Navigate, Route, Routes } from 'react-router-dom';
-import { AppBackdrop } from './components/AppBackdrop';
+import { Route, Routes } from 'react-router-dom';
 import { useDocumentLanguage } from './hooks/useDocumentLanguage';
 import { useTheme } from './hooks/useTheme';
 import './i18n/i18n';
 import { CatalogPage } from '../pages/catalog';
-import { SiteHeader } from '../shared/ui/site-header';
+import { NotFoundPage } from '../pages/not-found/NotFoundPage';
 
 const EgyptSlotPage = lazy(() =>
-  import('../pages/game/EgyptSlotPage').then(({ EgyptSlotPage }) => ({ default: EgyptSlotPage })),
+  import('../pages/egypt-slot/EgyptSlotPage').then(({ EgyptSlotPage }) => ({
+    default: EgyptSlotPage,
+  })),
 );
 
 function App() {
@@ -22,17 +23,7 @@ function App() {
     <Routes>
       <Route
         path="/"
-        element={
-          <div
-            data-theme={theme}
-            style={{ colorScheme: theme }}
-            className="theme-page relative min-h-screen overflow-clip selection:bg-violet-400/30 selection:text-white"
-          >
-            <AppBackdrop />
-            <SiteHeader language={language} theme={theme} onThemeToggle={toggleTheme} />
-            <CatalogPage />
-          </div>
-        }
+        element={<CatalogPage language={language} theme={theme} onThemeToggle={toggleTheme} />}
       />
       <Route
         path="/games/egypt-slot"
@@ -42,7 +33,10 @@ function App() {
           </Suspense>
         }
       />
-      <Route path="*" element={<Navigate to="/" replace />} />
+      <Route
+        path="*"
+        element={<NotFoundPage language={language} theme={theme} onThemeToggle={toggleTheme} />}
+      />
     </Routes>
   );
 }

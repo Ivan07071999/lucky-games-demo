@@ -10,6 +10,12 @@ const ru = {
       switchToLight: 'Включить светлую тему',
       switchToDark: 'Включить тёмную тему',
     },
+    notFound: {
+      eyebrow: 'СТРАНИЦА НЕ НАЙДЕНА',
+      title: 'Кажется, вы забрели не туда',
+      description: 'Страница, которую вы ищете, не существует или была перемещена.',
+      backToCatalog: 'Вернуться в каталог',
+    },
     hero: {
       collection: 'КОЛЛЕКЦИЯ ИГР',
       headlineFirst: 'Найди игру',
@@ -37,14 +43,14 @@ const ru = {
         category: 'Космос · Фэнтези',
       },
       goldenTemple: {
-        artwork: 'GOLDEN TEMPLE',
-        title: 'Золотой храм',
+        artwork: 'CROWNS OF KEMET',
+        title: 'Crowns of Kemet',
         description: 'Путешествие по древним залам в поисках артефактов.',
         category: 'Приключение · Классика',
       },
     },
     game: {
-      canvasLabel: 'Игровое поле «Золотой храм»',
+      canvasLabel: 'Игровое поле Crowns of Kemet',
       loading: 'Загрузка игры…',
       loadError: 'Не удалось загрузить игру. Повторите попытку.',
       recoveringRound: 'Восстанавливаем предыдущий раунд…',

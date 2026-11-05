@@ -1,4 +1,4 @@
-export function AppBackdrop() {
+export function CatalogBackdrop() {
   return (
     <div aria-hidden="true" className="pointer-events-none absolute inset-0 overflow-hidden">
       <div className="absolute -left-48 -top-48 size-[34rem] rounded-full bg-violet-700/10 blur-[120px]" />

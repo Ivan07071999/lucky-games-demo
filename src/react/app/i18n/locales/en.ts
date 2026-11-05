@@ -10,6 +10,12 @@ const en = {
       switchToLight: 'Switch to light theme',
       switchToDark: 'Switch to dark theme',
     },
+    notFound: {
+      eyebrow: 'PAGE NOT FOUND',
+      title: 'Looks like you took a wrong turn',
+      description: 'The page you are looking for does not exist or may have been moved.',
+      backToCatalog: 'Back to the catalog',
+    },
     hero: {
       collection: 'GAME COLLECTION',
       headlineFirst: 'Find a game',
@@ -37,14 +43,14 @@ const en = {
         category: 'Space · Fantasy',
       },
       goldenTemple: {
-        artwork: 'GOLDEN TEMPLE',
-        title: 'Golden Temple',
+        artwork: 'CROWNS OF KEMET',
+        title: 'Crowns of Kemet',
         description: 'Journey through ancient halls in search of lost treasures.',
         category: 'Adventure · Classic',
       },
     },
     game: {
-      canvasLabel: 'Golden Temple game canvas',
+      canvasLabel: 'Crowns of Kemet game canvas',
       loading: 'Loading the game…',
       loadError: 'Could not load the game. Please try again.',
       recoveringRound: 'Restoring the previous round…',

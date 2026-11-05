@@ -1,6 +1,6 @@
 import { useTranslation } from 'react-i18next';
 
-export function SiteFooter() {
+export function CatalogFooter() {
   const { t } = useTranslation();
 
   return (

@@ -1,5 +1,5 @@
 import { useTranslation } from 'react-i18next';
-import { ThemeIcon } from '../icons';
+import { ThemeIcon } from '../../../shared/ui/icons';
 
 type HeaderActionsProps = {
   language: 'ru' | 'en';

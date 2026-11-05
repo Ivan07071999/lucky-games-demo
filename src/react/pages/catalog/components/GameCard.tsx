@@ -17,7 +17,12 @@ export function GameCard({ game, isSelected, onSelect }: GameCardProps) {
   const content = (
     <>
       <div className="relative">
-        <GameArtwork palette={game.palette} label={t(`games.${game.translationKey}.artwork`)} />
+        <GameArtwork
+          palette={game.palette}
+          image={game.image}
+          imageAlt={t(`games.${game.translationKey}.title`)}
+          label={t(`games.${game.translationKey}.artwork`)}
+        />
         <span
           className={`absolute right-4 top-4 rounded-full px-3 py-1.5 text-[10px] font-bold tracking-[0.12em] backdrop-blur-md ${isSelected ? 'bg-[#c7f36b] text-[#11150a]' : 'border border-white/15 bg-black/25 text-white/75'}`}
         >

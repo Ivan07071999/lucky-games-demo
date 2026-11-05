@@ -3,6 +3,7 @@ export type Game = {
   number: string;
   translationKey: 'moonGarden' | 'goldenTemple';
   palette: 'violet' | 'amber';
+  image?: string;
   path?: string;
 };
 
@@ -13,6 +14,7 @@ export const games: Game[] = [
     number: '02',
     translationKey: 'goldenTemple',
     palette: 'amber',
+    image: '/egypt-assets/PNG/logo/slot_logo.jpg',
     path: '/games/egypt-slot',
   },
 ];
